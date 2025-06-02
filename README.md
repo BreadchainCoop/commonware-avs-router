@@ -1,3 +1,4 @@
+Please see [the following repo](https://github.com/BreadchainCoop/commonware-avs-router.git) for context on how to use this repo. 
 ```sh
 cp .example.env .env 
 ```
