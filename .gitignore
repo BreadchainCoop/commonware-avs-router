@@ -1,0 +1,11 @@
+/target/
+/eigenlayer/target
+/orchestrator/target
+/contributor/target
+/.env
+keys/
+/orchestrator/keys
+/contributor/keys
+/orchestrator/.env
+/contributor/.env
+.env
