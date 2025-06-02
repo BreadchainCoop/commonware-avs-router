@@ -1,0 +1,68 @@
+# .github/workflows/docker-build.yml
+name: Build & Push Docker Images
+
+permissions:
+  contents: read
+  packages: write
+
+on:
+  push:
+    branches:
+      - dev
+      - k8s
+    paths:
+      - 'docker/eigenlayer/**'
+      - 'docker/ethereum/**'
+  workflow_dispatch:
+
+jobs:
+  build-images:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Set up lowercase owner & short SHA
+        run: |
+          echo "OWNER_LOWER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+          echo "SHORT_SHA=${GITHUB_SHA:0:7}" >> $GITHUB_ENV
+
+      - name: Detect which Dockerfiles changed
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            eigenlayer:
+              - 'docker/eigenlayer/**'
+            ethereum:
+              - 'docker/ethereum/**'
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push Eigenlayer image
+        if: steps.changes.outputs.eigenlayer == 'true'
+        uses: docker/build-push-action@v3
+        with:
+          context: docker/eigenlayer
+          file: docker/eigenlayer/Dockerfile.eigenlayer
+          push: true
+          tags: |
+            ghcr.io/${{ env.OWNER_LOWER }}/eigenlayer:${{ github.ref_name }}
+            ghcr.io/${{ env.OWNER_LOWER }}/eigenlayer:${{ github.ref_name }}-${{ env.SHORT_SHA }}
+
+      - name: Build & Push Ethereum image
+        if: steps.changes.outputs.ethereum == 'true'
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: docker/ethereum/Dockerfile.ethereum
+          push: true
+          tags: |
+            ghcr.io/${{ env.OWNER_LOWER }}/ethereum:${{ github.ref_name }}
+            ghcr.io/${{ env.OWNER_LOWER }}/ethereum:${{ github.ref_name }}-${{ env.SHORT_SHA }}

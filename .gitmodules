@@ -1,0 +1,6 @@
+[submodule "eigenlayer-bls-local"]
+	path = eigenlayer-bls-local
+	url = https://github.com/BreadchainCoop/eigenlayer-bls-local.git
+[submodule "commonware-avs-node"]
+	path = commonware-avs-node
+	url = https://github.com/BreadchainCoop/gas-killer-avs-node

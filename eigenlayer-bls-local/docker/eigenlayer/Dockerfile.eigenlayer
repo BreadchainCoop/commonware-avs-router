@@ -1,0 +1,26 @@
+# Go builder stage
+FROM golang:1.21 AS go-builder
+RUN go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@v0.10.3
+RUN go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest
+# Final stage
+
+FROM ghcr.io/foundry-rs/foundry:latest
+USER root
+RUN apt update && apt install -y lsof jq tmux bash  
+COPY --from=go-builder /go/bin/eigenlayer /bin/
+COPY --from=go-builder /go/bin/grpcurl /bin/
+RUN git clone --recurse-submodules https://github.com/BreadchainCoop/bls-middleware.git
+RUN cd bls-middleware/contracts && forge build 
+WORKDIR /bls-middleware
+WORKDIR /
+
+COPY ./main.sh /main.sh
+RUN chmod +x /main.sh
+COPY ./register.sh /register.sh
+RUN chmod +x /register.sh
+COPY ./eject.sh /eject.sh
+RUN chmod +x /eject.sh
+COPY ./get_bls_key.sh /get_bls_key.sh
+RUN chmod +x /get_bls_key.sh
+
+ENTRYPOINT ["/main.sh"]
