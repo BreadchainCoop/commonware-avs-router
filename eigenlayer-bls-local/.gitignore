@@ -1,5 +1,0 @@
-.nodes/operator_keys/testacc*  
-.nodes/configs/testacc*
-.eigenlayer/operator_keys/testacc*
-.env
-.nodes/avs_deploy.json
