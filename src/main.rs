@@ -165,8 +165,8 @@ fn main() {
     // Start runtime
     runner.start(|context| async move {
         let (mut network, mut oracle) = Network::new(context.with_label("network"), p2p_cfg);
-        let mut quorum_infos = Vec::new();
-        let mut recipients = Vec::new();
+        let mut recipients ;
+        let quorum_infos;
         {
             eigen_logging::init_logger(LogLevel::Debug);
             // Get operator states and configure allowed peers
