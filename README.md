@@ -33,6 +33,7 @@ from the `eigenlayer-bls-local/.nodes/avs_deploy.json` file
 ```sh
 jq -r '.addresses.registryCoordinator' eigenlayer-bls-local/.nodes/avs_deploy.json | sed 's/^/REGISTRY_COORDINATOR_ADDRESS=/' >> commonware-avs-node/.env
 jq -r '.addresses.blsapkRegistry' eigenlayer-bls-local/.nodes/avs_deploy.json | sed 's/^/BLS_APK_REGISTRY_ADDRESS=/' >> commonware-avs-node/.env
+jq -r '.addresses.counter' eigenlayer-bls-local/.nodes/avs_deploy.json | sed 's/^/COUNTER_ADDRESS=/' >> commonware-avs-node/.env
 ```
 
 For `CONTRIBUTOR_X_KEYFILE`, use the  `../eigenlayer-bls-local/.nodes/operator_keys/testaccX.bls.key.json` keyfiles
@@ -75,6 +76,7 @@ Populate env variables as required
 ```sh
 jq -r '.addresses.registryCoordinator' eigenlayer-bls-local/.nodes/avs_deploy.json | sed 's/^/REGISTRY_COORDINATOR_ADDRESS=/' >> .env
 jq -r '.addresses.blsapkRegistry' eigenlayer-bls-local/.nodes/avs_deploy.json | sed 's/^/BLS_APK_REGISTRY_ADDRESS=/' >> .env
+jq -r '.addresses.counter' eigenlayer-bls-local/.nodes/avs_deploy.json | sed 's/^/COUNTER_ADDRESS=/' >> .env
 ```
 ## Orchestrator
 ```bash
