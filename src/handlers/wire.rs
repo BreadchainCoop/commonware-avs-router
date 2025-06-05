@@ -38,7 +38,6 @@ impl EncodeSize for Aggregation {
 pub mod aggregation {
 
     use bytes::{Buf, BufMut};
-    use commonware_codec::{EncodeSize, Error, Read, ReadExt, Write};
 
     /// Message sent by orchestrator to start aggregation
     #[derive(Clone, Debug, PartialEq)]
@@ -61,6 +60,7 @@ pub mod aggregation {
             0
         }
     }
+    use commonware_codec::{EncodeSize, Error, Read, ReadExt, ReadRangeExt, Write};
 
     /// Sent by signer to all others
     #[derive(Clone, Debug, PartialEq)]
@@ -70,8 +70,7 @@ pub mod aggregation {
 
     impl Write for Signature {
         fn write(&self, buf: &mut impl BufMut) {
-            (self.signature.len() as u32).write(buf);
-            buf.put_slice(&self.signature);
+            self.signature.write(buf);
         }
     }
 
@@ -79,19 +78,14 @@ pub mod aggregation {
         type Cfg = ();
 
         fn read_cfg(buf: &mut impl Buf, _: &()) -> Result<Self, Error> {
-            let len = u32::read(buf)? as usize;
-            if buf.remaining() < len {
-                return Err(Error::EndOfBuffer);
-            }
-            let mut signature = vec![0u8; len];
-            buf.copy_to_slice(&mut signature);
+            let signature = Vec::<u8>::read_range(buf, ..)?;
             Ok(Self { signature })
         }
     }
 
     impl EncodeSize for Signature {
         fn encode_size(&self) -> usize {
-            4 + self.signature.len() // u32 for length + bytes
+            self.signature.encode_size()
         }
     }
 
@@ -172,4 +166,4 @@ mod tests {
         let decoded = Aggregation::read(&mut std::io::Cursor::new(buf)).unwrap();
         assert_eq!(original, decoded);
     }
-} 
+}
