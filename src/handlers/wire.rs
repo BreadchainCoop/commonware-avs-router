@@ -38,28 +38,6 @@ impl EncodeSize for Aggregation {
 pub mod aggregation {
 
     use bytes::{Buf, BufMut};
-
-    /// Message sent by orchestrator to start aggregation
-    #[derive(Clone, Debug, PartialEq)]
-    pub struct Start {}
-
-    impl Write for Start {
-        fn write(&self, _buf: &mut impl BufMut) {}
-    }
-
-    impl Read for Start {
-        type Cfg = ();
-
-        fn read_cfg(_buf: &mut impl Buf, _: &()) -> Result<Self, Error> {
-            Ok(Self {})
-        }
-    }
-
-    impl EncodeSize for Start {
-        fn encode_size(&self) -> usize {
-            0
-        }
-    }
     use commonware_codec::{EncodeSize, Error, Read, ReadExt, ReadRangeExt, Write};
 
     /// Sent by signer to all others
@@ -93,7 +71,7 @@ pub mod aggregation {
     #[derive(Clone, Debug, PartialEq)]
     pub enum Payload {
         /// Message sent by orchestrator to start aggregation
-        Start(Start),
+        Start,
         /// Sent by signer to all others
         Signature(Signature),
     }
@@ -101,9 +79,8 @@ pub mod aggregation {
     impl Write for Payload {
         fn write(&self, buf: &mut impl BufMut) {
             match self {
-                Payload::Start(start) => {
+                Payload::Start => {
                     buf.put_u8(0);
-                    start.write(buf);
                 }
                 Payload::Signature(signature) => {
                     buf.put_u8(1);
@@ -119,7 +96,7 @@ pub mod aggregation {
         fn read_cfg(buf: &mut impl Buf, _: &()) -> Result<Self, Error> {
             let tag = u8::read(buf)?;
             let result = match tag {
-                0 => Payload::Start(Start::read(buf)?),
+                0 => Payload::Start,
                 1 => Payload::Signature(Signature::read(buf)?),
                 _ => return Err(Error::InvalidEnum(tag)),
             };
@@ -130,7 +107,7 @@ pub mod aggregation {
     impl EncodeSize for Payload {
         fn encode_size(&self) -> usize {
             1 + match self {
-                Payload::Start(start) => start.encode_size(),
+                Payload::Start => 0,
                 Payload::Signature(signature) => signature.encode_size(),
             }
         }
@@ -145,7 +122,7 @@ mod tests {
     fn test_aggregation_start_codec() {
         let original = Aggregation {
             round: 1,
-            payload: Some(aggregation::Payload::Start(aggregation::Start {})),
+            payload: Some(aggregation::Payload::Start),
         };
         let mut buf = Vec::with_capacity(original.encode_size());
         original.write(&mut buf);
