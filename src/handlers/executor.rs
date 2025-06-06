@@ -39,7 +39,7 @@ impl Executor {
         address
     }
 
-    pub async fn execute_vote(
+    pub async fn execute_verification(
         &mut self,
         payload_hash: &[u8],
         participating_g1: &[G1PublicKey],

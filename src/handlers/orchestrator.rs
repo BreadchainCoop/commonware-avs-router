@@ -187,7 +187,7 @@ impl<E: Clock> Orchestrator<E> {
                         }
 
                         // Execute the vote with the aggregated signature
-                        match executor.execute_vote(
+                        match executor.execute_verification(
                             &payload,
                             &participating_g1,
                             &participating,

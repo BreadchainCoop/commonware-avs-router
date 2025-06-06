@@ -73,7 +73,7 @@ sequenceDiagram
 - Handles on-chain execution of votes
 - Manages interaction with smart contracts
 - Key methods:
-  - `execute_vote()`: Executes the vote on-chain with aggregated signature
+  - `execute_verification()`: Executes the vote on-chain with aggregated signature
   - `ensure_g1_hash_map_entry()`: Maps G1 public keys to operator addresses
 
 ### 4. Validator (`src/handlers/validator.rs`)
