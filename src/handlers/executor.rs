@@ -13,6 +13,7 @@ use eigen_crypto_bls::convert_to_g1_point;
 use std::{env, str::FromStr, collections::HashMap};
 use crate::bindings::blssigcheckoperatorstateretriever::BN254::G1Point;
 use commonware_utils::hex;
+use crate::config::AvsDeployment;
 
 pub struct Executor {
     view_only_provider: FillProvider<JoinFill<alloy_provider::Identity, JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>>, RootProvider>,
@@ -92,7 +93,12 @@ pub async fn create_executor() -> Result<Executor, Box<dyn std::error::Error + S
     let http_rpc = env::var("HTTP_RPC").expect("HTTP_RPC must be set");
     let view_only_provider = ProviderBuilder::new()
         .on_http(url::Url::parse(&http_rpc).unwrap());
-    let bls_apk_registry_address = Address::from_str(&env::var("BLS_APK_REGISTRY_ADDRESS").expect("BLS_APK_REGISTRY_ADDRESS must be set")).unwrap();
+    
+    let deployment = AvsDeployment::load()?;
+    let bls_apk_registry_address = deployment.bls_apk_registry_address()?;
+    let registry_coordinator_address = deployment.registry_coordinator_address()?;
+    let counter_address = deployment.counter_address()?;
+    
     let ecdsa_signer = PrivateKeySigner::from_str(&env::var("PRIVATE_KEY").expect("PRIVATE_KEY must be set")).unwrap();
     let bls_operator_state_retriever_address = Address::from_str(&env::var("OPERATOR_STATE_RETRIEVER").expect("OPERATOR_STATE_RETRIEVER must be set")).unwrap();
     
@@ -101,8 +107,7 @@ pub async fn create_executor() -> Result<Executor, Box<dyn std::error::Error + S
         .connect(&http_rpc).await.unwrap();
     let bls_apk_registry = BLSApkRegistry::new(bls_apk_registry_address, view_only_provider.clone());
     let bls_operator_state_retriever = BLSSigCheckOperatorStateRetriever::new(bls_operator_state_retriever_address, view_only_provider.clone());
-    let counter = Counter::new(Address::from_str(&env::var("COUNTER_ADDRESS").expect("COUNTER_ADDRESS must be set")).unwrap(), write_provider.clone());
-    let registry_coordinator_address = Address::from_str(&env::var("REGISTRY_COORDINATOR_ADDRESS").expect("REGISTRY_COORDINATOR_ADDRESS must be set")).unwrap();
+    let counter = Counter::new(counter_address, write_provider.clone());
 
     Ok(Executor {
         view_only_provider,

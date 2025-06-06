@@ -186,7 +186,7 @@ impl<E: Clock> Orchestrator<E> {
                             panic!("failed to verify aggregated signature");
                         }
 
-                        // Execute the vote with the aggregated signature
+                        // Execute the increment with the aggregated signature
                         match executor.execute_verification(
                             &payload,
                             &participating_g1,
@@ -196,14 +196,14 @@ impl<E: Clock> Orchestrator<E> {
                             Ok(result) => {
                                 info!(
                                     round = msg.round,
-                                    "Successfully executed vote with aggregated signature. Result: {:?}",
+                                    "Successfully executed increment with aggregated signature. Result: {:?}",
                                     result
                                 );
                             },
                             Err(e) => {
                                 info!(
                                     round = msg.round,
-                                    "Failed to execute vote with aggregated signature: {:?}",
+                                    "Failed to execute increment with aggregated signature: {:?}",
                                     e
                                 );
                             }

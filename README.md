@@ -70,10 +70,10 @@ sequenceDiagram
   - `encode_number_call()`: Encodes the number for on-chain execution
 
 ### 3. Executor (`src/handlers/executor.rs`)
-- Handles on-chain execution of votes
+- Handles on-chain execution of increment
 - Manages interaction with smart contracts
 - Key methods:
-  - `execute_verification()`: Executes the vote on-chain with aggregated signature
+  - `execute_verification()`: Executes the increment on-chain with aggregated signature
   - `ensure_g1_hash_map_entry()`: Maps G1 public keys to operator addresses
 
 ### 4. Validator (`src/handlers/validator.rs`)
@@ -89,6 +89,13 @@ sequenceDiagram
 - Key message types:
   - `Start`: Message to start aggregation
   - `Signature`: Message containing a signature
+
+### 6. Configuration (`src/config.rs`)
+- Handles reading contract addresses from the AVS deployment JSON file
+- Automatically loads contract addresses without manual configuration
+- Key methods:
+  - `load()`: Loads deployment configuration from JSON file
+  - Contract address getters for registry coordinator, BLS APK registry, and counter
 
 ## System Flow
 
@@ -108,17 +115,19 @@ The system interacts with several smart contracts:
 - BLSApkRegistry: Maps public keys to operator addresses
 - OperatorStateRetriever: Retrieves operator state and stakes
 
+Contract addresses are automatically read from the `avs_deploy.json` file specified in the `AVS_DEPLOYMENT_PATH` environment variable.
+
 ## Environment Variables
 
 The following environment variables are required:
 - `HTTP_RPC`: HTTP RPC endpoint
-- `WS_RPC`: WebSocket RPC endpoint
-- `AVS_DEPLOYMENT_PATH`: Path to AVS deployment
-- `BLS_APK_REGISTRY_ADDRESS`: Address of BLS APK Registry contract
+- `WS_RPC`: WebSocket RPC endpoint  
+- `AVS_DEPLOYMENT_PATH`: Path to AVS deployment JSON file (contains contract addresses)
 - `OPERATOR_STATE_RETRIEVER`: Address of Operator State Retriever contract
-- `COUNTER_ADDRESS`: Address of Counter contract
-- `REGISTRY_COORDINATOR_ADDRESS`: Address of Registry Coordinator contract
 - `PRIVATE_KEY`: Private key for signing transactions
+- `CONTRIBUTOR_X_KEYFILE`: Path to BLS key files for contributors
+
+**Note**: Contract addresses (COUNTER_ADDRESS, REGISTRY_COORDINATOR_ADDRESS, BLS_APK_REGISTRY_ADDRESS) are now automatically read from the deployment JSON file and no longer need to be set as environment variables.
 
 ## Usage
 
@@ -138,9 +147,10 @@ cargo run -- --key-file <path_to_key_file> --port <port_number>
 - eigen_crypto_bls: BLS cryptography
 - governor: Rate limiting
 - serde: Serialization/deserialization
+- serde_json: JSON parsing for configuration
 - tracing: Logging
 
-## Set Up Enviroment 
+## Set Up Environment 
 
 ```sh
 git submodule update --init --recursive
@@ -154,35 +164,22 @@ When the process is finished (You should see `Operator X weight in quorum 0: 118
 docker compose down 
 ```
 
-
 ## Set Up Nodes 
 ```sh
 cd ../commonware-avs-node
 cargo build 
 cp example.env .env 
 ```
-Fill in the following env variables in the commonware-avs-node 
-```
-COUNTER_ADDRESS
-REGISTRY_COORDINATOR_ADDRESS
-BLS_APK_REGISTRY_ADDRESS
-```
-from the `eigenlayer-bls-local/.nodes/avs_deploy.json` file
 
-You can do this manually or use the update_env.sh script
+The contract addresses (COUNTER_ADDRESS, REGISTRY_COORDINATOR_ADDRESS, BLS_APK_REGISTRY_ADDRESS) are now automatically read from the `avs_deploy.json` file specified in `AVS_DEPLOYMENT_PATH`. You only need to manually set:
 
-```sh
-cd ..
-chmod +x update_node_env.sh
-./update_node_env.sh
-```
+- Your private key (`PRIVATE_KEY`)
+- RPC URLs (`HTTP_RPC`, `WS_RPC`) 
+- The path to the deployment file (`AVS_DEPLOYMENT_PATH`)
 
-Manually add your private key and rpc url to the env
+For `CONTRIBUTOR_X_KEYFILE`, use the `../eigenlayer-bls-local/.nodes/operator_keys/testaccX.bls.key.json` keyfiles.
 
-For `CONTRIBUTOR_X_KEYFILE`, use the  `../eigenlayer-bls-local/.nodes/operator_keys/testaccX.bls.key.json` keyfiles
-Populate : 
 In 3 different terminals: 
-
 
 ## Contributor 1
 ```bash
@@ -205,25 +202,19 @@ cd commonware-avs-node
 source .env
 cargo run --release -- --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestrator orchestrator.json 
 ```
-Note that the further in time you get from the deployment, the longer the init for the contributors will take and you may need to init them 1 by 1 in 
-order to not max out rpc limits.
-
+Note that the further in time you get from the deployment, the longer the init for the contributors will take and you may need to init them 1 by 1 in order to not max out rpc limits.
 
 # Run Router 
 
 ```sh
 cp example.env .env 
 ```
-Populate env variables as required 
 
-You can do this manually or use the update_router_env.sh script:
+The contract addresses are automatically read from the `avs_deploy.json` file. You only need to manually configure:
 
-```sh
-chmod +x update_router_env.sh
-./update_router_env.sh
-```
-
-Manually add your private key and rpc url to the env
+- Your private key (`PRIVATE_KEY`)
+- RPC URLs (`HTTP_RPC`, `WS_RPC`)
+- The path to the deployment file (`AVS_DEPLOYMENT_PATH`)
 
 ## Orchestrator
 ```bash

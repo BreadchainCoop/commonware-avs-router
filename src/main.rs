@@ -1,4 +1,5 @@
 mod bindings;
+mod config;
 mod handlers;
 
 //use alloy_primitives::{address, hex_literal::hex};
