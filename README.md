@@ -1,3 +1,158 @@
+# Commonware AVS Router
+
+This repository implements a BLS signature aggregation protocol with on-chain execution, where multiple operators sign messages that are then aggregated and executed on-chain when a threshold is reached.
+
+## System Architecture
+
+The system consists of several key components that work together to implement the signature aggregation protocol:
+
+### Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    participant Main
+    participant Orchestrator
+    participant Creator
+    participant Network
+    participant Validator
+    participant Executor
+    participant Counter Contract
+    participant BLSApkRegistry
+    participant OperatorStateRetriever
+
+    Main->>Orchestrator: Initialize
+    Note over Orchestrator: Loads operators and configures network
+    
+    loop Every 30 seconds
+        Orchestrator->>Creator: get_payload_and_round()
+        Creator->>Counter Contract: number()
+        Counter Contract-->>Creator: current_number
+        Creator->>Creator: encode_number_call()
+        Creator-->>Orchestrator: (payload, round_number)
+        
+        Orchestrator->>Network: Broadcast Start message
+        Note over Network: Sends to all operators
+        
+        loop Until aggregation_frequency
+            Network->>Orchestrator: Receive signature
+            Orchestrator->>Validator: validate_and_return_expected_hash()
+            Validator->>Counter Contract: number()
+            Counter Contract-->>Validator: current_number
+            Validator-->>Orchestrator: payload_hash
+            
+            Note over Orchestrator: Verify signature
+            
+            alt Signature valid
+                Orchestrator->>Orchestrator: Store signature
+                
+                alt Threshold reached
+                    Orchestrator->>Orchestrator: Aggregate signatures
+                    Orchestrator->>Executor: execute_vote()
+                    
+                    Executor->>BLSApkRegistry: pubkeyHashToOperator()
+                    BLSApkRegistry-->>Executor: operator_address
+                    
+                    Executor->>OperatorStateRetriever: getNonSignerStakesAndSignature()
+                    OperatorStateRetriever-->>Executor: non_signer_data
+                    
+                    Executor->>Counter Contract: increment()
+                    Counter Contract-->>Executor: receipt
+                    Executor-->>Orchestrator: Success
+                end
+            end
+        end
+    end
+```
+
+## Key Components
+
+### 1. Orchestrator (`src/handlers/orchestrator.rs`)
+- Main coordinator that manages the entire aggregation process
+- Maintains list of contributors and their G1/G2 public keys
+- Handles signature collection and aggregation
+- Manages the timing of aggregation rounds
+- Key methods:
+  - `new()`: Initializes with contributors and configuration
+  - `run()`: Main loop that manages the aggregation process
+
+### 2. Creator (`src/handlers/creator.rs`)
+- Handles payload creation and round number management
+- Interacts with the counter contract to get current round
+- Key methods:
+  - `get_payload_and_round()`: Gets current round and encoded payload
+  - `encode_number_call()`: Encodes the number for on-chain execution
+
+### 3. Executor (`src/handlers/executor.rs`)
+- Handles on-chain execution of votes
+- Manages interaction with smart contracts
+- Key methods:
+  - `execute_vote()`: Executes the vote on-chain with aggregated signature
+  - `ensure_g1_hash_map_entry()`: Maps G1 public keys to operator addresses
+
+### 4. Validator (`src/handlers/validator.rs`)
+- Validates messages and payloads
+- Ensures round numbers match
+- Key methods:
+  - `validate_and_return_expected_hash()`: Validates message and returns hash
+  - `verify_message_round()`: Verifies round number matches current state
+
+### 5. Wire Protocol (`src/handlers/wire.rs`)
+- Defines the message format for communication
+- Handles serialization/deserialization
+- Key message types:
+  - `Start`: Message to start aggregation
+  - `Signature`: Message containing a signature
+
+## System Flow
+
+1. The Orchestrator initializes with a list of operators and their public keys
+2. Every 30 seconds (configurable), it:
+   - Gets a new payload and round number from the Creator
+   - Broadcasts a Start message to all operators
+   - Collects signatures from operators
+   - Validates each signature
+   - When threshold is reached, aggregates signatures
+   - Executes the vote on-chain through the Executor
+
+## Smart Contracts
+
+The system interacts with several smart contracts:
+- Counter Contract: Tracks rounds and executes votes
+- BLSApkRegistry: Maps public keys to operator addresses
+- OperatorStateRetriever: Retrieves operator state and stakes
+
+## Environment Variables
+
+The following environment variables are required:
+- `HTTP_RPC`: HTTP RPC endpoint
+- `WS_RPC`: WebSocket RPC endpoint
+- `AVS_DEPLOYMENT_PATH`: Path to AVS deployment
+- `BLS_APK_REGISTRY_ADDRESS`: Address of BLS APK Registry contract
+- `OPERATOR_STATE_RETRIEVER`: Address of Operator State Retriever contract
+- `COUNTER_ADDRESS`: Address of Counter contract
+- `REGISTRY_COORDINATOR_ADDRESS`: Address of Registry Coordinator contract
+- `PRIVATE_KEY`: Private key for signing transactions
+
+## Usage
+
+1. Set up the required environment variables
+2. Run the orchestrator:
+```bash
+cargo run -- --key-file <path_to_key_file> --port <port_number>
+```
+
+## Dependencies
+
+- alloy: Ethereum interaction
+- bn254: BLS signature operations
+- commonware_cryptography: Cryptographic operations
+- commonware_p2p: P2P networking
+- commonware_runtime: Runtime utilities
+- eigen_crypto_bls: BLS cryptography
+- governor: Rate limiting
+- serde: Serialization/deserialization
+- tracing: Logging
+
 ## Set Up Enviroment 
 
 ```sh
