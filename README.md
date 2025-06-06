@@ -23,19 +23,15 @@ sequenceDiagram
     loop Every 30 seconds
         Orchestrator->>Creator: get_payload_and_round()
         Creator->>Counter Contract: number()
-        Counter Contract-->>Creator: current_number
-        Creator->>Creator: encode_number_call()
         Creator-->>Orchestrator: (payload, round_number)
         
-        Orchestrator->>Network: Broadcast Start message
+        Orchestrator->>Network: Broadcast current round 
         Note over Network: Sends to all operators
         
-        loop Until aggregation_frequency
-            Network->>Orchestrator: Receive signature
-            Orchestrator->>Validator: validate_and_return_expected_hash()
-            Validator->>Counter Contract: number()
-            Counter Contract-->>Validator: current_number
-            Validator-->>Orchestrator: payload_hash
+        loop for each round
+            Network->> Validator: Receive round
+            Network->>Orchestrator: recieve Validator signature and payload
+            Orchestrator ->> Orchestrator: validate_and_return_expected_hash()
             
             Note over Orchestrator: Verify signature
             
@@ -44,7 +40,7 @@ sequenceDiagram
                 
                 alt Threshold reached
                     Orchestrator->>Orchestrator: Aggregate signatures
-                    Note over Orchestrator: Ready for on-chain execution
+                    Orchestrator->> Executor: execute_verification()
                 end
             end
         end
