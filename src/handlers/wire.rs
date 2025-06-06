@@ -40,6 +40,7 @@ pub mod aggregation {
     use bytes::{Buf, BufMut};
     use commonware_codec::{EncodeSize, Error, Read, ReadExt, ReadRangeExt, Write};
 
+    const MAX_SIGNATURE_SIZE_BYTES: usize = 256;
     /// Sent by signer to all others
     #[derive(Clone, Debug, PartialEq)]
     pub struct Signature {
@@ -56,7 +57,7 @@ pub mod aggregation {
         type Cfg = ();
 
         fn read_cfg(buf: &mut impl Buf, _: &()) -> Result<Self, Error> {
-            let signature = Vec::<u8>::read_range(buf, ..)?;
+            let signature = Vec::<u8>::read_range(buf, 0..MAX_SIGNATURE_SIZE_BYTES)?;
             Ok(Self { signature })
         }
     }
