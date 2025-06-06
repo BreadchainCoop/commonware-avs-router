@@ -59,7 +59,7 @@ sequenceDiagram
   - `run()`: Main loop that manages the aggregation process
 
 ### 2. Creator (`src/handlers/creator.rs`)
-- Handles payload creation and round number management
+- Handles  round payload creation and round number management
 - Interacts with the counter contract to get current round
 - Key methods:
   - `get_payload_and_round()`: Gets current round and encoded payload
@@ -67,13 +67,13 @@ sequenceDiagram
 
 ### 3. Executor (`src/handlers/executor.rs`)
 - Handles on-chain execution of increment
-- Manages interaction with smart contracts
+- Manages execution env specific interaction with smart contracts and verification metadata
 - Key methods:
   - `execute_verification()`: Executes the increment on-chain with aggregated signature
   - `ensure_g1_hash_map_entry()`: Maps G1 public keys to operator addresses
 
 ### 4. Validator (`src/handlers/validator.rs`)
-- Validates messages and payloads
+- Validates round payloads propogated with a signature match the expected round message hash  
 - Ensures round numbers match
 - Key methods:
   - `validate_and_return_expected_hash()`: Validates message and returns hash
@@ -81,10 +81,10 @@ sequenceDiagram
 
 ### 5. Wire Protocol (`src/handlers/wire.rs`)
 - Defines the message format for communication
+- Protocol specific round information should be defined here 
+- Orchestrator ingress should conform to wire.rs defintions
 - Handles serialization/deserialization
 - Key message types:
-  - `Start`: Message to start aggregation
-  - `Signature`: Message containing a signature
 
 ### 6. Configuration (`src/config.rs`)
 - Handles reading contract addresses from the AVS deployment JSON file
@@ -214,5 +214,5 @@ The contract addresses are automatically read from the `avs_deploy.json` file. Y
 
 ## Orchestrator
 ```bash
-cargo run --release -- --key-file commonware-avs-node/orchestrator.json --port 3000 
+cargo run --release -- --key-file commonware-avs-node/orchestrator.json --port 3000 #TODO open an issue for distributed orchestration and web2 ingress
 ```
