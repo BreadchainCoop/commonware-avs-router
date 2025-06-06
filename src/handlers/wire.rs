@@ -42,31 +42,6 @@ pub mod aggregation {
 
     const MAX_SIGNATURE_SIZE_BYTES: usize = 256;
     /// Sent by signer to all others
-    #[derive(Clone, Debug, PartialEq)]
-    pub struct Signature {
-        pub signature: Vec<u8>,
-    }
-
-    impl Write for Signature {
-        fn write(&self, buf: &mut impl BufMut) {
-            self.signature.write(buf);
-        }
-    }
-
-    impl Read for Signature {
-        type Cfg = ();
-
-        fn read_cfg(buf: &mut impl Buf, _: &()) -> Result<Self, Error> {
-            let signature = Vec::<u8>::read_range(buf, 0..MAX_SIGNATURE_SIZE_BYTES)?;
-            Ok(Self { signature })
-        }
-    }
-
-    impl EncodeSize for Signature {
-        fn encode_size(&self) -> usize {
-            self.signature.encode_size()
-        }
-    }
 
     /// Defines the different types of messages exchanged during the aggregation protocol.
     #[derive(Clone, Debug, PartialEq)]
@@ -74,7 +49,7 @@ pub mod aggregation {
         /// Message sent by orchestrator to start aggregation
         Start,
         /// Sent by signer to all others
-        Signature(Signature),
+        Signature(Vec<u8>),
     }
 
     impl Write for Payload {
@@ -98,7 +73,7 @@ pub mod aggregation {
             let tag = u8::read(buf)?;
             let result = match tag {
                 0 => Payload::Start,
-                1 => Payload::Signature(Signature::read(buf)?),
+                1 => Payload::Signature(Vec::<u8>::read_range(buf, 0..MAX_SIGNATURE_SIZE_BYTES)?),
                 _ => return Err(Error::InvalidEnum(tag)),
             };
             Ok(result)
@@ -135,9 +110,7 @@ mod tests {
     fn test_aggregation_signature_codec() {
         let original = Aggregation {
             round: 1,
-            payload: Some(aggregation::Payload::Signature(aggregation::Signature {
-                signature: vec![1, 2, 3],
-            })),
+            payload: Some(aggregation::Payload::Signature(vec![1, 2, 3])),
         };
         let mut buf = Vec::with_capacity(original.encode_size());
         original.write(&mut buf);

@@ -130,7 +130,7 @@ impl<E: Clock> Orchestrator<E> {
                         let signature = match msg.payload.clone() {
                             Some(Payload::Signature(signature)) => {
                                 info!("Received signature for round: {} from contributor: {:?}", msg.round, contributor);
-                                signature.signature
+                                signature
                             },
                             _ => {
                                 info!("Received non-signature payload from contributor: {:?}", contributor);
