@@ -1,14 +1,11 @@
 ## Set Up Enviroment 
 
 ```sh
+git submodule update --init --recursive
 cd eigenlayer-bls-local
-docker compose build 
 ```
-Follow the instructions in the `eigenlayer-bls-local/README.md` to run testnet mode 
+Follow the instructions in the `eigenlayer-bls-local/README.md` to run TESTNET mode 
 
-```sh
-docker compose up 
-```
 When the process is finished (You should see `Operator X weight in quorum 0: 11887896997963931 [1.188e16]` where X is the number of test accounts configured) 
 
 ```sh
@@ -18,23 +15,27 @@ docker compose down
 
 ## Set Up Nodes 
 ```sh
-cd `commonware-avs-node`
+cd ../commonware-avs-node
 cargo build 
-cp .example.env .env 
+cp example.env .env 
 ```
-Fill in the following env variables 
+Fill in the following env variables in the commonware-avs-node 
 ```
 COUNTER_ADDRESS
 REGISTRY_COORDINATOR_ADDRESS
 BLS_APK_REGISTRY_ADDRESS
 ```
 from the `eigenlayer-bls-local/.nodes/avs_deploy.json` file
-(Snippet to do so using `jq`) 
-```sh
-jq -r '.addresses.registryCoordinator' eigenlayer-bls-local/.nodes/avs_deploy.json | sed 's/^/REGISTRY_COORDINATOR_ADDRESS=/' >> commonware-avs-node/.env
-jq -r '.addresses.blsapkRegistry' eigenlayer-bls-local/.nodes/avs_deploy.json | sed 's/^/BLS_APK_REGISTRY_ADDRESS=/' >> commonware-avs-node/.env
-jq -r '.addresses.counter' eigenlayer-bls-local/.nodes/avs_deploy.json | sed 's/^/COUNTER_ADDRESS=/' >> commonware-avs-node/.env
+
+You can do this manually or use the update_env.sh script
+
 ```
+cd ..
+chmod +x update_node_env.sh
+./update_node_env.sh
+```
+
+Manually add your private key and rpc url to the env
 
 For `CONTRIBUTOR_X_KEYFILE`, use the  `../eigenlayer-bls-local/.nodes/operator_keys/testaccX.bls.key.json` keyfiles
 Populate : 
@@ -65,19 +66,23 @@ cargo run --release -- --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestra
 Note that the further in time you get from the deployment, the longer the init for the contributors will take and you may need to init them 1 by 1 in 
 order to not max out rpc limits.
 
+
 # Run Router 
 
 ```sh
-cp .example.env .env 
+cp example.env .env 
 ```
 Populate env variables as required 
 
-(Snippet to do so using `jq` for deployed variables) 
+You can do this manually or use the update_router_env.sh script:
+
 ```sh
-jq -r '.addresses.registryCoordinator' eigenlayer-bls-local/.nodes/avs_deploy.json | sed 's/^/REGISTRY_COORDINATOR_ADDRESS=/' >> .env
-jq -r '.addresses.blsapkRegistry' eigenlayer-bls-local/.nodes/avs_deploy.json | sed 's/^/BLS_APK_REGISTRY_ADDRESS=/' >> .env
-jq -r '.addresses.counter' eigenlayer-bls-local/.nodes/avs_deploy.json | sed 's/^/COUNTER_ADDRESS=/' >> .env
+chmod +x update_router_env.sh
+./update_router_env.sh
 ```
+
+Manually add your private key and rpc url to the env
+
 ## Orchestrator
 ```bash
 cargo run --release -- --key-file keys/orchestrator.json --port 3000 
