@@ -240,5 +240,5 @@ Manually add your private key and rpc url to the env
 
 ## Orchestrator
 ```bash
-cargo run --release -- --key-file keys/orchestrator.json --port 3000 
+cargo run --release -- --key-file commonware-avs-node/orchestrator.json --port 3000 
 ```
