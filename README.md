@@ -15,10 +15,7 @@ sequenceDiagram
     participant Creator
     participant Network
     participant Validator
-    participant Executor
     participant Counter Contract
-    participant BLSApkRegistry
-    participant OperatorStateRetriever
 
     Main->>Orchestrator: Initialize
     Note over Orchestrator: Loads operators and configures network
@@ -47,17 +44,7 @@ sequenceDiagram
                 
                 alt Threshold reached
                     Orchestrator->>Orchestrator: Aggregate signatures
-                    Orchestrator->>Executor: execute_vote()
-                    
-                    Executor->>BLSApkRegistry: pubkeyHashToOperator()
-                    BLSApkRegistry-->>Executor: operator_address
-                    
-                    Executor->>OperatorStateRetriever: getNonSignerStakesAndSignature()
-                    OperatorStateRetriever-->>Executor: non_signer_data
-                    
-                    Executor->>Counter Contract: increment()
-                    Counter Contract-->>Executor: receipt
-                    Executor-->>Orchestrator: Success
+                    Note over Orchestrator: Ready for on-chain execution
                 end
             end
         end
@@ -184,7 +171,7 @@ from the `eigenlayer-bls-local/.nodes/avs_deploy.json` file
 
 You can do this manually or use the update_env.sh script
 
-```
+```sh
 cd ..
 chmod +x update_node_env.sh
 ./update_node_env.sh
