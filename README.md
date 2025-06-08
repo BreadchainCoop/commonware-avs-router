@@ -228,5 +228,5 @@ The contract addresses are automatically read from the `avs_deploy.json` file. Y
 
 ## Orchestrator
 ```bash
-cargo run --release -- --key-file commonware-avs-node/orchestrator.json --port 3000 #TODO open an issue for distributed orchestration and web2 ingress
+cargo run --release -- --key-file commonware-avs-node/orchestrator.json --port 3000
 ```
