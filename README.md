@@ -69,13 +69,26 @@ sequenceDiagram
 ### 3. Executor (`src/handlers/executor.rs`)
 - Handles on-chain execution of increment
 - Manages execution env specific interaction with smart contracts and verification metadata
+- Maintains a mapping of G1 public keys to operator addresses for efficient lookups
+- Interacts with multiple smart contracts:
+  - BLSApkRegistry: For operator address lookups
+  - BLSSigCheckOperatorStateRetriever: For stake and signature verification
+  - Counter: For executing the actual increment operation
 - Key methods:
   - `execute_verification()`: Executes the increment on-chain with aggregated signature
+    - Takes payload hash, participating G1 keys, participating public keys, and signatures
+    - Aggregates signatures and converts to G1 point
+    - Retrieves non-signer stakes and signature data (BLS Signature verification metadata conforming to the [BLSSignatureChecker](https://github.com/Layr-Labs/eigenlayer-middleware/blob/dev/src/BLSSignatureChecker.sol))
+    - Executes the increment transaction on-chain
   - `ensure_g1_hash_map_entry()`: Maps G1 public keys to operator addresses
+    - Caches operator addresses for efficient lookups
+    - Converts G1 public keys to operator addresses via BLSApkRegistry
+    - Maintains an in-memory mapping to avoid repeated on-chain lookups
 
 ### 4. Validator (`src/handlers/validator.rs`)
 - Validates round payloads propogated with a signature match the expected round message hash  
 - Ensures round numbers match
+- Placeholder for protocol / business logic
 - Key methods:
   - `validate_and_return_expected_hash()`: Validates message and returns hash
   - `verify_message_round()`: Verifies round number matches current state
