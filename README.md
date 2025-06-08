@@ -54,7 +54,7 @@ sequenceDiagram
 - Main coordinator that manages the entire aggregation process
 - Maintains list of contributors and their G1/G2 public keys
 - listens to network gossip and performs signature collection and aggregation
-- Manages the timing of aggregation rounds
+- Manages the creation of aggregation rounds
 - Key methods:
   - `new()`: Initializes with contributors and configuration
   - `run()`: Main loop that manages the aggregation process
