@@ -10,14 +10,11 @@ The system consists of several key components that work together to implement th
 
 ```mermaid
 sequenceDiagram
-    participant Main
     participant Orchestrator
     participant Creator
     participant Network
-    participant Validator
     participant Counter Contract
 
-    Main->>Orchestrator: Initialize
     Note over Orchestrator: Loads operators and configures network
     
     loop Every 30 seconds
@@ -30,6 +27,8 @@ sequenceDiagram
         
         loop for each round
             Network->> Validator: Receive round
+            Validator ->> Validator : Perform current round validation
+            Validator ->> Network : Broadcast signed round verification
             Network->>Orchestrator: recieve Validator signature and payload
             Orchestrator ->> Orchestrator: validate_and_return_expected_hash()
             
@@ -41,6 +40,8 @@ sequenceDiagram
                 alt Threshold reached
                     Orchestrator->>Orchestrator: Aggregate signatures
                     Orchestrator->> Executor: execute_verification()
+                    Executor ->> Counter Contract : forward signature
+                    Counter Contract ->>  Counter Contract: increment() (Onchain verification) 
                 end
             end
         end
