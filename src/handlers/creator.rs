@@ -8,6 +8,7 @@ use std::{env, str::FromStr};
 use NumberEncoder::yourNumbFuncCall;
 
 use crate::bindings::counter::Counter;
+use crate::config::AvsDeployment;
 
 sol! {
     contract NumberEncoder {
@@ -48,7 +49,7 @@ impl Creator {
 }
 
 // Helper function to create a new Creator instance
-pub async fn create_creator() -> Result<Creator, Box<dyn std::error::Error>> {
+pub async fn create_creator() -> Result<Creator, Box<dyn std::error::Error + Send + Sync>> {
     let http_rpc = env::var("HTTP_RPC").expect("HTTP_RPC must be set");
     let private_key = env::var("PRIVATE_KEY").expect("PRIVATE_KEY must be set");
     let signer = PrivateKeySigner::from_str(&private_key)?;
@@ -57,7 +58,8 @@ pub async fn create_creator() -> Result<Creator, Box<dyn std::error::Error>> {
         .connect(&http_rpc)
         .await?;
     
-    let counter_address = Address::from_str(&env::var("COUNTER_ADDRESS").expect("COUNTER_ADDRESS must be set"))?;
+    let deployment = AvsDeployment::load()?;
+    let counter_address = deployment.counter_address()?;
     
     Ok(Creator::new(provider, counter_address))
 }
