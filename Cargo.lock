@@ -3038,7 +3038,7 @@ dependencies = [
 [[package]]
 name = "commonware-eigenlayer"
 version = "0.1.0"
-source = "git+https://github.com/BreadchainCoop/commonware-avs-network-lookup#11abf0471780ef24b698ab868ae358b818eb60d3"
+source = "git+https://github.com/BreadchainCoop/commonware-avs-network-lookup#5d6da42fd4e7790324ca4f4946c46e11747c6a2c"
 dependencies = [
  "alloy 0.8.3",
  "alloy-network 0.5.4",
@@ -3060,6 +3060,7 @@ dependencies = [
  "eigen-utils 0.1.3",
  "eyre",
  "rand 0.9.1",
+ "serde",
  "serde_json",
  "tokio",
  "tokio-rustls 0.24.1",
