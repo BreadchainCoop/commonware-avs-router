@@ -3039,7 +3039,7 @@ dependencies = [
 [[package]]
 name = "commonware-eigenlayer"
 version = "0.1.0"
-source = "git+https://github.com/BreadchainCoop/commonware-avs-network-lookup?branch=local-mode#25d343199001999b142d67142ecd3a4bd757d3b6"
+source = "git+https://github.com/BreadchainCoop/commonware-avs-network-lookup#5d6da42fd4e7790324ca4f4946c46e11747c6a2c"
 dependencies = [
  "alloy 0.8.3",
  "alloy-network 0.5.4",
