@@ -239,6 +239,19 @@ Local mode allows you to run the entire environment on a local blockchain for de
 - Rust 
 - Git 
 
+## Private Key Funding
+
+The local blockchain environment forks the Holesky testnet and runs locally. This means:
+
+- **Your private key must be funded on Holesky testnet** to execute transactions
+- The local environment maintains the same state as the forked Holesky network
+- You need Holesky ETH in your account for gas fees and contract interactions
+- Test operators are automatically registered and funded during the Docker setup process
+
+To get Holesky testnet ETH for your private key, you can use:
+- [Holesky Faucet](https://holesky-faucet.pk910.de/)
+- [Ethereum Foundation Holesky Faucet](https://faucet.quicknode.com/ethereum/holesky)
+
 ## Step-by-Step Local Mode Setup
 
 ### 1. Initialize Submodules and Build Environment
@@ -293,7 +306,7 @@ Edit your `.env` file to use local mode:
 HTTP_RPC=http://localhost:8545
 WS_RPC=ws://localhost:8545
 
-# Set your private key
+# Set your private key (must be funded, see Private Key Funding section)
 PRIVATE_KEY=
 
 # Other settings remain the same
