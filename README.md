@@ -306,7 +306,7 @@ Edit your `.env` file to use local mode:
 HTTP_RPC=http://localhost:8545
 WS_RPC=ws://localhost:8545
 
-# Set your private key (must be funded, see Private Key Funding section)
+# Set your private key (must be funded - see Private Key Funding section)
 PRIVATE_KEY=
 
 # Other settings remain the same
