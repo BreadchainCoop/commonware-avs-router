@@ -229,15 +229,15 @@ The contract addresses are automatically read from the `avs_deploy.json` file. Y
 cargo run --release -- --key-file commonware-avs-node/orchestrator.json --port 3000
 ```
 
-# Local Mode Setup (Alternative to Testnet)
+# Local Mode Setup 
 
-Local mode allows you to run the entire AVS system on a local blockchain for development and testing. This is faster and doesn't require testnet tokens.
+Local mode allows you to run the entire environment on a local blockchain for development and testing. This is faster and doesn't require testnet gas.
 
 ## Prerequisites
 
-- Docker and Docker Compose installed
-- Rust toolchain installed
-- Git with submodules support
+- Docker and Docker Compose 
+- Rust 
+- Git 
 
 ## Step-by-Step Local Mode Setup
 
@@ -250,13 +250,13 @@ cd eigenlayer-bls-local
 
 ### 2. Start Local Blockchain and Deploy Contracts
 
-Configure local mode as according to the insturctions in the read me for eigenlayer-bls-local and run the local EigenLayer environment with 3 operators:
+Configure local mode as per the instructions in the read me for eigenlayer-bls-local and run the local EigenLayer environment with 3 operators:
 
 ```bash
 docker compose up
 ```
 
-**Important**: Wait for the deployment to complete. You should see output like:
+**Important**: Wait for the deployment to complete. You should see outputs like:
 ```
 Operator 1 weight in quorum 0: 11887896997963931 [1.188e16]
 Operator 2 weight in quorum 0: 11887896997963931 [1.188e16]  
@@ -269,7 +269,7 @@ This indicates that:
 - 3 test operators are registered and have joined quorum 0
 - Contract addresses are saved to `.nodes/avs_deploy.json`
 
-### 3. Keep Docker Running
+### 3. Keep Environment Running
 
 Keep the docker containers running in the background. The blockchain will continue running with all deployed contracts and registered operators. You can open new terminal windows for the next steps.
 
