@@ -183,7 +183,6 @@ cp example.env .env
 
 The contract addresses (COUNTER_ADDRESS, REGISTRY_COORDINATOR_ADDRESS, BLS_APK_REGISTRY_ADDRESS) are now automatically read from the `avs_deploy.json` file specified in `AVS_DEPLOYMENT_PATH`. You only need to manually set:
 
-- Your private key (`PRIVATE_KEY`)
 - RPC URLs (`HTTP_RPC`, `WS_RPC`) 
 - The path to the deployment file (`AVS_DEPLOYMENT_PATH`)
 
@@ -222,7 +221,6 @@ cp example.env .env
 
 The contract addresses are automatically read from the `avs_deploy.json` file. You only need to manually configure:
 
-- Your private key (`PRIVATE_KEY`)
 - RPC URLs (`HTTP_RPC`, `WS_RPC`)
 - The path to the deployment file (`AVS_DEPLOYMENT_PATH`)
 
@@ -315,7 +313,7 @@ cargo build
 cp example.env .env
 ```
 
-Configure the node `.env` file for local mode (same as router configuration above).
+Configure the node `.env` file for local mode (update RPC URLs to use localhost:8545).
 
 ### 6. Start the Contributors
 
