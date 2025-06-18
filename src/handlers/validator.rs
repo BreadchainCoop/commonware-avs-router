@@ -1,4 +1,5 @@
 use crate::handlers::wire;
+use commonware_eigenlayer::config::AvsDeployment;
 use alloy::{sol, sol_types::{SolCall}};
 use alloy_primitives::{Address, U256};
 use alloy_provider::{fillers::{BlobGasFiller, ChainIdFiller, FillProvider, GasFiller, JoinFill, NonceFiller}, ProviderBuilder, RootProvider};
@@ -24,7 +25,9 @@ impl Validator {
         let http_rpc = env::var("HTTP_RPC").expect("HTTP_RPC must be set");
         let provider = ProviderBuilder::new()
             .on_http(url::Url::parse(&http_rpc).unwrap());
-        let counter_address = Address::from_str(&env::var("COUNTER_ADDRESS").expect("COUNTER_ADDRESS must be set"))?;
+        
+        let deployment = AvsDeployment::load()?;
+        let counter_address = deployment.counter_address()?;
         let counter = Counter::new(counter_address, provider.clone());
         
         Ok(Self {
