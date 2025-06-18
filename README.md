@@ -230,3 +230,124 @@ The contract addresses are automatically read from the `avs_deploy.json` file. Y
 ```bash
 cargo run --release -- --key-file commonware-avs-node/orchestrator.json --port 3000
 ```
+
+# Local Mode Setup (Alternative to Testnet)
+
+Local mode allows you to run the entire AVS system on a local blockchain for development and testing. This is faster and doesn't require testnet tokens.
+
+## Prerequisites
+
+- Docker and Docker Compose installed
+- Rust toolchain installed
+- Git with submodules support
+
+## Step-by-Step Local Mode Setup
+
+### 1. Initialize Submodules and Build Environment
+
+```bash
+git submodule update --init --recursive
+cd eigenlayer-bls-local
+```
+
+### 2. Start Local Blockchain and Deploy Contracts
+
+Configure local mode as according to the insturctions in the read me for eigenlayer-bls-local and run the local EigenLayer environment with 3 operators:
+
+```bash
+docker compose up
+```
+
+**Important**: Wait for the deployment to complete. You should see output like:
+```
+Operator 1 weight in quorum 0: 11887896997963931 [1.188e16]
+Operator 2 weight in quorum 0: 11887896997963931 [1.188e16]  
+Operator 3 weight in quorum 0: 11887896997963931 [1.188e16]
+```
+
+This indicates that:
+- Local blockchain is running on `localhost:8545`
+- All EigenLayer contracts are deployed
+- 3 test operators are registered and have joined quorum 0
+- Contract addresses are saved to `.nodes/avs_deploy.json`
+
+### 3. Keep Docker Running
+
+Keep the docker containers running in the background. The blockchain will continue running with all deployed contracts and registered operators. You can open new terminal windows for the next steps.
+
+### 4. Configure AVS Router for Local Mode
+
+Navigate back to the router directory and set up configuration:
+
+```bash
+cd ../
+cp example.env .env
+```
+
+Edit your `.env` file to use local mode:
+
+```bash
+# Comment out testnet RPC URLs
+# HTTP_RPC=https://ethereum-holesky.publicnode.com
+# WS_RPC=wss://ethereum-holesky.publicnode.com
+
+# Uncomment local RPC URLs
+HTTP_RPC=http://localhost:8545
+WS_RPC=ws://localhost:8545
+
+# Set your private key
+PRIVATE_KEY=
+
+# Other settings remain the same
+AVS_DEPLOYMENT_PATH="eigenlayer-bls-local/.nodes/avs_deploy.json"
+CONTRIBUTOR_1_KEYFILE="eigenlayer-bls-local/.nodes/operator_keys/testacc1.private.bls.key.json"
+CONTRIBUTOR_2_KEYFILE="eigenlayer-bls-local/.nodes/operator_keys/testacc2.private.bls.key.json"
+CONTRIBUTOR_3_KEYFILE="eigenlayer-bls-local/.nodes/operator_keys/testacc3.private.bls.key.json"
+```
+
+### 5. Set Up AVS Nodes
+
+Navigate to the node directory and build:
+
+```bash
+cd commonware-avs-node
+cargo build
+cp example.env .env
+```
+
+Configure the node `.env` file for local mode (same as router configuration above).
+
+### 6. Start the Contributors
+
+Open 3 separate terminals and run each contributor:
+
+**Terminal 1 - Contributor 1:**
+```bash
+cd commonware-avs-node
+source .env
+cargo run --release -- --key-file $CONTRIBUTOR_1_KEYFILE --port 3001 --orchestrator orchestrator.json
+```
+
+**Terminal 2 - Contributor 2:**
+```bash
+cd commonware-avs-node  
+source .env
+cargo run --release -- --key-file $CONTRIBUTOR_2_KEYFILE --port 3002 --orchestrator orchestrator.json
+```
+
+**Terminal 3 - Contributor 3:**
+```bash
+cd commonware-avs-node
+source .env  
+cargo run --release -- --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestrator orchestrator.json
+```
+
+### 7. Start the Router Orchestrator
+
+In a 4th terminal, start the main orchestrator:
+
+```bash
+cd .. # Back to router root directory
+source .env
+cargo run --release -- --key-file commonware-avs-node/orchestrator.json --port 3000
+```

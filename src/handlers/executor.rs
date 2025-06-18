@@ -100,7 +100,7 @@ pub async fn create_executor() -> Result<Executor, Box<dyn std::error::Error + S
     let counter_address = deployment.counter_address()?;
     
     let ecdsa_signer = PrivateKeySigner::from_str(&env::var("PRIVATE_KEY").expect("PRIVATE_KEY must be set")).unwrap();
-    let bls_operator_state_retriever_address = Address::from_str(&env::var("OPERATOR_STATE_RETRIEVER").expect("OPERATOR_STATE_RETRIEVER must be set")).unwrap();
+    let bls_operator_state_retriever_address = deployment.bls_sig_check_operator_state_retriever_address()?;
     
     let write_provider = ProviderBuilder::new()
         .wallet(ecdsa_signer)
