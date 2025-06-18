@@ -1,12 +1,12 @@
 use crate::handlers::wire;
-use crate::config::AvsDeployment;
+use commonware_eigenlayer::config::AvsDeployment;
 use alloy::{sol, sol_types::{SolCall}};
-use alloy_primitives::{Address, U256};
+use alloy_primitives::U256;
 use alloy_provider::{fillers::{BlobGasFiller, ChainIdFiller, FillProvider, GasFiller, JoinFill, NonceFiller}, ProviderBuilder, RootProvider};
 use commonware_codec::{DecodeExt, ReadExt};
 use commonware_cryptography::{Hasher, Sha256};
 use NumberEncoder::yourNumbFuncCall;
-use std::{env, io::Cursor, str::FromStr};
+use std::{env, io::Cursor};
 use crate::bindings::counter::Counter;
 use commonware_cryptography::sha256::Digest;
 

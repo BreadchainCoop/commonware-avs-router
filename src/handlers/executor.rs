@@ -13,7 +13,7 @@ use eigen_crypto_bls::convert_to_g1_point;
 use std::{env, str::FromStr, collections::HashMap};
 use crate::bindings::blssigcheckoperatorstateretriever::BN254::G1Point;
 use commonware_utils::hex;
-use crate::config::AvsDeployment;
+use commonware_eigenlayer::config::AvsDeployment;
 
 pub struct Executor {
     view_only_provider: FillProvider<JoinFill<alloy_provider::Identity, JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>>, RootProvider>,

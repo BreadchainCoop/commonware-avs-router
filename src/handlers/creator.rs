@@ -8,7 +8,7 @@ use std::{env, str::FromStr};
 use NumberEncoder::yourNumbFuncCall;
 
 use crate::bindings::counter::Counter;
-use crate::config::AvsDeployment;
+use commonware_eigenlayer::config::AvsDeployment;
 
 sol! {
     contract NumberEncoder {
