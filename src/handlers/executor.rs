@@ -83,7 +83,7 @@ impl Executor {
         };
         let hex_string = format!(
             "0x{}",
-            hex(&alloy_primitives::keccak256(&g1_point.abi_encode().to_vec()).to_vec())
+            hex(alloy_primitives::keccak256(g1_point.abi_encode()).as_ref())
         );
         let address = self
             .bls_apk_registry
