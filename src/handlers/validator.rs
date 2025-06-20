@@ -1,14 +1,17 @@
-use crate::handlers::wire;
-use commonware_eigenlayer::config::AvsDeployment;
-use alloy::{sol, sol_types::{SolCall}};
-use alloy_primitives::U256;
-use alloy_provider::{fillers::{BlobGasFiller, ChainIdFiller, FillProvider, GasFiller, JoinFill, NonceFiller}, ProviderBuilder, RootProvider};
-use commonware_codec::{DecodeExt, ReadExt};
-use commonware_cryptography::{Hasher, Sha256};
-use NumberEncoder::yourNumbFuncCall;
-use std::{env, io::Cursor};
 use crate::bindings::counter::Counter;
+use crate::handlers::wire;
+use NumberEncoder::yourNumbFuncCall;
+use alloy::{sol, sol_types::SolCall};
+use alloy_primitives::U256;
+use alloy_provider::{
+    ProviderBuilder, RootProvider,
+    fillers::{BlobGasFiller, ChainIdFiller, FillProvider, GasFiller, JoinFill, NonceFiller},
+};
+use commonware_codec::{DecodeExt, ReadExt};
 use commonware_cryptography::sha256::Digest;
+use commonware_cryptography::{Hasher, Sha256};
+use commonware_eigenlayer::config::AvsDeployment;
+use std::{env, io::Cursor};
 
 sol! {
     contract NumberEncoder {
@@ -17,51 +20,67 @@ sol! {
     }
 }
 pub struct Validator {
-    counter: Counter::CounterInstance<(), FillProvider<JoinFill<alloy_provider::Identity, JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>>, RootProvider>>,
+    counter: Counter::CounterInstance<
+        (),
+        FillProvider<
+            JoinFill<
+                alloy_provider::Identity,
+                JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>,
+            >,
+            RootProvider,
+        >,
+    >,
 }
 
 impl Validator {
     pub async fn new() -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let http_rpc = env::var("HTTP_RPC").expect("HTTP_RPC must be set");
-        let provider = ProviderBuilder::new()
-            .on_http(url::Url::parse(&http_rpc).unwrap());
-        
+        let provider = ProviderBuilder::new().on_http(url::Url::parse(&http_rpc).unwrap());
+
         let deployment = AvsDeployment::load()?;
         let counter_address = deployment.counter_address()?;
         let counter = Counter::new(counter_address, provider.clone());
-        
-        Ok(Self {
-            counter,
-        })
+
+        Ok(Self { counter })
     }
 
-    pub async fn validate_and_return_expected_hash(&self, msg: &[u8]) -> Result<Digest, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn validate_and_return_expected_hash(
+        &self,
+        msg: &[u8],
+    ) -> Result<Digest, Box<dyn std::error::Error + Send + Sync>> {
         // First verify the message round
         self.verify_message_round(msg).await?;
-        
+
         // Then get the payload hash
         self.get_payload_from_message(msg).await
     }
 
-    pub async fn get_payload_from_message(&self, msg: &[u8]) -> Result<Digest, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn get_payload_from_message(
+        &self,
+        msg: &[u8],
+    ) -> Result<Digest, Box<dyn std::error::Error + Send + Sync>> {
         // Decode the wire message
         let aggregation = wire::Aggregation::decode(msg)?;
-        
+
         // Create the payload directly
         let payload = yourNumbFuncCall {
             number: U256::from(aggregation.round),
         }
-        .abi_encode()[4..].to_vec();
-        
+        .abi_encode()[4..]
+            .to_vec();
+
         // Hash the payload
         let mut hasher = Sha256::new();
         hasher.update(&payload);
         let payload_hash = hasher.finalize();
-        
+
         Ok(payload_hash)
     }
 
-    async fn verify_message_round(&self, msg: &[u8]) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    async fn verify_message_round(
+        &self,
+        msg: &[u8],
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let aggregation = wire::Aggregation::read(&mut Cursor::new(msg))?;
         let current_number = self.counter.number().call().await?;
         let current_number = current_number._0.to::<u64>();
@@ -70,7 +89,8 @@ impl Validator {
             return Err(format!(
                 "Invalid round number in message. Expected {}, got {}",
                 current_number, aggregation.round
-            ).into());
+            )
+            .into());
         }
 
         Ok(())

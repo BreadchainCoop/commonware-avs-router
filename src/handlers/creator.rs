@@ -1,11 +1,17 @@
+use NumberEncoder::yourNumbFuncCall;
 use alloy::{
-    network::EthereumWallet, primitives::{Address, U256}, providers::fillers::FillProvider, sol, sol_types::SolCall
-    
+    network::EthereumWallet,
+    primitives::{Address, U256},
+    providers::fillers::FillProvider,
+    sol,
+    sol_types::SolCall,
 };
-use alloy_provider::{fillers::{BlobGasFiller, ChainIdFiller, GasFiller, JoinFill, NonceFiller, WalletFiller}, ProviderBuilder, RootProvider};
+use alloy_provider::{
+    ProviderBuilder, RootProvider,
+    fillers::{BlobGasFiller, ChainIdFiller, GasFiller, JoinFill, NonceFiller, WalletFiller},
+};
 use alloy_signer_local::PrivateKeySigner;
 use std::{env, str::FromStr};
-use NumberEncoder::yourNumbFuncCall;
 
 use crate::bindings::counter::Counter;
 use commonware_eigenlayer::config::AvsDeployment;
@@ -16,17 +22,45 @@ sol! {
         function yourNumbFunc(uint256 number) public returns (bytes memory);
     }
 }
-    
+
 pub struct Creator {
-    counter: Counter::CounterInstance<(), FillProvider<JoinFill<JoinFill<alloy_provider::Identity, JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>>, WalletFiller<EthereumWallet>>, RootProvider>>,
+    counter: Counter::CounterInstance<
+        (),
+        FillProvider<
+            JoinFill<
+                JoinFill<
+                    alloy_provider::Identity,
+                    JoinFill<
+                        GasFiller,
+                        JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>,
+                    >,
+                >,
+                WalletFiller<EthereumWallet>,
+            >,
+            RootProvider,
+        >,
+    >,
 }
 
 impl Creator {
-    pub fn new(provider: FillProvider<JoinFill<JoinFill<alloy_provider::Identity, JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>>, WalletFiller<EthereumWallet>>, RootProvider>, counter_address: Address) -> Self {
+    pub fn new(
+        provider: FillProvider<
+            JoinFill<
+                JoinFill<
+                    alloy_provider::Identity,
+                    JoinFill<
+                        GasFiller,
+                        JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>,
+                    >,
+                >,
+                WalletFiller<EthereumWallet>,
+            >,
+            RootProvider,
+        >,
+        counter_address: Address,
+    ) -> Self {
         let counter = Counter::new(counter_address, provider.clone());
-        Self {
-            counter,
-        }
+        Self { counter }
     }
 
     pub async fn get_current_number(&self) -> Result<u64, Box<dyn std::error::Error>> {
@@ -35,13 +69,12 @@ impl Creator {
     }
 
     pub async fn encode_number_call(&self, number: U256) -> Vec<u8> {
-        yourNumbFuncCall {
-            number,
-        }
-        .abi_encode()[4..].to_vec()
+        yourNumbFuncCall { number }.abi_encode()[4..].to_vec()
     }
 
-    pub async fn get_payload_and_round(&self) -> Result<(Vec<u8>, u64), Box<dyn std::error::Error>> {
+    pub async fn get_payload_and_round(
+        &self,
+    ) -> Result<(Vec<u8>, u64), Box<dyn std::error::Error>> {
         let current_number = self.get_current_number().await?;
         let encoded = self.encode_number_call(U256::from(current_number)).await;
         Ok((encoded, current_number))
@@ -57,9 +90,9 @@ pub async fn create_creator() -> Result<Creator, Box<dyn std::error::Error + Sen
         .wallet(signer)
         .connect(&http_rpc)
         .await?;
-    
+
     let deployment = AvsDeployment::load()?;
     let counter_address = deployment.counter_address()?;
-    
+
     Ok(Creator::new(provider, counter_address))
 }

@@ -172,4 +172,4 @@ mod tests {
         let decoded = Aggregation::read(&mut std::io::Cursor::new(buf)).unwrap();
         assert_eq!(original, decoded);
     }
-} 
+}
