@@ -43,12 +43,32 @@ jobs:
           ~/.cargo/git
           target
           commonware-avs-node/target
+          scripts/target
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
     - name: Install required system packages
       run: |
         sudo apt-get update
         sudo apt-get install -y jq curl
+
+    - name: Validate private key secret
+      env:
+        PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+      run: |
+        if [ -z "$PRIVATE_KEY" ]; then
+          echo "❌ ERROR: PRIVATE_KEY secret is not set!"
+          echo "Please add your private key as a repository secret:"
+          echo "1. Go to Settings → Secrets and variables → Actions"
+          echo "2. Click 'New repository secret'"
+          echo "3. Name: PRIVATE_KEY"
+          echo "4. Value: Your private key (e.g., 0x1234...)"
+          echo "5. The private key must be funded on Holesky testnet"
+          echo ""
+          echo "💡 Security tip: Use a dedicated test key for CI/CD, not your main wallet!"
+          exit 1
+        fi
+        echo "✅ Private key secret is configured"
+        echo "Private key: ${PRIVATE_KEY:0:6}...${PRIVATE_KEY: -4}"
 
     - name: Build router
       run: cargo build --release
@@ -58,7 +78,14 @@ jobs:
         cd commonware-avs-node
         cargo build --release
 
+    - name: Build verification scripts
+      run: |
+        cd scripts
+        cargo build --release
+
     - name: Set up environment files
+      env:
+        PRIVATE_KEY: "0xba35a33f95b443f059e794e4f440d22021400267fff05df4f4d3d2d8eee07215"
       run: |
         # Copy example env files
         cp example.env .env
@@ -67,13 +94,13 @@ jobs:
         # Update main .env file for local mode
         sed -i 's|^HTTP_RPC=.*|HTTP_RPC=http://localhost:8545|' .env
         sed -i 's|^WS_RPC=.*|WS_RPC=ws://localhost:8545|' .env
-        sed -i 's|^PRIVATE_KEY=$|PRIVATE_KEY=PRIVATE_KEY=0xba35a33f95b443f059e794e4f440d22021400267fff05df4f4d3d2d8eee07215|' .env
+        sed -i "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$PRIVATE_KEY|" .env
         
         # Update commonware-avs-node .env file for local mode
         sed -i 's|^HTTP_RPC=.*|HTTP_RPC=http://localhost:8545|' commonware-avs-node/.env
         sed -i 's|^WS_RPC=.*|WS_RPC=ws://localhost:8545|' commonware-avs-node/.env
         sed -i 's|^AVS_DEPLOYMENT_PATH=.*|AVS_DEPLOYMENT_PATH="../eigenlayer-bls-local/.nodes/avs_deploy.json"|' commonware-avs-node/.env
-        sed -i 's|^PRIVATE_KEY=$|PRIVATE_KEY=PRIVATE_KEY=0xba35a33f95b443f059e794e4f440d22021400267fff05df4f4d3d2d8eee07215|' commonware-avs-node/.env
+        sed -i "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$PRIVATE_KEY|" commonware-avs-node/.env
 
     - name: Start local blockchain environment
       run: |
@@ -121,6 +148,10 @@ jobs:
             sed -i 's|^TEST_ACCOUNTS=.*|TEST_ACCOUNTS=3|' .env
         fi
         
+        # Set the private key and funded key for eigenlayer-bls-local
+        sed -i "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$PRIVATE_KEY|" .env
+        sed -i "s|^FUNDED_KEY=.*|FUNDED_KEY=$PRIVATE_KEY|" .env
+        
         echo "Final eigenlayer-bls-local .env configuration:"
         cat .env
         
@@ -134,22 +165,26 @@ jobs:
         
         # Wait for ethereum service to be ready
         echo "Waiting for ethereum service to be ready..."
-        sleep 30
+        sleep 10
         
-        # Wait for the eigenlayer service to complete its setup and exit
+        # Wait for the eigenlayer service to complete its setup
         echo "Waiting for eigenlayer setup to complete..."
         timeout=600
         elapsed=0
         while [ $elapsed -lt $timeout ]; do
-          # Check if eigenlayer container has finished (exited)
-          eigenlayer_status=$(docker compose ps eigenlayer --format json | jq -r '.[0].State' 2>/dev/null || echo "unknown")
-          
-          if [ "$eigenlayer_status" = "exited" ]; then
-            echo "EigenLayer setup container has completed"
+          # Check if deployment has completed by looking for completion message in logs
+          if docker compose logs eigenlayer 2>/dev/null | grep -q "Script execution finished. Keeping container open..." && [ -f .nodes/avs_deploy.json ] && [ -s .nodes/avs_deploy.json ]; then
+            echo "EigenLayer setup has completed successfully"
             break
           fi
           
-          echo "Waiting for eigenlayer setup to complete... ($elapsed/$timeout seconds) [Status: $eigenlayer_status]"
+          # Check for any error indicators
+          error_check=$(docker compose logs eigenlayer 2>/dev/null | grep -i "error\|failed" | tail -1 || echo "")
+          if [ -n "$error_check" ]; then
+            echo "Detected potential error: $error_check"
+          fi
+          
+          echo "Waiting for eigenlayer setup to complete... ($elapsed/$timeout seconds)"
           sleep 15
           elapsed=$((elapsed + 15))
         done
@@ -181,171 +216,123 @@ jobs:
       run: |
         cd commonware-avs-node
         
+        # Create logs directory
+        mkdir -p ../logs
+        
         # Start contributor 1 in background
         source .env
-        cargo run --release -- --key-file $CONTRIBUTOR_1_KEYFILE --port 3001 --orchestrator orchestrator.json > contributor1.log 2>&1 &
+        cargo run --release -- --key-file $CONTRIBUTOR_1_KEYFILE --port 3001 --orchestrator orchestrator.json > ../logs/contributor1.log 2>&1 &
         echo $! > contributor1.pid
+        echo "Contributor 1 started with PID: $!"
         
         # Wait a bit before starting next contributor
-        sleep 10
+        sleep 1
         
         # Start contributor 2 in background
-        cargo run --release -- --key-file $CONTRIBUTOR_2_KEYFILE --port 3002 --orchestrator orchestrator.json > contributor2.log 2>&1 &
+        cargo run --release -- --key-file $CONTRIBUTOR_2_KEYFILE --port 3002 --orchestrator orchestrator.json > ../logs/contributor2.log 2>&1 &
         echo $! > contributor2.pid
+        echo "Contributor 2 started with PID: $!"
         
         # Wait a bit before starting next contributor
-        sleep 10
+        sleep 1
         
         # Start contributor 3 in background
-        cargo run --release -- --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestrator orchestrator.json > contributor3.log 2>&1 &
+        cargo run --release -- --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestrator orchestrator.json > ../logs/contributor3.log 2>&1 &
         echo $! > contributor3.pid
+        echo "Contributor 3 started with PID: $!"
         
         # Wait for contributors to initialize
-        sleep 20
+        echo "Waiting for contributors to initialize..."
+        sleep 15
 
     - name: Start orchestrator
       run: |
         source .env
         
         # Start orchestrator in background
-        cargo run --release -- --key-file commonware-avs-node/orchestrator.json --port 3000 > orchestrator.log 2>&1 &
+        cargo run --release -- --key-file commonware-avs-node/orchestrator.json --port 3000 > logs/orchestrator.log 2>&1 &
         echo $! > orchestrator.pid
+        echo "Orchestrator started with PID: $!"
         
         # Wait for orchestrator to initialize
-        sleep 20
+        echo "Waiting for orchestrator to initialize..."
+        sleep 15
 
     - name: Wait for increment operations and verify
       run: |
-        # Create verification script
-        cat > verify_increments.rs << 'EOF'
-        use alloy::{
-            providers::ProviderBuilder,
-            primitives::Address,
-        };
-        use std::{env, str::FromStr, time::Duration};
-        use tokio::time::sleep;
-        
-        // We'll use the same bindings as the main project
-        mod bindings {
-            pub mod counter {
-                include!("src/bindings/counter.rs");
-            }
-        }
-        
-        use bindings::counter::Counter;
-        use commonware_eigenlayer::config::AvsDeployment;
-        
-        #[tokio::main]
-        async fn main() -> Result<(), Box<dyn std::error::Error>> {
-            // Load configuration
-            let deployment = AvsDeployment::load()?;
-            let counter_address = deployment.counter_address()?;
-            let http_rpc = "http://localhost:8545";
-            
-            // Create provider and counter instance
-            let provider = ProviderBuilder::new().on_http(url::Url::parse(http_rpc)?);
-            let counter = Counter::new(counter_address, provider);
-            
-            // Get initial counter value
-            let initial_count = counter.number().call().await?._0.to::<u64>();
-            println!("Initial counter value: {}", initial_count);
-            
-            let target_increments = 2;
-            let max_wait_time = Duration::from_secs(120); // 2 minutes max wait
-            let check_interval = Duration::from_secs(10);  // Check every 10 seconds
-            
-            let start_time = std::time::Instant::now();
-            
-            loop {
-                // Check current counter value
-                let current_count = counter.number().call().await?._0.to::<u64>();
-                let increments = current_count.saturating_sub(initial_count);
-                
-                println!("Current counter: {}, Increments since start: {}", current_count, increments);
-                
-                if increments >= target_increments {
-                    println!("✅ SUCCESS: Counter was incremented {} times (target: {})", increments, target_increments);
-                    return Ok(());
-                }
-                
-                if start_time.elapsed() >= max_wait_time {
-                    println!("❌ TIMEOUT: Only {} increments after {} seconds (target: {})", 
-                            increments, max_wait_time.as_secs(), target_increments);
-                    return Err("Timeout waiting for required increments".into());
-                }
-                
-                sleep(check_interval).await;
-            }
-        }
-        EOF
-        
-        # Create Cargo.toml for verification script
-        cat > Cargo.toml.verify << 'EOF'
-        [package]
-        name = "verify_increments"
-        version = "0.1.0"
-        edition = "2021"
-        
-        [[bin]]
-        name = "verify_increments"
-        path = "verify_increments.rs"
-        
-        [dependencies]
-        alloy = { version = "0.5", features = ["full"] }
-        tokio = { version = "1.0", features = ["full"] }
-        commonware-eigenlayer = { path = "." }
-        url = "2.3"
-        EOF
-        
         # Wait for at least 2 aggregation cycles (30 seconds each + buffer)
         echo "Waiting for signature aggregation cycles to complete..."
-        sleep 90
+        echo "This will take approximately 2-3 minutes..."
         
-        # Run verification
-        cargo run --bin verify_increments --manifest-path Cargo.toml.verify
+        # Build and run verification script
+        cd scripts
+        cargo build --release --bin verify_increments
+        source ../.env
+        
+        # Set the deployment path relative to the scripts directory
+        export AVS_DEPLOYMENT_PATH="../eigenlayer-bls-local/.nodes/avs_deploy.json"
+        echo "AVS_DEPLOYMENT_PATH set to: $AVS_DEPLOYMENT_PATH"
+        echo "File exists check:"
+        ls -la "$AVS_DEPLOYMENT_PATH" || echo "File not found at $AVS_DEPLOYMENT_PATH"
+        
+        cargo run --release --bin verify_increments
 
     - name: Collect logs on failure
       if: failure()
       run: |
-        echo "=== Orchestrator Logs ==="
-        cat orchestrator.log || echo "No orchestrator logs found"
+        echo "=== Recent orchestrator logs ==="
+        tail -n 20 logs/orchestrator.log || echo "No orchestrator logs found"
         
-        echo "=== Contributor 1 Logs ==="
-        cat commonware-avs-node/contributor1.log || echo "No contributor1 logs found"
+        echo "=== Recent contributor logs ==="
+        tail -n 10 logs/contributor1.log || echo "No contributor1 logs found"
+        tail -n 10 logs/contributor2.log || echo "No contributor2 logs found"
+        tail -n 10 logs/contributor3.log || echo "No contributor3 logs found"
         
-        echo "=== Contributor 2 Logs ==="
-        cat commonware-avs-node/contributor2.log || echo "No contributor2 logs found"
-        
-        echo "=== Contributor 3 Logs ==="
-        cat commonware-avs-node/contributor3.log || echo "No contributor3 logs found"
-        
-        echo "=== EigenLayer Setup Logs ==="
+        echo "=== Recent eigenlayer setup logs ==="
         cd eigenlayer-bls-local
-        docker compose logs eigenlayer || echo "No eigenlayer logs found"
-        
-        echo "=== Ethereum Logs ==="
-        docker compose logs ethereum || echo "No ethereum logs found"
+        docker compose logs --tail=50 eigenlayer || echo "No eigenlayer logs found"
 
     - name: Cleanup processes
       if: always()
       run: |
+        echo "Cleaning up processes..."
+        
         # Kill all background processes
         if [ -f orchestrator.pid ]; then
-          kill $(cat orchestrator.pid) || true
+          pid=$(cat orchestrator.pid)
+          if kill -0 "$pid" 2>/dev/null; then
+            echo "Killing orchestrator (PID: $pid)"
+            kill "$pid" || true
+          fi
         fi
         
         if [ -f commonware-avs-node/contributor1.pid ]; then
-          kill $(cat commonware-avs-node/contributor1.pid) || true
+          pid=$(cat commonware-avs-node/contributor1.pid)
+          if kill -0 "$pid" 2>/dev/null; then
+            echo "Killing contributor1 (PID: $pid)"
+            kill "$pid" || true
+          fi
         fi
         
         if [ -f commonware-avs-node/contributor2.pid ]; then
-          kill $(cat commonware-avs-node/contributor2.pid) || true
+          pid=$(cat commonware-avs-node/contributor2.pid)
+          if kill -0 "$pid" 2>/dev/null; then
+            echo "Killing contributor2 (PID: $pid)"
+            kill "$pid" || true
+          fi
         fi
         
         if [ -f commonware-avs-node/contributor3.pid ]; then
-          kill $(cat commonware-avs-node/contributor3.pid) || true
+          pid=$(cat commonware-avs-node/contributor3.pid)
+          if kill -0 "$pid" 2>/dev/null; then
+            echo "Killing contributor3 (PID: $pid)"
+            kill "$pid" || true
+          fi
         fi
         
         # Stop Docker containers
+        echo "Stopping Docker containers..."
         cd eigenlayer-bls-local
-        docker compose down || true 
+        docker compose down || true
+        
+        echo "Cleanup completed" 

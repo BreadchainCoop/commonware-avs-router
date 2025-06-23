@@ -70,7 +70,7 @@ impl Executor {
             operators.push(address);
         }
 
-        let current_block_number = self.view_only_provider.get_block_number().await.unwrap() - 1;
+        let current_block_number = self.view_only_provider.get_block_number().await.unwrap();
         let quorum_numbers= Bytes::from_str("0x00").unwrap();
         let ret = self.bls_operator_state_retriever.getNonSignerStakesAndSignature(self.registry_coordinator_address, quorum_numbers.clone(), sigma_struct, operators, current_block_number.try_into().unwrap()).call().await.unwrap()._0;
         let non_signer_struct_data = counter::IBLSSignatureCheckerTypes::NonSignerStakesAndSignature {

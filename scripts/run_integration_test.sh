@@ -51,6 +51,45 @@ echo -e "${GREEN}Starting BLS Signature Aggregation Integration Test${NC}"
 echo "Project root: $PROJECT_ROOT"
 echo "Logs directory: $LOG_DIR"
 
+# Ask for private key at the beginning
+echo -e "${YELLOW}Configuration Setup${NC}"
+
+# Check if private key already exists in .env files
+EXISTING_PRIVATE_KEY=""
+
+# Check main router .env first
+if [ -f ".env" ]; then
+    EXISTING_PRIVATE_KEY=$(grep "^PRIVATE_KEY=" .env 2>/dev/null | cut -d'=' -f2)
+fi
+
+# If not found in main .env, check eigenlayer-bls-local .env for PRIVATE_KEY
+if [ -z "$EXISTING_PRIVATE_KEY" ] && [ -f "eigenlayer-bls-local/.env" ]; then
+    EXISTING_PRIVATE_KEY=$(grep "^PRIVATE_KEY=" eigenlayer-bls-local/.env 2>/dev/null | cut -d'=' -f2)
+fi
+
+# If still not found, check eigenlayer-bls-local .env for FUNDED_KEY
+if [ -z "$EXISTING_PRIVATE_KEY" ] && [ -f "eigenlayer-bls-local/.env" ]; then
+    EXISTING_PRIVATE_KEY=$(grep "^FUNDED_KEY=" eigenlayer-bls-local/.env 2>/dev/null | cut -d'=' -f2)
+fi
+
+# Check if we found a valid private key (not empty and not the default example)
+if [ -n "$EXISTING_PRIVATE_KEY" ] && [ "$EXISTING_PRIVATE_KEY" != "" ] && [ "$EXISTING_PRIVATE_KEY" != "0xba35a33f95b443f059e794e4f440d22021400267fff05df4f4d3d2d8eee07215" ]; then
+    echo "Found existing private key: ${EXISTING_PRIVATE_KEY:0:10}...${EXISTING_PRIVATE_KEY: -4}"
+    echo -n "Press Enter to keep existing key, or enter new private key: "
+    read -r PRIVATE_KEY
+    if [ -z "$PRIVATE_KEY" ]; then
+        PRIVATE_KEY="$EXISTING_PRIVATE_KEY"
+        echo "Using existing private key"
+    fi
+else
+    echo -n "Enter your private key (must be funded on Holesky): "
+    read -r PRIVATE_KEY
+    if [ -z "$PRIVATE_KEY" ]; then
+        echo -e "${RED}Error: Private key is required${NC}"
+        exit 1
+    fi
+fi
+
 # Step 1: Build projects
 echo -e "${YELLOW}Step 1: Building projects...${NC}"
 cd "$PROJECT_ROOT"
@@ -69,16 +108,16 @@ echo "Configuring main .env for local mode..."
 # Replace RPC URLs
 sed -i '' 's|^HTTP_RPC=.*|HTTP_RPC=http://localhost:8545|' .env
 sed -i '' 's|^WS_RPC=.*|WS_RPC=ws://localhost:8545|' .env
-# Replace private key if it's empty
-sed -i '' 's|^PRIVATE_KEY=$|PRIVATE_KEY=PRIVATE_KEY=0xba35a33f95b443f059e794e4f440d22021400267fff05df4f4d3d2d8eee07215|' .env
+# Set the private key
+sed -i '' "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$PRIVATE_KEY|" .env
 
 # Update commonware-avs-node .env file for local mode
 echo "Configuring commonware-avs-node .env for local mode..."
 sed -i '' 's|^HTTP_RPC=.*|HTTP_RPC=http://localhost:8545|' commonware-avs-node/.env
 sed -i '' 's|^WS_RPC=.*|WS_RPC=ws://localhost:8545|' commonware-avs-node/.env
 sed -i '' 's|^AVS_DEPLOYMENT_PATH=.*|AVS_DEPLOYMENT_PATH="../eigenlayer-bls-local/.nodes/avs_deploy.json"|' commonware-avs-node/.env
-# Replace private key if it's empty
-sed -i '' 's|^PRIVATE_KEY=$|PRIVATE_KEY=PRIVATE_KEY=0xba35a33f95b443f059e794e4f440d22021400267fff05df4f4d3d2d8eee07215|' commonware-avs-node/.env
+# Set the private key
+sed -i '' "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$PRIVATE_KEY|" commonware-avs-node/.env
 
 # Step 3: Start local blockchain environment
 echo -e "${YELLOW}Step 3: Setting up local blockchain environment...${NC}"
@@ -130,6 +169,10 @@ if ! grep -q "^TEST_ACCOUNTS=" .env; then
 else
     sed -i '' 's|^TEST_ACCOUNTS=.*|TEST_ACCOUNTS=3|' .env
 fi
+
+# Set the private key and funded key for eigenlayer-bls-local
+sed -i '' "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$PRIVATE_KEY|" .env
+sed -i '' "s|^FUNDED_KEY=.*|FUNDED_KEY=$PRIVATE_KEY|" .env
 
 echo "Final eigenlayer-bls-local .env configuration:"
 cat .env
