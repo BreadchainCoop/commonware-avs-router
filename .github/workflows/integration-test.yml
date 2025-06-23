@@ -1,0 +1,351 @@
+name: Integration Test
+
+on:
+  push:
+    branches: [ main, local-ci ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  integration-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      docker:
+        image: docker:20.10.17
+        options: --privileged
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+        components: rustfmt, clippy
+
+    - name: Cache Rust dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+          commonware-avs-node/target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Install required system packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y jq curl
+
+    - name: Build router
+      run: cargo build --release
+
+    - name: Build AVS node
+      run: |
+        cd commonware-avs-node
+        cargo build --release
+
+    - name: Set up environment files
+      run: |
+        # Copy example env files
+        cp example.env .env
+        cp commonware-avs-node/example.env commonware-avs-node/.env
+        
+        # Update main .env file for local mode
+        sed -i 's|^HTTP_RPC=.*|HTTP_RPC=http://localhost:8545|' .env
+        sed -i 's|^WS_RPC=.*|WS_RPC=ws://localhost:8545|' .env
+        sed -i 's|^PRIVATE_KEY=$|PRIVATE_KEY=PRIVATE_KEY=0xba35a33f95b443f059e794e4f440d22021400267fff05df4f4d3d2d8eee07215|' .env
+        
+        # Update commonware-avs-node .env file for local mode
+        sed -i 's|^HTTP_RPC=.*|HTTP_RPC=http://localhost:8545|' commonware-avs-node/.env
+        sed -i 's|^WS_RPC=.*|WS_RPC=ws://localhost:8545|' commonware-avs-node/.env
+        sed -i 's|^AVS_DEPLOYMENT_PATH=.*|AVS_DEPLOYMENT_PATH="../eigenlayer-bls-local/.nodes/avs_deploy.json"|' commonware-avs-node/.env
+        sed -i 's|^PRIVATE_KEY=$|PRIVATE_KEY=PRIVATE_KEY=0xba35a33f95b443f059e794e4f440d22021400267fff05df4f4d3d2d8eee07215|' commonware-avs-node/.env
+
+    - name: Start local blockchain environment
+      run: |
+        cd eigenlayer-bls-local
+        
+        # Copy and configure eigenlayer-bls-local .env properly
+        cp example.env .env
+        
+        # Set required environment variables for LOCAL mode
+        sed -i 's|^ENVIRONMENT=.*|ENVIRONMENT=LOCAL|' .env
+        sed -i 's|^RPC_URL=.*|RPC_URL=http://ethereum:8545|' .env
+        sed -i 's|^FORK_URL=.*|FORK_URL=https://ethereum-holesky.publicnode.com|' .env
+        
+        # Uncomment Holesky contract addresses for LOCAL mode
+        sed -i 's|^#DELEGATION_MANAGER_ADDRESS=0xA44151489861Fe9e3055d95adC98FbD462B948e7|DELEGATION_MANAGER_ADDRESS=0xA44151489861Fe9e3055d95adC98FbD462B948e7|' .env
+        sed -i 's|^#STRATEGY_MANAGER_ADDRESS=0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6|STRATEGY_MANAGER_ADDRESS=0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6|' .env
+        sed -i 's|^#LST_CONTRACT_ADDRESS=0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034|LST_CONTRACT_ADDRESS=0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034|' .env
+        sed -i 's|^#LST_STRATEGY_ADDRESS=0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3|LST_STRATEGY_ADDRESS=0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3|' .env
+        sed -i 's|^#BLS_SIGNATURE_CHECKER_ADDRESS=0xca249215e082e17c12bb3c4881839a3f883e5c6b|BLS_SIGNATURE_CHECKER_ADDRESS=0xca249215e082e17c12bb3c4881839a3f883e5c6b|' .env
+        sed -i 's|^#OPERATOR_STATE_RETRIEVER_ADDRESS=0xB4baAfee917fb4449f5ec64804217bccE9f46C67|OPERATOR_STATE_RETRIEVER_ADDRESS=0xB4baAfee917fb4449f5ec64804217bccE9f46C67|' .env
+        sed -i 's|^#ALLOCATION_MANAGER_ADDRESS=0x78469728304326CBc65f8f95FA756B0B73164462|ALLOCATION_MANAGER_ADDRESS=0x78469728304326CBc65f8f95FA756B0B73164462|' .env
+        
+        # Ensure required service configuration variables are set
+        if ! grep -q "^CERBERUS_GRPC_PORT=" .env; then
+            echo "CERBERUS_GRPC_PORT=50051" >> .env
+        else
+            sed -i 's|^CERBERUS_GRPC_PORT=.*|CERBERUS_GRPC_PORT=50051|' .env
+        fi
+        
+        if ! grep -q "^CERBERUS_METRICS_PORT=" .env; then
+            echo "CERBERUS_METRICS_PORT=9081" >> .env
+        else
+            sed -i 's|^CERBERUS_METRICS_PORT=.*|CERBERUS_METRICS_PORT=9081|' .env
+        fi
+        
+        if ! grep -q "^SIGNER_ENDPOINT=" .env; then
+            echo "SIGNER_ENDPOINT=http://signer:50051" >> .env
+        else
+            sed -i 's|^SIGNER_ENDPOINT=.*|SIGNER_ENDPOINT=http://signer:50051|' .env
+        fi
+        
+        if ! grep -q "^TEST_ACCOUNTS=" .env; then
+            echo "TEST_ACCOUNTS=3" >> .env
+        else
+            sed -i 's|^TEST_ACCOUNTS=.*|TEST_ACCOUNTS=3|' .env
+        fi
+        
+        echo "Final eigenlayer-bls-local .env configuration:"
+        cat .env
+        
+        # Build the Docker images first (as per README instructions)
+        echo "Building Docker images..."
+        docker compose build --no-cache
+        
+        # Start the Docker containers
+        echo "Starting Docker containers..."
+        docker compose up -d
+        
+        # Wait for ethereum service to be ready
+        echo "Waiting for ethereum service to be ready..."
+        sleep 30
+        
+        # Wait for the eigenlayer service to complete its setup and exit
+        echo "Waiting for eigenlayer setup to complete..."
+        timeout=600
+        elapsed=0
+        while [ $elapsed -lt $timeout ]; do
+          # Check if eigenlayer container has finished (exited)
+          eigenlayer_status=$(docker compose ps eigenlayer --format json | jq -r '.[0].State' 2>/dev/null || echo "unknown")
+          
+          if [ "$eigenlayer_status" = "exited" ]; then
+            echo "EigenLayer setup container has completed"
+            break
+          fi
+          
+          echo "Waiting for eigenlayer setup to complete... ($elapsed/$timeout seconds) [Status: $eigenlayer_status]"
+          sleep 15
+          elapsed=$((elapsed + 15))
+        done
+        
+        if [ $elapsed -ge $timeout ]; then
+          echo "Timeout waiting for eigenlayer setup to complete"
+          echo "Checking container logs..."
+          docker compose logs eigenlayer
+          exit 1
+        fi
+        
+        # Wait a bit more for file system writes to complete
+        sleep 10
+        
+        # Verify deployment file was created
+        if [ ! -f .nodes/avs_deploy.json ]; then
+          echo "Deployment file .nodes/avs_deploy.json was not created"
+          echo "Checking eigenlayer logs:"
+          docker compose logs eigenlayer
+          echo "Checking ethereum logs:"
+          docker compose logs ethereum
+          exit 1
+        fi
+        
+        echo "Deployment file created successfully"
+        cat .nodes/avs_deploy.json
+
+    - name: Start contributors
+      run: |
+        cd commonware-avs-node
+        
+        # Start contributor 1 in background
+        source .env
+        cargo run --release -- --key-file $CONTRIBUTOR_1_KEYFILE --port 3001 --orchestrator orchestrator.json > contributor1.log 2>&1 &
+        echo $! > contributor1.pid
+        
+        # Wait a bit before starting next contributor
+        sleep 10
+        
+        # Start contributor 2 in background
+        cargo run --release -- --key-file $CONTRIBUTOR_2_KEYFILE --port 3002 --orchestrator orchestrator.json > contributor2.log 2>&1 &
+        echo $! > contributor2.pid
+        
+        # Wait a bit before starting next contributor
+        sleep 10
+        
+        # Start contributor 3 in background
+        cargo run --release -- --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestrator orchestrator.json > contributor3.log 2>&1 &
+        echo $! > contributor3.pid
+        
+        # Wait for contributors to initialize
+        sleep 20
+
+    - name: Start orchestrator
+      run: |
+        source .env
+        
+        # Start orchestrator in background
+        cargo run --release -- --key-file commonware-avs-node/orchestrator.json --port 3000 > orchestrator.log 2>&1 &
+        echo $! > orchestrator.pid
+        
+        # Wait for orchestrator to initialize
+        sleep 20
+
+    - name: Wait for increment operations and verify
+      run: |
+        # Create verification script
+        cat > verify_increments.rs << 'EOF'
+        use alloy::{
+            providers::ProviderBuilder,
+            primitives::Address,
+        };
+        use std::{env, str::FromStr, time::Duration};
+        use tokio::time::sleep;
+        
+        // We'll use the same bindings as the main project
+        mod bindings {
+            pub mod counter {
+                include!("src/bindings/counter.rs");
+            }
+        }
+        
+        use bindings::counter::Counter;
+        use commonware_eigenlayer::config::AvsDeployment;
+        
+        #[tokio::main]
+        async fn main() -> Result<(), Box<dyn std::error::Error>> {
+            // Load configuration
+            let deployment = AvsDeployment::load()?;
+            let counter_address = deployment.counter_address()?;
+            let http_rpc = "http://localhost:8545";
+            
+            // Create provider and counter instance
+            let provider = ProviderBuilder::new().on_http(url::Url::parse(http_rpc)?);
+            let counter = Counter::new(counter_address, provider);
+            
+            // Get initial counter value
+            let initial_count = counter.number().call().await?._0.to::<u64>();
+            println!("Initial counter value: {}", initial_count);
+            
+            let target_increments = 2;
+            let max_wait_time = Duration::from_secs(120); // 2 minutes max wait
+            let check_interval = Duration::from_secs(10);  // Check every 10 seconds
+            
+            let start_time = std::time::Instant::now();
+            
+            loop {
+                // Check current counter value
+                let current_count = counter.number().call().await?._0.to::<u64>();
+                let increments = current_count.saturating_sub(initial_count);
+                
+                println!("Current counter: {}, Increments since start: {}", current_count, increments);
+                
+                if increments >= target_increments {
+                    println!("✅ SUCCESS: Counter was incremented {} times (target: {})", increments, target_increments);
+                    return Ok(());
+                }
+                
+                if start_time.elapsed() >= max_wait_time {
+                    println!("❌ TIMEOUT: Only {} increments after {} seconds (target: {})", 
+                            increments, max_wait_time.as_secs(), target_increments);
+                    return Err("Timeout waiting for required increments".into());
+                }
+                
+                sleep(check_interval).await;
+            }
+        }
+        EOF
+        
+        # Create Cargo.toml for verification script
+        cat > Cargo.toml.verify << 'EOF'
+        [package]
+        name = "verify_increments"
+        version = "0.1.0"
+        edition = "2021"
+        
+        [[bin]]
+        name = "verify_increments"
+        path = "verify_increments.rs"
+        
+        [dependencies]
+        alloy = { version = "0.5", features = ["full"] }
+        tokio = { version = "1.0", features = ["full"] }
+        commonware-eigenlayer = { path = "." }
+        url = "2.3"
+        EOF
+        
+        # Wait for at least 2 aggregation cycles (30 seconds each + buffer)
+        echo "Waiting for signature aggregation cycles to complete..."
+        sleep 90
+        
+        # Run verification
+        cargo run --bin verify_increments --manifest-path Cargo.toml.verify
+
+    - name: Collect logs on failure
+      if: failure()
+      run: |
+        echo "=== Orchestrator Logs ==="
+        cat orchestrator.log || echo "No orchestrator logs found"
+        
+        echo "=== Contributor 1 Logs ==="
+        cat commonware-avs-node/contributor1.log || echo "No contributor1 logs found"
+        
+        echo "=== Contributor 2 Logs ==="
+        cat commonware-avs-node/contributor2.log || echo "No contributor2 logs found"
+        
+        echo "=== Contributor 3 Logs ==="
+        cat commonware-avs-node/contributor3.log || echo "No contributor3 logs found"
+        
+        echo "=== EigenLayer Setup Logs ==="
+        cd eigenlayer-bls-local
+        docker compose logs eigenlayer || echo "No eigenlayer logs found"
+        
+        echo "=== Ethereum Logs ==="
+        docker compose logs ethereum || echo "No ethereum logs found"
+
+    - name: Cleanup processes
+      if: always()
+      run: |
+        # Kill all background processes
+        if [ -f orchestrator.pid ]; then
+          kill $(cat orchestrator.pid) || true
+        fi
+        
+        if [ -f commonware-avs-node/contributor1.pid ]; then
+          kill $(cat commonware-avs-node/contributor1.pid) || true
+        fi
+        
+        if [ -f commonware-avs-node/contributor2.pid ]; then
+          kill $(cat commonware-avs-node/contributor2.pid) || true
+        fi
+        
+        if [ -f commonware-avs-node/contributor3.pid ]; then
+          kill $(cat commonware-avs-node/contributor3.pid) || true
+        fi
+        
+        # Stop Docker containers
+        cd eigenlayer-bls-local
+        docker compose down || true 

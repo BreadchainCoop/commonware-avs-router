@@ -362,3 +362,46 @@ cd .. # Back to router root directory
 source .env
 cargo run --release -- --key-file commonware-avs-node/orchestrator.json --port 3000
 ```
+
+## Automated Integration Testing
+
+An automated integration test is available that validates the complete end-to-end flow of the BLS signature aggregation system.
+
+### Quick Test
+
+Run the full integration test with a single command:
+
+```bash
+./scripts/run_integration_test.sh
+```
+
+This will:
+1. Set up the local blockchain environment
+2. Start all components (orchestrator + 3 contributors)  
+3. Wait for signature aggregation cycles
+4. Verify the counter contract was incremented at least twice
+5. Clean up all processes
+
+Expected runtime: ~5-7 minutes
+
+### CI/CD Integration
+
+The integration test runs automatically on:
+- Pushes to `main` and `local-ci` branches
+- Pull requests to `main`
+
+View the workflow at `.github/workflows/integration-test.yml`
+
+### What the Test Validates
+
+The integration test confirms:
+- ✅ Local blockchain starts and contracts deploy successfully
+- ✅ All contributors connect and initialize properly  
+- ✅ Orchestrator coordinates signature aggregation cycles
+- ✅ BLS signatures are collected, aggregated, and verified
+- ✅ On-chain increment function is called when threshold is reached
+- ✅ Counter value increases by at least 2 within the test timeout
+
+This provides confidence that the core BLS signature aggregation protocol works correctly in an end-to-end scenario.
+
+For detailed documentation and troubleshooting, see `scripts/README.md`.
