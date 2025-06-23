@@ -51,24 +51,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y jq curl
 
-    - name: Validate private key secret
-      env:
-        PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-      run: |
-        if [ -z "$PRIVATE_KEY" ]; then
-          echo "❌ ERROR: PRIVATE_KEY secret is not set!"
-          echo "Please add your private key as a repository secret:"
-          echo "1. Go to Settings → Secrets and variables → Actions"
-          echo "2. Click 'New repository secret'"
-          echo "3. Name: PRIVATE_KEY"
-          echo "4. Value: Your private key (e.g., 0x1234...)"
-          echo "5. The private key must be funded on Holesky testnet"
-          echo ""
-          echo "💡 Security tip: Use a dedicated test key for CI/CD, not your main wallet!"
-          exit 1
-        fi
-        echo "✅ Private key secret is configured"
-        echo "Private key: ${PRIVATE_KEY:0:6}...${PRIVATE_KEY: -4}"
+
 
     - name: Build router
       run: cargo build --release
@@ -85,7 +68,7 @@ jobs:
 
     - name: Set up environment files
       env:
-        PRIVATE_KEY: "0xba35a33f95b443f059e794e4f440d22021400267fff05df4f4d3d2d8eee07215"
+        PRIVATE_KEY: "0x10df54bba92e291d74bc0b453d8173641f7df5b2db419d0276865079902636b6"
       run: |
         # Copy example env files
         cp example.env .env
@@ -103,6 +86,8 @@ jobs:
         sed -i "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$PRIVATE_KEY|" commonware-avs-node/.env
 
     - name: Start local blockchain environment
+      env:
+        PRIVATE_KEY: "0x10df54bba92e291d74bc0b453d8173641f7df5b2db419d0276865079902636b6"
       run: |
         cd eigenlayer-bls-local
         
