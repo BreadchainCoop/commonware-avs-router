@@ -93,9 +93,11 @@ fi
 # Step 1: Build projects
 echo -e "${YELLOW}Step 1: Building projects...${NC}"
 cd "$PROJECT_ROOT"
-cargo build --release
+echo "Building router..."
+cargo build --release --quiet
 cd commonware-avs-node
-cargo build --release
+echo "Building AVS node..."
+cargo build --release --quiet
 cd "$PROJECT_ROOT"
 
 # Step 2: Set up environment files
@@ -259,7 +261,7 @@ fi
 
 # Start contributor 1
 echo "Starting contributor 1..."
-cargo run --release -- --key-file "$CONTRIBUTOR_1_KEYFILE" --port 3001 --orchestrator orchestrator.json > "$LOG_DIR/contributor1.log" 2>&1 &
+cargo run --release --quiet -- --key-file "$CONTRIBUTOR_1_KEYFILE" --port 3001 --orchestrator orchestrator.json > "$LOG_DIR/contributor1.log" 2>&1 &
 PID1=$!
 echo "contributor1:$PID1" >> "$PIDS_FILE"
 echo "Contributor 1 started with PID: $PID1"
@@ -268,7 +270,7 @@ sleep 1
 
 # Start contributor 2
 echo "Starting contributor 2..."
-cargo run --release -- --key-file "$CONTRIBUTOR_2_KEYFILE" --port 3002 --orchestrator orchestrator.json > "$LOG_DIR/contributor2.log" 2>&1 &
+cargo run --release --quiet -- --key-file "$CONTRIBUTOR_2_KEYFILE" --port 3002 --orchestrator orchestrator.json > "$LOG_DIR/contributor2.log" 2>&1 &
 PID2=$!
 echo "contributor2:$PID2" >> "$PIDS_FILE"
 echo "Contributor 2 started with PID: $PID2"
@@ -277,7 +279,7 @@ sleep 1
 
 # Start contributor 3
 echo "Starting contributor 3..."
-cargo run --release -- --key-file "$CONTRIBUTOR_3_KEYFILE" --port 3003 --orchestrator orchestrator.json > "$LOG_DIR/contributor3.log" 2>&1 &
+cargo run --release --quiet -- --key-file "$CONTRIBUTOR_3_KEYFILE" --port 3003 --orchestrator orchestrator.json > "$LOG_DIR/contributor3.log" 2>&1 &
 PID3=$!
 echo "contributor3:$PID3" >> "$PIDS_FILE"
 echo "Contributor 3 started with PID: $PID3"
@@ -297,7 +299,7 @@ if ! source .env; then
     exit 1
 fi
 
-cargo run --release -- --key-file commonware-avs-node/orchestrator.json --port 3000 > "$LOG_DIR/orchestrator.log" 2>&1 &
+cargo run --release --quiet -- --key-file commonware-avs-node/orchestrator.json --port 3000 > "$LOG_DIR/orchestrator.log" 2>&1 &
 ORCHESTRATOR_PID=$!
 echo "orchestrator:$ORCHESTRATOR_PID" >> "$PIDS_FILE"
 echo "Orchestrator started with PID: $ORCHESTRATOR_PID"
@@ -315,7 +317,8 @@ echo "This will take approximately 2-3 minutes..."
 
 # Build and run verification script
 cd scripts
-cargo build --release --bin verify_increments
+echo "Building verification script..."
+cargo build --release --bin verify_increments --quiet
 if ! source ../.env; then
     echo -e "${RED}Error: Failed to source ../.env file${NC}"
     echo "Contents of ../.env file:"

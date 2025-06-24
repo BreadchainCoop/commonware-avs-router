@@ -3,12 +3,7 @@ use alloy::{
 };
 use std::{env, time::Duration};
 use tokio::time::sleep;
-
-// Include the counter bindings
-#[path = "../src/bindings/counter.rs"]
-mod counter;
-
-use counter::Counter;
+use commonware_avs_router::bindings::counter::Counter;
 use commonware_eigenlayer::config::AvsDeployment;
 
 #[tokio::main]

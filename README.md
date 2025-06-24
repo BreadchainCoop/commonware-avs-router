@@ -363,16 +363,12 @@ source .env
 cargo run --release -- --key-file commonware-avs-node/orchestrator.json --port 3000
 ```
 
-## Automated Integration Testing
-
-An automated integration test is available that validates the complete end-to-end flow of the BLS signature aggregation system.
-
 ### Quick Test
 
 Run the full integration test with a single command:
 
 ```bash
-./scripts/run_integration_test.sh
+./scripts/router_e2e_local.sh
 ```
 
 This will:
@@ -383,6 +379,8 @@ This will:
 5. Clean up all processes
 
 Expected runtime: ~5-7 minutes
+
+Check the Read me in scripts for more info and debugging
 
 ### CI/CD Integration
 

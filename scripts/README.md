@@ -1,18 +1,18 @@
-# Integration Test Scripts
+# Local Test Scripts
 
-This directory contains scripts for running integration tests of the BLS signature aggregation system.
+This directory contains scripts for running local version of the BLS signature aggregation system.
 
 ## Overview
 
-The integration test validates the complete end-to-end flow:
+The test validates the complete end-to-end flow:
 
-1. **Local Blockchain Setup**: Starts a local Ethereum blockchain with deployed EigenLayer contracts
+1. **Local Blockchain Setup**: Starts a local Ethereum blockchain and deploys EigenLayer contracts
 2. **BLS Signature Aggregation**: Runs the orchestrator and 3 contributors 
 3. **Verification**: Confirms that the counter contract was incremented at least twice through successful signature aggregation
 
 ## Files
 
-- `run_integration_test.sh` - Main integration test script
+- `router_e2e_local.sh` - Main integration test script
 - `verify_increments.rs` - Rust script that monitors and verifies counter increments  
 - `Cargo.toml` - Dependencies for the verification script
 
@@ -20,15 +20,15 @@ The integration test validates the complete end-to-end flow:
 
 ### Prerequisites
 
-- Docker and Docker Compose
-- Rust toolchain
+- Docker
+- Rust
 - All submodules initialized (`git submodule update --init --recursive`)
 
 ### Run the Test
 
 ```bash
 # From the project root
-./scripts/run_integration_test.sh
+./scripts/router_e2e_local.sh
 ```
 
 The script will:
@@ -57,43 +57,6 @@ The test is also automated through GitHub Actions in `.github/workflows/integrat
 - Has a 15-minute timeout
 - Provides detailed logs on failure
 
-## How It Works
-
-### System Architecture
-
-The BLS signature aggregation system works as follows:
-
-1. **Orchestrator**: Coordinates the aggregation process
-   - Every 30 seconds, creates a new round with payload from counter contract
-   - Broadcasts round to all contributors
-   - Collects and validates signatures
-   - When threshold (3 signatures) is reached, aggregates and executes on-chain
-
-2. **Contributors**: Sign round messages
-   - Receive round broadcasts from orchestrator
-   - Validate round payload
-   - Sign with BLS private key
-   - Send signature back to orchestrator
-
-3. **Counter Contract**: Target for on-chain execution
-   - `number()` function returns current counter value
-   - `increment()` function increments counter (called by orchestrator)
-
-### Test Flow
-
-1. **Setup Phase** (~2 minutes):
-   - Start local blockchain with EigenLayer contracts
-   - Deploy counter contract and register 3 test operators
-   - Start contributor nodes and orchestrator
-
-2. **Aggregation Phase** (~2-3 minutes):
-   - Wait for at least 2 signature aggregation cycles
-   - Each cycle: round creation → signing → aggregation → increment
-   - Monitor counter value every 10 seconds
-
-3. **Verification Phase** (~10 seconds):
-   - Check that counter increased by at least 2
-   - Success if target increments achieved within timeout
 
 ## Troubleshooting
 
@@ -110,11 +73,10 @@ The BLS signature aggregation system works as follows:
 3. **Contributors fail to connect**
    - Verify keyfiles exist in `eigenlayer-bls-local/.nodes/operator_keys/`
    - Check network connectivity between processes
-
-4. **Signature threshold not reached**
-   - Ensure all 3 contributors are running
-   - Check contributor logs for errors
-   - Verify operator registration in EigenLayer contracts
+4. **Not Using Funded Private Key**
+   - Ensure PRIVATE_KEY in .env has sufficient ETH for transactions
+   - Check balance: `cast balance $(cast --from-utf8 $(cast --private-key $PRIVATE_KEY))`
+   - Fund if needed: `cast send --private-key $PRIVATE_KEY --value 1ether <address>`
 
 ### Debug Information
 
@@ -138,22 +100,6 @@ cargo run --bin verify_increments
 
 ## Configuration
 
-### Environment Variables
+### Environment Variables Needed for Local Test
 
-The test uses these key environment variables:
-- `HTTP_RPC` - Blockchain RPC endpoint (http://localhost:8545 for local)
-- `AVS_DEPLOYMENT_PATH` - Path to contract deployment JSON
-- `CONTRIBUTOR_X_KEYFILE` - BLS private key files for contributors
-- `PRIVATE_KEY` - ECDSA private key for transactions
-
-### Timeouts
-
-- Contract deployment: 5 minutes
-- Signature aggregation: 2.5 minutes  
-- Process initialization: 30-60 seconds per component
-
-### Thresholds
-
-- Target increments: 2 (configurable in verification script)
-- Signature threshold: 3 contributors (hardcoded in system)
-- Aggregation frequency: 30 seconds (configurable in orchestrator) 
+- `PRIVATE_KEY` -private key for transactions

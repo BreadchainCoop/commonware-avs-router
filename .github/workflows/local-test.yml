@@ -68,7 +68,7 @@ jobs:
 
     - name: Set up environment files
       env:
-        PRIVATE_KEY: "0x10df54bba92e291d74bc0b453d8173641f7df5b2db419d0276865079902636b6"
+        PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
       run: |
         # Copy example env files
         cp example.env .env
@@ -87,7 +87,7 @@ jobs:
 
     - name: Start local blockchain environment
       env:
-        PRIVATE_KEY: "0x10df54bba92e291d74bc0b453d8173641f7df5b2db419d0276865079902636b6"
+        PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
       run: |
         cd eigenlayer-bls-local
         
