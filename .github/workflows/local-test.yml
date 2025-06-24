@@ -1,4 +1,4 @@
-name: Local Test
+name: Integration Test
 
 on:
   push:
@@ -13,6 +13,7 @@ jobs:
   integration-test:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    environment: PRIVATE_KEY
 
     services:
       docker:
