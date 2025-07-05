@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Configuration
-ENDPOINT_URL="http://localhost:3000/trigger"  # Adjust port as needed
-INTERVAL=10  # seconds
+ENDPOINT_URL="http://localhost:8080/trigger"  # Adjust port as needed
+INTERVAL=30  # seconds
 
 # Sample data - adjust these values as needed
 REQUESTER_ADDRESS="0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"
