@@ -55,13 +55,7 @@ impl Executor {
             Y: U256::from_str(&asig_g1.Y.to_string()).unwrap(),
         };
 
-        let mut msg_hash_bytes = [0u8; 32];
-        if payload_hash.len() >= 32 {
-            msg_hash_bytes.copy_from_slice(&payload_hash[0..32]);
-        } else {
-            msg_hash_bytes[0..payload_hash.len()].copy_from_slice(payload_hash);
-        }
-        let msg_hash = FixedBytes::<32>::from(msg_hash_bytes);
+        let msg_hash = FixedBytes::<32>::from_slice(payload_hash);
         
         // Get or populate operator addresses
         let mut operators = Vec::new();
