@@ -2,7 +2,9 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TaskRequestBody {
-    pub var1: String, 
+    pub var1: String,
+    pub var2: String,
+    pub var3: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
