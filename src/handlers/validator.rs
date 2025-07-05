@@ -3,10 +3,10 @@ use commonware_eigenlayer::config::AvsDeployment;
 use alloy::{sol, sol_types::{SolCall}};
 use alloy_primitives::U256;
 use alloy_provider::{fillers::{BlobGasFiller, ChainIdFiller, FillProvider, GasFiller, JoinFill, NonceFiller}, ProviderBuilder, RootProvider};
-use commonware_codec::{DecodeExt, ReadExt};
+use commonware_codec::DecodeExt;
 use commonware_cryptography::{Hasher, Sha256};
 use NumberEncoder::yourNumbFuncCall;
-use std::{env, io::Cursor};
+use std::env;
 use crate::bindings::counter::Counter;
 use commonware_cryptography::sha256::Digest;
 
@@ -36,43 +36,47 @@ impl Validator {
     }
 
     pub async fn validate_and_return_expected_hash(&self, msg: &[u8]) -> Result<Digest, Box<dyn std::error::Error + Send + Sync>> {
-        // First verify the message round
-        self.verify_message_round(msg).await?;
-        
-        // Then get the payload hash
-        self.get_payload_from_message(msg).await
-    }
+        // perform some operations on the variables to ensure validity of the request
+        // in this case, we just check if the requested number is the current number on the counter
+        self.validate_message(msg).await?;
 
-    pub async fn get_payload_from_message(&self, msg: &[u8]) -> Result<Digest, Box<dyn std::error::Error + Send + Sync>> {
-        // Decode the wire message
-        let aggregation = wire::Aggregation::decode(msg)?;
-        
-        // Create the payload directly
-        let payload = yourNumbFuncCall {
-            number: U256::from(aggregation.round),
-        }
-        .abi_encode()[4..].to_vec();
-        
-        // Hash the payload
-        let mut hasher = Sha256::new();
-        hasher.update(&payload);
-        let payload_hash = hasher.finalize();
-        
+        let payload_hash = self.get_hashed_payload(msg).await?;
+
         Ok(payload_hash)
     }
 
-    async fn verify_message_round(&self, msg: &[u8]) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let aggregation = wire::Aggregation::read(&mut Cursor::new(msg))?;
+
+    /// Decode the wire message once and return the aggregation struct
+    async fn decode_message(&self, msg: &[u8]) -> Result<wire::Aggregation, Box<dyn std::error::Error + Send + Sync>> {
+        wire::Aggregation::decode(msg).map_err(|e| e.into())
+    }
+    async fn validate_message(&self, msg: &[u8]) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let aggregation = self.decode_message(msg).await?;
+        let requested_num = aggregation.round;
         let current_number = self.counter.number().call().await?;
         let current_number = current_number._0.to::<u64>();
 
-        if aggregation.round != current_number {
+        if requested_num != current_number {
             return Err(format!(
                 "Invalid round number in message. Expected {}, got {}",
-                current_number, aggregation.round
+                current_number, requested_num
             ).into());
         }
-
         Ok(())
+    }
+
+    async fn get_hashed_payload(&self, msg: &[u8]) -> Result<Digest, Box<dyn std::error::Error + Send + Sync>> {
+        // in this case, we are abi encoding the requested number and hashing the result 
+        // in a way that is compatible with the counter contract onchain signature validation
+        let aggregation = self.decode_message(msg).await?;
+        let requested_num = aggregation.round;
+        let payload = yourNumbFuncCall {
+            number: U256::from(requested_num),
+        }
+        .abi_encode()[4..].to_vec();
+        let mut hasher = Sha256::new();
+        hasher.update(&payload);
+        let payload_hash = hasher.finalize();
+        Ok(payload_hash)
     }
 }
