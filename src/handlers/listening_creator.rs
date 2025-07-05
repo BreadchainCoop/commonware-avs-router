@@ -96,15 +96,24 @@ impl ListeningCreator {
         &self,
     ) -> Result<(Vec<u8>, u64), Box<dyn std::error::Error>> {
         // Wait for a task to be available
-        let _task = loop {
+        let task = loop {
             if let Some(task) = self.get_next_task().await {
                 break task;
             }
             tokio::time::sleep(std::time::Duration::from_millis(100)).await;
         };
         let current_number = self.get_current_number().await?;
-        let payload = self.get_payload_for_round(current_number).await?;
-        Ok(payload)
+        let mut payload = self.get_payload_for_round(current_number).await?.0;
+        
+        // Encode the three variables into the payload
+        payload.extend_from_slice(task.body.var1.as_bytes());
+        payload.push(0); // null terminator
+        payload.extend_from_slice(task.body.var2.as_bytes());
+        payload.push(0); // null terminator
+        payload.extend_from_slice(task.body.var3.as_bytes());
+        payload.push(0); // null terminator
+        
+        Ok((payload, current_number))
     }
 
     // Optional: Method to get payload for a specific round number
