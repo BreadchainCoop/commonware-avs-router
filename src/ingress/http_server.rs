@@ -10,16 +10,15 @@ pub async fn trigger_task_handler(
     State(state): State<Arc<Mutex<Vec<TaskRequest>>>>,
     Json(req): Json<TaskRequest>,
 ) -> (StatusCode, Json<TaskResponse>) {
-    // Verify signature
-    if !verify_request_signature(&req) {
-        return (
-            StatusCode::UNAUTHORIZED,
-            Json(TaskResponse {
-                success: false,
-                message: "Invalid signature".to_string(),
-            }),
-        );
-    }
+    // Add business logic here such as api-key verification, ecdsa signature verification, etc retrieved from the TaskRequest
+    // for example, if we assume `var1` is the api-key
+    // let var1 = req.body.var1;
+    // if !is_valid_api_key(var1) {
+    //     return (StatusCode::UNAUTHORIZED, Json(TaskResponse {
+    //         success: false,
+    //         message: "Invalid api-key".to_string(),
+    //     }));
+    // }
     // Add to queue
     {
         let mut queue = state.lock().await;
@@ -32,16 +31,6 @@ pub async fn trigger_task_handler(
             message: "Task queued".to_string(),
         }),
     )
-}
-
-// Dummy ECDSA signature verification (replace with real logic)
-pub fn verify_request_signature(_req: &TaskRequest) -> bool {
-    // TODO: Implement ECDSA signature verification
-    // 1. Hash the body (address, number)
-    // 2. Recover the address from the signature
-    // 3. Check that recovered address == req.requester
-    // For now, always return true for placeholder
-    true
 }
 
 // Start the HTTP server in a background task
