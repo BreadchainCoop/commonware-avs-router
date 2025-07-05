@@ -89,7 +89,7 @@ impl<E: Clock> Orchestrator<E> {
             info!(
                 round = current_number.to_string(),
                 msg = hex(&payload),
-                "generated and signed message"
+                "generated payload for round"
             );
 
             // Broadcast payload
@@ -164,11 +164,11 @@ impl<E: Clock> Orchestrator<E> {
 
                         let mut buf = Vec::with_capacity(msg.encode_size());
                         msg.write(&mut buf);
-                        let expected_payload = validator.validate_and_return_expected_hash(&buf).await.unwrap();
-                        info!("Verifying signature for round: {} from contributor: {:?}, payload hash: {}",
-                              msg.round, contributor, hex(&expected_payload));
+                        let expected_digest = validator.validate_and_return_expected_hash(&buf).await.unwrap();
+                        info!("Verifying signature for round: {} from contributor: {:?}, expected digest: {}",
+                              msg.round, contributor, hex(&expected_digest));
 
-                        if !<Bn254 as Verifier>::verify(None, &expected_payload, &sender, &signature) {
+                        if !<Bn254 as Verifier>::verify(None, &expected_digest, &sender, &signature) {
                             info!("Signature verification failed for contributor: {:?}", contributor);
                             continue;
                         }
@@ -202,13 +202,13 @@ impl<E: Clock> Orchestrator<E> {
                         let agg_signature = bn254::aggregate_signatures(&signatures).unwrap();
 
                         // Verify aggregated signature (already verified individual signatures so should never fail)
-                        if !bn254::aggregate_verify(&participating, None, &payload, &agg_signature) {
+                        if !bn254::aggregate_verify(&participating, None, &expected_digest, &agg_signature) {
                             panic!("failed to verify aggregated signature");
                         }
 
                         // Execute the increment with the aggregated signature
                         match executor.execute_verification(
-                            &payload,
+                            &expected_digest,
                             &participating_g1,
                             &participating,
                             &signatures,
