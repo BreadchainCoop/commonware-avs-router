@@ -45,7 +45,16 @@ impl Creator {
     pub async fn get_payload_and_round(&self) -> Result<(Vec<u8>, u64), Box<dyn std::error::Error>> {
         let current_number = self.get_current_number().await?;
         let encoded = self.encode_number_call(U256::from(current_number)).await;
-        Ok((encoded, current_number))
+        
+        // For non-ingress mode, encode default variables into the payload
+        let mut payload = encoded;
+        let default_vars = ["default_var1", "default_var2", "default_var3"];
+        for var in default_vars {
+            payload.extend_from_slice(var.as_bytes());
+            payload.push(0); // null terminator
+        }
+        
+        Ok((payload, current_number))
     }
 }
 
