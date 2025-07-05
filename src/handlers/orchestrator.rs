@@ -17,6 +17,9 @@ use dotenv::dotenv;
 use std::{collections::HashMap, time::Duration};
 use tracing::info;
 use crate::handlers::TaskCreatorEnum;
+const VAR1: &str = "default_var1";
+const VAR2: &str = "default_var2";
+const VAR3: &str = "default_var3";
 
 pub struct Orchestrator<E: Clock> {
     runtime: E,
@@ -92,6 +95,9 @@ impl<E: Clock> Orchestrator<E> {
             // Broadcast payload
             let message = wire::Aggregation {
                 round: current_number,
+                var1: VAR1.to_string(),
+                var2: VAR2.to_string(),
+                var3: VAR3.to_string(),
                 payload: Some(Payload::Start(Start {})),
             };
             let mut buf = Vec::with_capacity(message.encode_size());
