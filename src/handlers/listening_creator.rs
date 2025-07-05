@@ -16,6 +16,7 @@ use tokio::sync::Mutex;
 use tracing::info;
 
 use crate::bindings::counter::Counter;
+use crate::handlers::TaskCreator;
 use crate::ingress::{TaskRequest, start_http_server};
 use commonware_eigenlayer::config::AvsDeployment;
 
@@ -122,6 +123,12 @@ impl ListeningCreator {
         tokio::spawn(async move {
             start_http_server(queue, &addr).await;
         });
+    }
+}
+
+impl TaskCreator for ListeningCreator {
+    async fn get_payload_and_round(&self) -> Result<(Vec<u8>, u64), Box<dyn std::error::Error>> {
+        self.get_payload_and_round().await
     }
 }
 

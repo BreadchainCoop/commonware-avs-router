@@ -1,7 +1,9 @@
 use crate::handlers::executor::create_executor;
 use crate::handlers::listening_creator::create_listening_creator_with_server;
+use crate::handlers::creator::create_creator;
 use crate::handlers::validator::Validator;
 use crate::handlers::wire::{self, aggregation::{Payload, Start}};
+use crate::handlers::TaskCreator;
 
 use bn254::{Bn254, G1PublicKey, PublicKey, Signature as Bn254Signature};
 use bytes::Bytes;
@@ -14,6 +16,7 @@ use commonware_utils::hex;
 use dotenv::dotenv;
 use std::{collections::HashMap, time::Duration};
 use tracing::info;
+use crate::handlers::TaskCreatorEnum;
 
 pub struct Orchestrator<E: Clock> {
     runtime: E,
@@ -61,7 +64,18 @@ impl<E: Clock> Orchestrator<E> {
     ) {
         let mut hasher = Sha256::new();
         let mut signatures = HashMap::new();
-        let task_creator = create_listening_creator_with_server("0.0.0.0:8080".to_string()).await.unwrap();
+        let task_creator: TaskCreatorEnum;
+        // Check if INGRESS flag is set to determine which creator to use
+        let use_ingress = std::env::var("INGRESS").unwrap_or_default().to_lowercase() == "true";
+        if use_ingress {
+            info!("Using ListeningCreator with HTTP server on port 8080");
+            let listening_creator = create_listening_creator_with_server("0.0.0.0:8080".to_string()).await.unwrap();
+            task_creator = TaskCreatorEnum::ListeningCreator(listening_creator);
+        } else {
+            info!("Using Creator without ingress");
+            let creator = create_creator().await.unwrap();
+            task_creator = TaskCreatorEnum::Creator(creator);
+        };
         let mut executor = create_executor().await.unwrap();
         let validator = Validator::new().await.unwrap();
         
