@@ -1,5 +1,5 @@
-use crate::handlers::creator::create_creator;
 use crate::handlers::executor::create_executor;
+use crate::handlers::listening_creator::create_listening_creator_with_server;
 use crate::handlers::validator::Validator;
 use crate::handlers::wire::{self, aggregation::{Payload, Start}};
 
@@ -61,7 +61,7 @@ impl<E: Clock> Orchestrator<E> {
     ) {
         let mut hasher = Sha256::new();
         let mut signatures = HashMap::new();
-        let task_creator = create_creator().await.unwrap();
+        let task_creator = create_listening_creator_with_server("0.0.0.0:8080".to_string()).await.unwrap();
         let mut executor = create_executor().await.unwrap();
         let validator = Validator::new().await.unwrap();
         
