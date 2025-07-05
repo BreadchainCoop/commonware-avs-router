@@ -20,7 +20,9 @@ while true; do
     json_data=$(cat <<EOF
 {
     "body": {
-        "var1": "$current_datetime"
+        "var1": "$current_datetime",
+        "var2": "value2_$counter",
+        "var3": "value3_$(date +%s)"
     }
 }
 EOF
