@@ -95,8 +95,12 @@ impl Contributor {
 
             // Return signature to orchestrator
             let message = wire::Aggregation {
-                round,
-                payload: Some(Payload::Signature(signature.to_vec())),
+                round: round,
+                var1: message.var1.clone(),
+                var2: message.var2.clone(),
+                var3: message.var3.clone(),
+                payload: Some(Payload::Signature(signature: signature.to_vec(),
+                )),
             };
         
             let mut buf = Vec::with_capacity(message.encode_size());
