@@ -1,7 +1,7 @@
 use crate::handlers::creator::create_creator;
 use crate::handlers::executor::create_executor;
 use crate::handlers::validator::Validator;
-use crate::handlers::wire::{self, aggregation::{Payload, Start}};
+use crate::handlers::wire::{self, aggregation::{Payload}};
 
 use bn254::{Bn254, G1PublicKey, PublicKey, Signature as Bn254Signature};
 use bytes::Bytes;
@@ -78,7 +78,7 @@ impl<E: Clock> Orchestrator<E> {
             // Broadcast payload
             let message = wire::Aggregation {
                 round: current_number,
-                payload: Some(Payload::Start(Start {})),
+                payload: Some(Payload::Start),
             };
             let mut buf = Vec::with_capacity(message.encode_size());
             message.write(&mut buf);
@@ -130,7 +130,7 @@ impl<E: Clock> Orchestrator<E> {
                         let signature = match msg.payload.clone() {
                             Some(Payload::Signature(signature)) => {
                                 info!("Received signature for round: {} from contributor: {:?}", msg.round, contributor);
-                                signature.signature
+                                signature
                             },
                             _ => {
                                 info!("Received non-signature payload from contributor: {:?}", contributor);
