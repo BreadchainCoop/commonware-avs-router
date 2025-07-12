@@ -42,7 +42,7 @@ impl Creator {
         .abi_encode()[4..].to_vec()
     }
 
-    pub async fn get_payload_and_round(&self) -> Result<(Vec<u8>, u64), Box<dyn std::error::Error>> {
+    async fn get_payload_and_round(&self) -> Result<(Vec<u8>, u64), Box<dyn std::error::Error>> {
         let current_number = self.get_current_number().await?;
         let encoded = self.encode_number_call(U256::from(current_number)).await;
         
