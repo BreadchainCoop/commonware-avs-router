@@ -11,6 +11,7 @@ use bytes::Bytes;
 use commonware_codec::{EncodeSize, ReadExt, Write};
 use std::collections::{HashMap, HashSet};
 use tracing::info;
+use anyhow::Result;
 
 use crate::handlers::wire::{self, aggregation::Payload};
 sol! {
@@ -50,10 +51,10 @@ impl Contributor {
         mut self,
         mut sender: impl Sender,
         mut receiver: impl Receiver<PublicKey = PublicKey>,
-    ) {
+    ) -> Result<()> {
         let mut signed = HashSet::new();
         let mut signatures: HashMap<u64, HashMap<usize, Bn254Signature>> = HashMap::new();
-        let validator = Validator::new().await.unwrap();
+        let validator = Validator::new().await?;
 
         while let Ok((s, message)) = receiver.recv().await {
             // Parse message
@@ -79,7 +80,7 @@ impl Contributor {
             }
             let mut buf = Vec::with_capacity(message.encode_size());
             message.write(&mut buf);
-            let payload = validator.validate_and_return_expected_hash(&buf).await.unwrap();
+            let payload = validator.validate_and_return_expected_hash(&buf).await?;
             info!(
                 "Generating signature for round: {}, payload hash: {}",
                 round,
@@ -111,9 +112,11 @@ impl Contributor {
             sender
                 .send(commonware_p2p::Recipients::All, Bytes::from(buf), true)
                 .await
-                .expect("failed to broadcast signature");
+                .map_err(|e| anyhow::anyhow!("Failed to broadcast signature: {}", e))?;
             info!(round, "broadcast signature");
         }
+        
+        Ok(())
     }
 }
 
