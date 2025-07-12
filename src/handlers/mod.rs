@@ -8,8 +8,43 @@ pub use orchestrator::Orchestrator;
 pub mod wire;
 
 use std::{error::Error, sync::Arc};
-
 use crate::handlers::{creator::Creator, listening_creator::ListeningCreator};
+
+use alloy::{
+    network::EthereumWallet,
+    providers::fillers::FillProvider,
+};
+use alloy_provider::{
+    fillers::{BlobGasFiller, ChainIdFiller, GasFiller, JoinFill, NonceFiller, WalletFiller},
+    RootProvider,
+};
+
+// Type alias for the complex provider type used across handlers
+pub type CounterProvider = FillProvider<
+    JoinFill<
+        JoinFill<
+            alloy_provider::Identity,
+            JoinFill<
+                GasFiller,
+                JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>,
+            >,
+        >,
+        WalletFiller<EthereumWallet>,
+    >,
+    RootProvider,
+>;
+
+// Type alias for view-only provider (without wallet)
+pub type ViewOnlyProvider = FillProvider<
+    JoinFill<
+        alloy_provider::Identity,
+        JoinFill<
+            GasFiller,
+            JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>,
+        >,
+    >,
+    RootProvider,
+>;
 
 /// Shared trait for creators that can generate payloads and round numbers
 pub trait TaskCreator: Send + Sync {

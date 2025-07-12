@@ -1,22 +1,17 @@
 use NumberEncoder::yourNumbFuncCall;
 use alloy::{
-    network::EthereumWallet,
     primitives::{Address, U256},
-    providers::fillers::FillProvider,
     sol,
     sol_types::SolCall,
 };
-use alloy_provider::{
-    ProviderBuilder, RootProvider,
-    fillers::{BlobGasFiller, ChainIdFiller, GasFiller, JoinFill, NonceFiller, WalletFiller},
-};
+use alloy_provider::ProviderBuilder;
 use alloy_signer_local::PrivateKeySigner;
 use std::{env, str::FromStr, sync::Arc};
 use tokio::sync::Mutex;
 use tracing::info;
 
 use crate::bindings::counter::Counter;
-use crate::handlers::TaskCreator;
+use crate::handlers::{TaskCreator, CounterProvider};
 use crate::ingress::{TaskRequest, start_http_server};
 use commonware_eigenlayer::config::AvsDeployment;
 
@@ -28,40 +23,13 @@ sol! {
 }
 
 pub struct ListeningCreator {
-    counter: Counter::CounterInstance<
-        (),
-        FillProvider<
-            JoinFill<
-                JoinFill<
-                    alloy_provider::Identity,
-                    JoinFill<
-                        GasFiller,
-                        JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>,
-                    >,
-                >,
-                WalletFiller<EthereumWallet>,
-            >,
-            RootProvider,
-        >,
-    >,
+    counter: Counter::CounterInstance<(), CounterProvider>,
     queue: Arc<Mutex<Vec<TaskRequest>>>,
 }
 
 impl ListeningCreator {
     pub fn new(
-        provider: FillProvider<
-            JoinFill<
-                JoinFill<
-                    alloy_provider::Identity,
-                    JoinFill<
-                        GasFiller,
-                        JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>,
-                    >,
-                >,
-                WalletFiller<EthereumWallet>,
-            >,
-            RootProvider,
-        >,
+        provider: CounterProvider,
         counter_address: Address,
     ) -> Self {
         let counter = Counter::new(counter_address, provider.clone());

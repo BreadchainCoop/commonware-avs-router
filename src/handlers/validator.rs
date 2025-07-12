@@ -1,8 +1,8 @@
-use crate::handlers::wire;
+use crate::handlers::{wire, ViewOnlyProvider};
 use commonware_eigenlayer::config::AvsDeployment;
 use alloy::{sol, sol_types::{SolCall}};
 use alloy_primitives::U256;
-use alloy_provider::{fillers::{BlobGasFiller, ChainIdFiller, FillProvider, GasFiller, JoinFill, NonceFiller}, ProviderBuilder, RootProvider};
+use alloy_provider::ProviderBuilder;
 use commonware_codec::DecodeExt;
 use commonware_cryptography::{Hasher, Sha256};
 use NumberEncoder::yourNumbFuncCall;
@@ -17,7 +17,7 @@ sol! {
     }
 }
 pub struct Validator {
-    counter: Counter::CounterInstance<(), FillProvider<JoinFill<alloy_provider::Identity, JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>>, RootProvider>>,
+    counter: Counter::CounterInstance<(), ViewOnlyProvider>,
 }
 
 impl Validator {

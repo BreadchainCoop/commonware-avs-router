@@ -1,12 +1,10 @@
 use crate::bindings::blssigcheckoperatorstateretriever::BLSSigCheckOperatorStateRetriever::{self, BLSSigCheckOperatorStateRetrieverInstance};
 use crate::bindings::counter::{self, Counter};
 use crate::bindings::blsapkregistry::BLSApkRegistry::{self, BLSApkRegistryInstance};
-use alloy::network::EthereumWallet;
+use crate::handlers::{CounterProvider, ViewOnlyProvider};
 use alloy::providers::{Provider, ProviderBuilder};
 use alloy::sol_types::SolValue;
 use alloy_primitives::{Address, Bytes, FixedBytes, U256};
-use alloy_provider::fillers::{BlobGasFiller, ChainIdFiller, FillProvider, GasFiller, JoinFill, NonceFiller, WalletFiller};
-use alloy_provider::RootProvider;
 use alloy_signer_local::PrivateKeySigner;
 use bn254::{G1PublicKey, PublicKey, Signature};
 use eigen_crypto_bls::convert_to_g1_point;
@@ -16,10 +14,10 @@ use commonware_utils::hex;
 use commonware_eigenlayer::config::AvsDeployment;
 
 pub struct Executor {
-    view_only_provider: FillProvider<JoinFill<alloy_provider::Identity, JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>>, RootProvider>,
-    bls_apk_registry: BLSApkRegistryInstance<(), FillProvider<JoinFill<alloy_provider::Identity, JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>>, RootProvider>>,
-    bls_operator_state_retriever: BLSSigCheckOperatorStateRetrieverInstance<(), FillProvider<JoinFill<alloy_provider::Identity, JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>>, RootProvider>>,
-    counter: Counter::CounterInstance<(), FillProvider<JoinFill<JoinFill<alloy_provider::Identity, JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>>, WalletFiller<EthereumWallet>>, RootProvider>>,
+    view_only_provider: ViewOnlyProvider,
+    bls_apk_registry: BLSApkRegistryInstance<(), ViewOnlyProvider>,
+    bls_operator_state_retriever: BLSSigCheckOperatorStateRetrieverInstance<(), ViewOnlyProvider>,
+    counter: Counter::CounterInstance<(), CounterProvider>,
     registry_coordinator_address: Address,
     g1_hash_map: HashMap<PublicKey, Address>,
 }

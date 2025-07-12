@@ -1,14 +1,14 @@
 use alloy::{
-    network::EthereumWallet, primitives::{Address, U256}, providers::fillers::FillProvider, sol, sol_types::SolCall
+    primitives::{Address, U256}, sol, sol_types::SolCall
     
 };
-use alloy_provider::{fillers::{BlobGasFiller, ChainIdFiller, GasFiller, JoinFill, NonceFiller, WalletFiller}, ProviderBuilder, RootProvider};
+use alloy_provider::ProviderBuilder;
 use alloy_signer_local::PrivateKeySigner;
 use std::{env, str::FromStr};
 use NumberEncoder::yourNumbFuncCall;
 
 use crate::bindings::counter::Counter;
-use crate::handlers::TaskCreator;
+use crate::handlers::{TaskCreator, CounterProvider};
 use commonware_eigenlayer::config::AvsDeployment;
 
 sol! {
@@ -19,11 +19,11 @@ sol! {
 }
     
 pub struct Creator {
-    counter: Counter::CounterInstance<(), FillProvider<JoinFill<JoinFill<alloy_provider::Identity, JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>>, WalletFiller<EthereumWallet>>, RootProvider>>,
+    counter: Counter::CounterInstance<(), CounterProvider>,
 }
 
 impl Creator {
-    pub fn new(provider: FillProvider<JoinFill<JoinFill<alloy_provider::Identity, JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>>, WalletFiller<EthereumWallet>>, RootProvider>, counter_address: Address) -> Self {
+    pub fn new(provider: CounterProvider, counter_address: Address) -> Self {
         let counter = Counter::new(counter_address, provider.clone());
         Self {
             counter,
