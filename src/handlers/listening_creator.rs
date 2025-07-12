@@ -6,6 +6,7 @@ use alloy::{
 };
 use alloy_provider::ProviderBuilder;
 use alloy_signer_local::PrivateKeySigner;
+use anyhow::Result;
 use std::{env, str::FromStr, sync::Arc};
 use tokio::sync::Mutex;
 use tracing::info;
@@ -104,8 +105,8 @@ impl ListeningCreator {
 }
 
 impl TaskCreator for ListeningCreator {
-    async fn get_payload_and_round(&self) -> Result<(Vec<u8>, u64), Box<dyn std::error::Error>> {
-        self.get_payload_and_round().await
+    async fn get_payload_and_round(&self) -> anyhow::Result<(Vec<u8>, u64)> {
+        self.get_payload_and_round().await.map_err(|e| anyhow::anyhow!("ListeningCreator error: {}", e))
     }
 }
 

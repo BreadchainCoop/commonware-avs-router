@@ -7,7 +7,7 @@ pub mod listening_creator;
 pub use orchestrator::Orchestrator;
 pub mod wire;
 
-use std::{error::Error, sync::Arc};
+use std::sync::Arc;
 use crate::handlers::{creator::Creator, listening_creator::ListeningCreator};
 
 use alloy::{
@@ -49,7 +49,7 @@ pub type ViewOnlyProvider = FillProvider<
 /// Shared trait for creators that can generate payloads and round numbers
 pub trait TaskCreator: Send + Sync {
     /// Get the current payload and round number
-    async fn get_payload_and_round(&self) -> Result<(Vec<u8>, u64), Box<dyn Error>>;
+    async fn get_payload_and_round(&self) -> anyhow::Result<(Vec<u8>, u64)>;
 }
 enum TaskCreatorEnum {
     Creator(Creator),
@@ -57,10 +57,10 @@ enum TaskCreatorEnum {
 }
 
 impl TaskCreator for TaskCreatorEnum {
-    async fn get_payload_and_round(&self) -> Result<(Vec<u8>, u64), Box<dyn std::error::Error>> {
+    async fn get_payload_and_round(&self) -> anyhow::Result<(Vec<u8>, u64)> {
         match self {
-            TaskCreatorEnum::Creator(creator) => creator.get_payload_and_round().await,
-            TaskCreatorEnum::ListeningCreator(listening_creator) => listening_creator.get_payload_and_round().await,
+            TaskCreatorEnum::Creator(creator) => creator.get_payload_and_round().await.map_err(|e| anyhow::anyhow!("Creator error: {}", e)),
+            TaskCreatorEnum::ListeningCreator(listening_creator) => listening_creator.get_payload_and_round().await.map_err(|e| anyhow::anyhow!("ListeningCreator error: {}", e)),
         }
     }
 }

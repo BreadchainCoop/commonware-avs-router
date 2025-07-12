@@ -6,6 +6,7 @@ use alloy_provider::ProviderBuilder;
 use commonware_codec::DecodeExt;
 use commonware_cryptography::{Hasher, Sha256};
 use NumberEncoder::yourNumbFuncCall;
+use anyhow::Result;
 use std::env;
 use crate::bindings::counter::Counter;
 use commonware_cryptography::sha256::Digest;
@@ -21,13 +22,13 @@ pub struct Validator {
 }
 
 impl Validator {
-    pub async fn new() -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn new() -> Result<Self> {
         let http_rpc = env::var("HTTP_RPC").expect("HTTP_RPC must be set");
         let provider = ProviderBuilder::new()
             .on_http(url::Url::parse(&http_rpc).unwrap());
         
-        let deployment = AvsDeployment::load()?;
-        let counter_address = deployment.counter_address()?;
+        let deployment = AvsDeployment::load().map_err(|e| anyhow::anyhow!("Failed to load deployment: {}", e))?;
+        let counter_address = deployment.counter_address().map_err(|e| anyhow::anyhow!("Failed to get counter address: {}", e))?;
         let counter = Counter::new(counter_address, provider.clone());
         
         Ok(Self {
@@ -35,7 +36,7 @@ impl Validator {
         })
     }
 
-    pub async fn validate_and_return_expected_hash(&self, msg: &[u8]) -> Result<Digest, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn validate_and_return_expected_hash(&self, msg: &[u8]) -> Result<Digest> {
         // perform some operations on the variables to ensure validity of the request
         // in this case, we just check if the requested number is the current number on the counter
         self.validate_message(msg).await?;
@@ -47,25 +48,25 @@ impl Validator {
 
 
     /// Decode the wire message once and return the aggregation struct
-    async fn decode_message(&self, msg: &[u8]) -> Result<wire::Aggregation, Box<dyn std::error::Error + Send + Sync>> {
-        wire::Aggregation::decode(msg).map_err(|e| e.into())
+    async fn decode_message(&self, msg: &[u8]) -> Result<wire::Aggregation> {
+        wire::Aggregation::decode(msg).map_err(|e| anyhow::anyhow!("Failed to decode message: {}", e))
     }
-    async fn validate_message(&self, msg: &[u8]) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    async fn validate_message(&self, msg: &[u8]) -> Result<()> {
         let aggregation = self.decode_message(msg).await?;
         let requested_num = aggregation.round;
-        let current_number = self.counter.number().call().await?;
+        let current_number = self.counter.number().call().await.map_err(|e| anyhow::anyhow!("Failed to get current number: {}", e))?;
         let current_number = current_number._0.to::<u64>();
 
         if requested_num != current_number {
-            return Err(format!(
+            return Err(anyhow::anyhow!(
                 "Invalid round number in message. Expected {}, got {}",
                 current_number, requested_num
-            ).into());
+            ));
         }
         Ok(())
     }
 
-    async fn get_hashed_payload(&self, msg: &[u8]) -> Result<Digest, Box<dyn std::error::Error + Send + Sync>> {
+    async fn get_hashed_payload(&self, msg: &[u8]) -> Result<Digest> {
         // in this case, we are abi encoding the requested number and hashing the result 
         // in a way that is compatible with the counter contract onchain signature validation
         let aggregation = self.decode_message(msg).await?;
