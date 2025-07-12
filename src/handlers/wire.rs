@@ -76,78 +76,25 @@ impl EncodeSize for Aggregation {
 pub mod aggregation {
 
     use bytes::{Buf, BufMut};
-    use commonware_codec::{EncodeSize, Error, Read, ReadExt, Write};
+    use commonware_codec::{EncodeSize, Error, Read, ReadExt, ReadRangeExt, Write};
 
-    /// Message sent by orchestrator to start aggregation
-    #[derive(Clone, Debug, PartialEq)]
-    pub struct Start {}
-
-    impl Write for Start {
-        fn write(&self, _buf: &mut impl BufMut) {}
-    }
-
-    impl Read for Start {
-        type Cfg = ();
-
-        fn read_cfg(_buf: &mut impl Buf, _: &()) -> Result<Self, Error> {
-            Ok(Self {})
-        }
-    }
-
-    impl EncodeSize for Start {
-        fn encode_size(&self) -> usize {
-            0
-        }
-    }
-
+    const MAX_SIGNATURE_SIZE_BYTES: usize = 256;
     /// Sent by signer to all others
-    #[derive(Clone, Debug, PartialEq)]
-    pub struct Signature {
-        pub signature: Vec<u8>,
-    }
-
-    impl Write for Signature {
-        fn write(&self, buf: &mut impl BufMut) {
-            (self.signature.len() as u32).write(buf);
-            buf.put_slice(&self.signature);
-        }
-    }
-
-    impl Read for Signature {
-        type Cfg = ();
-
-        fn read_cfg(buf: &mut impl Buf, _: &()) -> Result<Self, Error> {
-            let len = u32::read(buf)? as usize;
-            if buf.remaining() < len {
-                return Err(Error::EndOfBuffer);
-            }
-            let mut signature = vec![0u8; len];
-            buf.copy_to_slice(&mut signature);
-            Ok(Self { signature })
-        }
-    }
-
-    impl EncodeSize for Signature {
-        fn encode_size(&self) -> usize {
-            4 + self.signature.len() // u32 for length + bytes
-        }
-    }
 
     /// Defines the different types of messages exchanged during the aggregation protocol.
     #[derive(Clone, Debug, PartialEq)]
     pub enum Payload {
         /// Message sent by orchestrator to start aggregation
-        Start(Start),
+        Start,
         /// Sent by signer to all others
-        Signature(Signature),
+        Signature(Vec<u8>),
     }
 
     impl Write for Payload {
         fn write(&self, buf: &mut impl BufMut) {
             match self {
-                Payload::Start(start) => {
+                Payload::Start => {
                     buf.put_u8(0);
-                    start.write(buf);
                 }
                 Payload::Signature(signature) => {
                     buf.put_u8(1);
@@ -163,8 +110,8 @@ pub mod aggregation {
         fn read_cfg(buf: &mut impl Buf, _: &()) -> Result<Self, Error> {
             let tag = u8::read(buf)?;
             let result = match tag {
-                0 => Payload::Start(Start::read(buf)?),
-                1 => Payload::Signature(Signature::read(buf)?),
+                0 => Payload::Start,
+                1 => Payload::Signature(Vec::<u8>::read_range(buf, 0..MAX_SIGNATURE_SIZE_BYTES)?),
                 _ => return Err(Error::InvalidEnum(tag)),
             };
             Ok(result)
@@ -174,7 +121,7 @@ pub mod aggregation {
     impl EncodeSize for Payload {
         fn encode_size(&self) -> usize {
             1 + match self {
-                Payload::Start(start) => start.encode_size(),
+                Payload::Start => 0,
                 Payload::Signature(signature) => signature.encode_size(),
             }
         }
@@ -192,7 +139,7 @@ mod tests {
             var1: "test1".to_string(),
             var2: "test2".to_string(),
             var3: "test3".to_string(),
-            payload: Some(aggregation::Payload::Start(aggregation::Start {})),
+            payload: Some(aggregation::Payload::Start),
         };
         let mut buf = Vec::with_capacity(original.encode_size());
         original.write(&mut buf);
@@ -207,13 +154,11 @@ mod tests {
             var1: "test1".to_string(),
             var2: "test2".to_string(),
             var3: "test3".to_string(),
-            payload: Some(aggregation::Payload::Signature(aggregation::Signature {
-                signature: vec![1, 2, 3],
-            })),
+            payload: Some(aggregation::Payload::Signature(vec![1, 2, 3])),
         };
         let mut buf = Vec::with_capacity(original.encode_size());
         original.write(&mut buf);
         let decoded = Aggregation::read(&mut std::io::Cursor::new(buf)).unwrap();
         assert_eq!(original, decoded);
     }
-} 
+}

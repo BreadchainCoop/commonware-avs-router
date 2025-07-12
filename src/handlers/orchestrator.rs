@@ -2,7 +2,7 @@ use crate::handlers::executor::create_executor;
 use crate::handlers::listening_creator::create_listening_creator_with_server;
 use crate::handlers::creator::create_creator;
 use crate::handlers::validator::Validator;
-use crate::handlers::wire::{self, aggregation::{Payload, Start}};
+use crate::handlers::wire::{self, aggregation::{Payload}};
 use crate::handlers::{TaskCreator, TaskCreatorEnum};
 
 use bn254::{Bn254, G1PublicKey, PublicKey, Signature as Bn254Signature};
@@ -97,7 +97,7 @@ impl<E: Clock> Orchestrator<E> {
                 var1: DEFAULT_VAR_1.to_string(),
                 var2: DEFAULT_VAR_2.to_string(),
                 var3: DEFAULT_VAR_3.to_string(),
-                payload: Some(Payload::Start(Start {})),
+                payload: Some(Payload::Start),
             };
             let mut buf = Vec::with_capacity(message.encode_size());
             message.write(&mut buf);
@@ -149,7 +149,7 @@ impl<E: Clock> Orchestrator<E> {
                         let signature = match msg.payload.clone() {
                             Some(Payload::Signature(signature)) => {
                                 info!("Received signature for round: {} from contributor: {:?}", msg.round, contributor);
-                                signature.signature
+                                signature
                             },
                             _ => {
                                 info!("Received non-signature payload from contributor: {:?}", contributor);
