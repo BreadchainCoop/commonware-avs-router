@@ -1,7 +1,9 @@
-use crate::handlers::creator::create_creator;
 use crate::handlers::executor::create_executor;
+use crate::handlers::listening_creator::create_listening_creator_with_server;
+use crate::handlers::creator::create_creator;
 use crate::handlers::validator::Validator;
 use crate::handlers::wire::{self, aggregation::{Payload}};
+use crate::handlers::{TaskCreator, TaskCreatorEnum};
 
 use bn254::{Bn254, G1PublicKey, PublicKey, Signature as Bn254Signature};
 use bytes::Bytes;
@@ -14,6 +16,9 @@ use commonware_utils::hex;
 use dotenv::dotenv;
 use std::{collections::HashMap, time::Duration};
 use tracing::info;
+const DEFAULT_VAR_1: &str = "default_var1";
+const DEFAULT_VAR_2: &str = "default_var2";
+const DEFAULT_VAR_3: &str = "default_var3";
 
 pub struct Orchestrator<E: Clock> {
     runtime: E,
@@ -61,7 +66,18 @@ impl<E: Clock> Orchestrator<E> {
     ) {
         let mut hasher = Sha256::new();
         let mut signatures = HashMap::new();
-        let task_creator = create_creator().await.unwrap();
+        let task_creator: TaskCreatorEnum;
+        // Check if INGRESS flag is set to determine which creator to use
+        let use_ingress = std::env::var("INGRESS").unwrap_or_default().to_lowercase() == "true";
+        if use_ingress {
+            info!("Using ListeningCreator with HTTP server on port 8080");
+            let listening_creator = create_listening_creator_with_server("0.0.0.0:8080".to_string()).await.unwrap();
+            task_creator = TaskCreatorEnum::ListeningCreator(listening_creator);
+        } else {
+            info!("Using Creator without ingress");
+            let creator = create_creator().await.unwrap();
+            task_creator = TaskCreatorEnum::Creator(creator);
+        };
         let mut executor = create_executor().await.unwrap();
         let validator = Validator::new().await.unwrap();
         
@@ -72,12 +88,15 @@ impl<E: Clock> Orchestrator<E> {
             info!(
                 round = current_number.to_string(),
                 msg = hex(&payload),
-                "generated and signed message"
+                "generated payload for round"
             );
 
             // Broadcast payload
             let message = wire::Aggregation {
                 round: current_number,
+                var1: DEFAULT_VAR_1.to_string(),
+                var2: DEFAULT_VAR_2.to_string(),
+                var3: DEFAULT_VAR_3.to_string(),
                 payload: Some(Payload::Start),
             };
             let mut buf = Vec::with_capacity(message.encode_size());
@@ -144,11 +163,11 @@ impl<E: Clock> Orchestrator<E> {
 
                         let mut buf = Vec::with_capacity(msg.encode_size());
                         msg.write(&mut buf);
-                        let expected_payload = validator.validate_and_return_expected_hash(&buf).await.unwrap();
-                        info!("Verifying signature for round: {} from contributor: {:?}, payload hash: {}",
-                              msg.round, contributor, hex(&expected_payload));
+                        let expected_digest = validator.validate_and_return_expected_hash(&buf).await.unwrap();
+                        info!("Verifying signature for round: {} from contributor: {:?}, expected digest: {}",
+                              msg.round, contributor, hex(&expected_digest));
 
-                        if !<Bn254 as Verifier>::verify(None, &expected_payload, &sender, &signature) {
+                        if !<Bn254 as Verifier>::verify(None, &expected_digest, &sender, &signature) {
                             info!("Signature verification failed for contributor: {:?}", contributor);
                             continue;
                         }
@@ -182,13 +201,13 @@ impl<E: Clock> Orchestrator<E> {
                         let agg_signature = bn254::aggregate_signatures(&signatures).unwrap();
 
                         // Verify aggregated signature (already verified individual signatures so should never fail)
-                        if !bn254::aggregate_verify(&participating, None, &payload, &agg_signature) {
+                        if !bn254::aggregate_verify(&participating, None, &expected_digest, &agg_signature) {
                             panic!("failed to verify aggregated signature");
                         }
 
                         // Execute the increment with the aggregated signature
                         match executor.execute_verification(
-                            &payload,
+                            &expected_digest,
                             &participating_g1,
                             &participating,
                             &signatures,
