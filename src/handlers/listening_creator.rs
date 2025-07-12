@@ -6,7 +6,6 @@ use alloy::{
 };
 use alloy_provider::ProviderBuilder;
 use alloy_signer_local::PrivateKeySigner;
-use anyhow::Result;
 use std::{env, str::FromStr, sync::Arc};
 use tokio::sync::Mutex;
 use tracing::info;
@@ -40,7 +39,7 @@ impl ListeningCreator {
         }
     }
 
-    pub async fn get_current_number(&self) -> Result<u64, Box<dyn std::error::Error>> {
+    pub async fn get_current_number(&self) -> anyhow::Result<u64> {
         let current_number = self.counter.number().call().await?;
         Ok(current_number._0.to::<u64>())
     }
@@ -63,7 +62,7 @@ impl ListeningCreator {
     // This is where queue requests would be pulled from
     pub async fn get_payload_and_round(
         &self,
-    ) -> Result<(Vec<u8>, u64), Box<dyn std::error::Error>> {
+    ) -> anyhow::Result<(Vec<u8>, u64)> {
         // Wait for a task to be available
         let task = loop {
             if let Some(task) = self.get_next_task().await {
@@ -89,7 +88,7 @@ impl ListeningCreator {
     pub async fn get_payload_for_round(
         &self,
         round_number: u64,
-    ) -> Result<(Vec<u8>, u64), Box<dyn std::error::Error>> {
+    ) -> anyhow::Result<(Vec<u8>, u64)> {
         let encoded = self.encode_number_call(U256::from(round_number)).await;
         info!("Created payload for specific round: {}", round_number);
         Ok((encoded, round_number))
@@ -113,7 +112,7 @@ impl TaskCreator for ListeningCreator {
 // Helper function to create a new ListeningCreator instance and start HTTP server
 pub async fn create_listening_creator_with_server(
     addr: String,
-) -> Result<Arc<ListeningCreator>, Box<dyn std::error::Error + Send + Sync>> {
+) -> anyhow::Result<Arc<ListeningCreator>> {
     let http_rpc = env::var("HTTP_RPC").expect("HTTP_RPC must be set");
     let private_key = env::var("PRIVATE_KEY").expect("PRIVATE_KEY must be set");
     let signer = PrivateKeySigner::from_str(&private_key)?;
@@ -121,8 +120,8 @@ pub async fn create_listening_creator_with_server(
         .wallet(signer)
         .connect(&http_rpc)
         .await?;
-    let deployment = AvsDeployment::load()?;
-    let counter_address = deployment.counter_address()?;
+    let deployment = AvsDeployment::load().map_err(|e| anyhow::anyhow!("Failed to load deployment: {}", e))?;
+    let counter_address = deployment.counter_address().map_err(|e| anyhow::anyhow!("Failed to get counter address: {}", e))?;
     let creator = Arc::new(ListeningCreator::new(provider, counter_address));
     let server_creator = creator.clone();
     tokio::spawn(async move {

@@ -3,7 +3,7 @@ use crate::handlers::listening_creator::create_listening_creator_with_server;
 use crate::handlers::creator::create_creator;
 use crate::handlers::validator::Validator;
 use crate::handlers::wire::{self, aggregation::{Payload, Start}};
-use crate::handlers::TaskCreator;
+use crate::handlers::{TaskCreator, TaskCreatorEnum};
 
 use bn254::{Bn254, G1PublicKey, PublicKey, Signature as Bn254Signature};
 use bytes::Bytes;
@@ -16,7 +16,6 @@ use commonware_utils::hex;
 use dotenv::dotenv;
 use std::{collections::HashMap, time::Duration};
 use tracing::info;
-use crate::handlers::TaskCreatorEnum;
 const VAR1: &str = "default_var1";
 const VAR2: &str = "default_var2";
 const VAR3: &str = "default_var3";
