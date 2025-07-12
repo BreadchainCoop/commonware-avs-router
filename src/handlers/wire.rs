@@ -92,7 +92,6 @@ pub mod aggregation {
             match self {
                 Payload::Start => {
                     buf.put_u8(0);
-                  
                 }
                 Payload::Signature(signature) => {
                     buf.put_u8(1);
@@ -162,4 +161,3 @@ mod tests {
         assert_eq!(original, decoded);
     }
 }
-
