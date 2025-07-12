@@ -64,7 +64,7 @@ impl Contributor {
 
             // Handle message from orchestrator
             match message.payload {
-                Some(Payload::Start(_)) => (),
+                Some(Payload::Start) => (),
                 _ => continue,
             };
             if s != self.orchestrator {
@@ -96,9 +96,7 @@ impl Contributor {
             // Return signature to orchestrator
             let message = wire::Aggregation {
                 round: round,
-                payload: Some(Payload::Signature(crate::handlers::wire::aggregation::Signature {
-                    signature: signature.to_vec(),
-                })),
+                payload: Some(Payload::Signature(signature.to_vec())),
             };
             let mut buf = Vec::with_capacity(message.encode_size());
             message.write(&mut buf);
