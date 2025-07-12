@@ -9,6 +9,7 @@ use NumberEncoder::yourNumbFuncCall;
 use std::{env, io::Cursor};
 use crate::bindings::counter::Counter;
 use commonware_cryptography::sha256::Digest;
+use anyhow::Result;
 
 sol! {
     contract NumberEncoder {
@@ -21,13 +22,15 @@ pub struct Validator {
 }
 
 impl Validator {
-    pub async fn new() -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn new() -> Result<Self> {
         let http_rpc = env::var("HTTP_RPC").expect("HTTP_RPC must be set");
         let provider = ProviderBuilder::new()
             .on_http(url::Url::parse(&http_rpc).unwrap());
         
-        let deployment = AvsDeployment::load()?;
-        let counter_address = deployment.counter_address()?;
+        let deployment = AvsDeployment::load()
+            .map_err(|e| anyhow::anyhow!("Failed to load AVS deployment: {}", e))?;
+        let counter_address = deployment.counter_address()
+            .map_err(|e| anyhow::anyhow!("Failed to get counter address: {}", e))?;
         let counter = Counter::new(counter_address, provider.clone());
         
         Ok(Self {
@@ -35,7 +38,7 @@ impl Validator {
         })
     }
 
-    pub async fn validate_and_return_expected_hash(&self, msg: &[u8]) -> Result<Digest, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn validate_and_return_expected_hash(&self, msg: &[u8]) -> Result<Digest> {
         // First verify the message round
         self.verify_message_round(msg).await?;
         
@@ -43,7 +46,7 @@ impl Validator {
         self.get_payload_from_message(msg).await
     }
 
-    pub async fn get_payload_from_message(&self, msg: &[u8]) -> Result<Digest, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn get_payload_from_message(&self, msg: &[u8]) -> Result<Digest> {
         // Decode the wire message
         let aggregation = wire::Aggregation::decode(msg)?;
         
@@ -61,16 +64,16 @@ impl Validator {
         Ok(payload_hash)
     }
 
-    async fn verify_message_round(&self, msg: &[u8]) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    async fn verify_message_round(&self, msg: &[u8]) -> Result<()> {
         let aggregation = wire::Aggregation::read(&mut Cursor::new(msg))?;
         let current_number = self.counter.number().call().await?;
         let current_number = current_number._0.to::<u64>();
 
         if aggregation.round != current_number {
-            return Err(format!(
+            return Err(anyhow::anyhow!(
                 "Invalid round number in message. Expected {}, got {}",
                 current_number, aggregation.round
-            ).into());
+            ));
         }
 
         Ok(())
