@@ -65,7 +65,7 @@ impl Contributor {
 
             // Handle message from orchestrator
             match message.payload {
-                Some(Payload::Start(_)) => (),
+                Some(Payload::Start) => (),
                 _ => continue,
             };
             if s != self.orchestrator {
@@ -100,9 +100,7 @@ impl Contributor {
                 var1: message.var1.clone(),
                 var2: message.var2.clone(),
                 var3: message.var3.clone(),
-                payload: Some(Payload::Signature(crate::handlers::wire::aggregation::Signature {
-                    signature: signature.to_vec(),
-                })),
+                payload: Some(Payload::Signature(signature.to_vec())),
             };
             let mut buf = Vec::with_capacity(message.encode_size());
             message.write(&mut buf);
