@@ -2,7 +2,7 @@ name: Integration Test
 
 on:
   push:
-    branches: [ main, local-ci ]
+    branches: [ main, local-ci-2 ]
   pull_request:
     branches: [ main ]
 
@@ -42,6 +42,7 @@ jobs:
         path: |
           ~/.cargo/registry
           ~/.cargo/git
+          ~/.cache/sccache
           target
           commonware-avs-node/target
           scripts/target
@@ -50,9 +51,13 @@ jobs:
     - name: Install required system packages
       run: |
         sudo apt-get update
-        sudo apt-get install -y jq curl
+        sudo apt-get install -y jq curl sccache
 
+    - name: Install sccache
+      run: sudo apt-get update && sudo apt-get install -y sccache
 
+    - name: Configure Rust to use sccache
+      run: echo "RUSTC_WRAPPER=$(which sccache)" >> $GITHUB_ENV
 
     - name: Build router
       run: cargo build --release
