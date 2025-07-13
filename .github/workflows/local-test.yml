@@ -24,7 +24,9 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
       with:
+        fetch-depth: 1
         submodules: recursive
+        submodule-depth: 1
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
@@ -34,7 +36,6 @@ jobs:
       with:
         toolchain: stable
         override: true
-        components: rustfmt, clippy
 
     - name: Cache Rust dependencies
       uses: actions/cache@v3
@@ -56,18 +57,11 @@ jobs:
     - name: Configure Rust to use sccache
       run: echo "RUSTC_WRAPPER=$(which sccache)" >> $GITHUB_ENV
 
-    - name: Build router
-      run: cargo build --release
-
-    - name: Build AVS node
+    - name: Build all Rust crates (release)
       run: |
-        cd commonware-avs-node
-        cargo build --release
-
-    - name: Build verification scripts
-      run: |
-        cd scripts
-        cargo build --release
+        cargo build
+        cargo build --manifest-path commonware-avs-node/Cargo.toml
+        cargo build --manifest-path scripts/Cargo.toml
 
     - name: Set up environment files
       env:
