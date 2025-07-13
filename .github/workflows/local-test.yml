@@ -137,10 +137,6 @@ jobs:
         echo "Final eigenlayer-bls-local .env configuration:"
         cat .env
         
-        # Build the Docker images first (as per README instructions)
-        echo "Building Docker images..."
-        docker compose build --no-cache
-        
         # Start the Docker containers
         echo "Starting Docker containers..."
         docker compose up -d
