@@ -58,9 +58,9 @@ jobs:
 
     - name: Build all Rust crates (release)
       run: |
-        cargo build
-        cargo build --manifest-path commonware-avs-node/Cargo.toml
-        cargo build --manifest-path scripts/Cargo.toml
+        cargo build --release
+        cargo build --release --manifest-path commonware-avs-node/Cargo.toml
+        cargo build --release --manifest-path scripts/Cargo.toml
 
     - name: Set up environment files
       env:
