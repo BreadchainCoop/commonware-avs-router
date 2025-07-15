@@ -43,7 +43,6 @@ classDiagram
         +run()
         -orchestrator: PublicKey
         -signer: Bn254
-        -me: usize
     }
     class Orchestrator {
         <<external>>
