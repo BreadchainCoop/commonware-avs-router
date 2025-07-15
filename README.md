@@ -79,6 +79,7 @@ classDiagram
 
 ```mermaid
 sequenceDiagram
+autonumber
     participant Orchestrator
     participant Contributor
     participant Validator
