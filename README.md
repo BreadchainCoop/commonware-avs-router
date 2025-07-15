@@ -226,7 +226,7 @@ The contract addresses are automatically read from the `avs_deploy.json` file. Y
 
 ## Orchestrator
 ```bash
-cargo run --release -- --key-file commonware-avs-node/orchestrator.json --port 3000
+cargo run --release -- --key-file config/orchestrator.json --port 3000
 ```
 
 # Local Mode Setup 
@@ -360,7 +360,7 @@ In a 4th terminal, start the main orchestrator:
 ```bash
 cd .. # Back to router root directory
 source .env
-cargo run --release -- --key-file commonware-avs-node/orchestrator.json --port 3000
+cargo run --release -- --key-file config/orchestrator.json --port 3000
 ```
 
 ## Ingress Mode Setup
@@ -388,7 +388,7 @@ When ingress is enabled, the following HTTP endpoint becomes available:
 1. Start the orchestrator with ingress enabled:
 ```bash
 source .env
-cargo run --release -- --key-file commonware-avs-node/orchestrator.json --port 3000
+cargo run --release -- --key-file config/orchestrator.json --port 3000
 ```
 
 2. Send a task request to trigger an aggregation round:
