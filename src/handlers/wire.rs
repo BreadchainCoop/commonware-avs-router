@@ -109,6 +109,7 @@ pub mod aggregation {
             let result = match tag {
                 0 => Payload::Start,
                 1 => Payload::Signature(Vec::<u8>::read_range(buf, 1..33)?),
+
                 _ => return Err(Error::InvalidEnum(tag)),
             };
             Ok(result)
