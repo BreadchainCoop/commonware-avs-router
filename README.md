@@ -26,7 +26,7 @@ cargo run --release -- --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestra
 
 - **Signature Aggregation**: Aggregates signatures from multiple contributors, supporting threshold signing (e.g., n-of-m).
 - **Contributor Node**: Each node signs payloads and broadcasts signatures to the orchestrator and peers.
-- **Coordinate with Orchestrator**: Coordinates aggregation rounds, initiates signing, and collects signatures.
+- **Coordinate with Orchestrator**: Listen to aggregation rounds, initiate signing, and broadcast signatures.
 - **Validator**: Verifies message rounds and payloads, ensuring only valid signatures are accepted.
 - **P2P Network**: Authenticated, message-based communication between contributors and orchestrator.
 - **Wire Protocol**: Defines message formats for aggregation rounds and signatures.
