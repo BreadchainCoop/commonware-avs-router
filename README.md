@@ -29,7 +29,7 @@ cargo run --release -- --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestra
 - **Coordinate with Orchestrator**: Listen to aggregation rounds, initiate signing, and broadcast signatures.
 - **Validator**: Verifies message rounds and payloads, ensuring only valid payloads are signed.
 - **P2P Network**: Authenticated, message-based communication between contributors and orchestrator.
-- **Wire Protocol**: Defines message formats for aggregation rounds and signatures.
+- **Wire / Codac**: Defines message formats for aggregation rounds and signatures.
 - **Reference Operator State Retrieval**: Fetches operator states from on-chain contracts for dynamic peer configuration.
 
 ---
