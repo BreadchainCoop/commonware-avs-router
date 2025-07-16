@@ -24,7 +24,7 @@ cargo run --release -- --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestra
 
 ## Core Functionalities
 
-- **Signature Aggregation**: Aggregates signatures from multiple contributors, supporting threshold signing (e.g., n-of-m).
+- **Signature Aggregation**: Aggregates signatures from multiple contributors, supporting quorum signing (e.g., n-of-m).
 - **Contributor Node**: Each node signs payloads and broadcasts signatures to the orchestrator and peers.
 - **Coordinate with Orchestrator**: Listen to aggregation rounds, initiate signing, and broadcast signatures.
 - **Validator**: Verifies message rounds and payloads, ensuring only valid payloads are signed.
