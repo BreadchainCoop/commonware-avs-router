@@ -102,7 +102,6 @@ impl Contributor {
                 var3: message.var3.clone(),
                 payload: Some(Payload::Signature(signature.to_vec())),
             };
-        
             let mut buf = Vec::with_capacity(message.encode_size());
             message.write(&mut buf);
             info!("Sending signature for round: {}", round);
@@ -118,4 +117,3 @@ impl Contributor {
         Ok(())
     }
 }
-
