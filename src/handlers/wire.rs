@@ -1,6 +1,7 @@
 use bytes::{Buf, BufMut};
 use commonware_codec::{EncodeSize, Error, Read, ReadExt, Write};
 
+const SIGNATURE_BYTES: usize = 32;
 /// Represents a top-level message for the Aggregation protocol,
 /// typically sent over a dedicated aggregation communication channel.
 ///
@@ -108,9 +109,8 @@ pub mod aggregation {
             let tag = u8::read(buf)?;
             let result = match tag {
                 0 => Payload::Start,
-                1 => Payload::Signature(Vec::<u8>::read_range(buf, 1..33)?),
-
-                _ => return Err(Error::InvalidEnum(tag)),
+                 1 => Payload::Signature(Vec::<u8>::read_range(buf, 1..(SIGNATURE_BYTES + 1))?),
+               _ => return Err(Error::InvalidEnum(tag)),
             };
             Ok(result)
         }
@@ -130,7 +130,8 @@ pub mod aggregation {
 mod tests {
     use super::*;
     use alloy::hex;
-
+    const SAMPLE_SIGNATURE: Vec<u8> = hex::decode("4ffa4441848335dace97935d3c167d212fe5563c1ce9a626cc6d69b4fe06449c");
+   
     #[test]
     fn test_aggregation_start_codec() {
         let original = Aggregation {
@@ -153,7 +154,7 @@ mod tests {
             var1: "test1".to_string(),
             var2: "test2".to_string(),
             var3: "test3".to_string(),
-            payload: Some(aggregation::Payload::Signature( hex::decode("4ffa4441848335dace97935d3c167d212fe5563c1ce9a626cc6d69b4fe06449c").expect("hex read fail"),
+            payload: Some(aggregation::Payload::Signature( SAMPLE_SIGNATURE.expect("hex read fail")))
         };
     
         let mut buf = Vec::with_capacity(original.encode_size());
