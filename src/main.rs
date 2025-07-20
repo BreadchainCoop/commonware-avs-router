@@ -16,8 +16,6 @@ use commonware_runtime::{
     tokio::{self},
 };
 use commonware_utils::NZU32;
-//use commonware_utils::quorum;
-use eigen_crypto_bls::convert_to_g1_point; //convert_to_g2_point
 use governor::Quota;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -26,8 +24,6 @@ use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
 };
 use std::{str::FromStr, time::Duration};
-//use tracing::instrument::WithSubscriber;
-//use tracing::info;
 use commonware_eigenlayer::network_configuration::{EigenStakingClient, QuorumInfo};
 use std::env;
 use dotenv;
@@ -117,20 +113,6 @@ fn main() {
     }
     let key = parts[0];
     let signer = get_signer(key);
-    tracing::info!(key = ?signer.public_key(), "loaded signer");
-    let public_key = signer.public_g1();
-    let (apk, _, _) = bn254::get_points(&[public_key], &[signer.public_key()], &[]).unwrap();
-    let g1_point = convert_to_g1_point(apk).unwrap();
-    println!(
-        "public key G1 coordinates: ({}, {})",
-        g1_point.X, g1_point.Y
-    );
-    println!("key: {}", key);
-    println!("parts: {:?}", parts);
-    println!("me: {:?}", me);
-    // std::process::exit(0);
-
-    // Configure my port
     let port = parts[1].parse::<u16>().expect("Port not well-formed");
     tracing::info!(port, "loaded port");
 
@@ -168,8 +150,7 @@ fn main() {
                     recipients.push((verifier, socket_addr));
                 }
             }
-            let test_signer = bn254::get_signer_from_fr("69");
-            let test_verifier = test_signer.public_key();
+            let test_verifier = signer.public_key();
             recipients.push((test_verifier, my_addr));
         }
         let subscriber = tracing_subscriber::fmt()
