@@ -2135,6 +2135,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "arrayref"
+version = "0.3.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "76a2e8124351fda1ef8aaaa3bbd7ebbcb486bbcd4225aca0aa0d84bb2db8fecb"
+
+[[package]]
 name = "arrayvec"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2667,6 +2673,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "blake3"
+version = "1.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3888aaa89e4b2a40fca9848e400f6a658a5a3978de7be858e209cafa8be9a4a0"
+dependencies = [
+ "arrayref",
+ "arrayvec",
+ "cc",
+ "cfg-if",
+ "constant_time_eq 0.3.1",
+]
+
+[[package]]
 name = "block-buffer"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2699,7 +2718,7 @@ dependencies = [
 [[package]]
 name = "bn254"
 version = "0.1.3"
-source = "git+https://github.com/BreadchainCoop/bn254.git#fd0a22a0af16cd9d8efdd435171abad35cf4c5b5"
+source = "git+https://github.com/BreadchainCoop/bn254.git?branch=1-update-commonware-to-0055-and-refactor-lookup-repository-for-authenticated-p2p#a6f3c8dd2960dc61ad2f0d8481d8873a153ff982"
 dependencies = [
  "ark-bn254",
  "ark-ec",
@@ -3068,9 +3087,9 @@ dependencies = [
 
 [[package]]
 name = "commonware-codec"
-version = "0.0.50"
+version = "0.0.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52ff0994a50e73a8b8738020614340a25df5edf8b3b1b0b874b5ec8c60295e44"
+checksum = "7c1495b0aef5282425702984c382ab7499bb4b4b4b03f68702b55f1a9e330253"
 dependencies = [
  "bytes",
  "paste",
@@ -3079,10 +3098,11 @@ dependencies = [
 
 [[package]]
 name = "commonware-cryptography"
-version = "0.0.50"
+version = "0.0.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0ade135f1071a9bfb71fc4d3788b91a572bccc26341eaf90d45fe376d5709f0"
+checksum = "44d70336ad273f7c64a95076292be717ed21543bb484300c707da3fe85d80517"
 dependencies = [
+ "blake3",
  "blst",
  "bytes",
  "commonware-codec",
@@ -3100,7 +3120,7 @@ dependencies = [
 [[package]]
 name = "commonware-eigenlayer"
 version = "0.1.0"
-source = "git+https://github.com/BreadchainCoop/commonware-avs-network-lookup#a6a3385a16e581f5d81450a984db3c064cbf1843"
+source = "git+https://github.com/BreadchainCoop/commonware-avs-network-lookup?branch=8-update-commonware-to-0055-and-refactor-lookup-repository-for-authenticated-p2p#d9894fd5b31bb7aeae0678c30ecdb484757f9855"
 dependencies = [
  "alloy 0.8.3",
  "alloy-network 0.5.4",
@@ -3132,9 +3152,9 @@ dependencies = [
 
 [[package]]
 name = "commonware-macros"
-version = "0.0.50"
+version = "0.0.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1bca9d98414fa30ddf59d9c1d7048f5e91d70046ac89f31dc75a9b561b268d91"
+checksum = "407cdbaaac826e4df259fe2c73e23fe78bc2ec335b966794438c1d74315d84c8"
 dependencies = [
  "futures",
  "proc-macro2",
@@ -3146,9 +3166,9 @@ dependencies = [
 
 [[package]]
 name = "commonware-p2p"
-version = "0.0.50"
+version = "0.0.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf11caab1ed26972d23e4e146c186f40d00a3456850ae3b3bb58dd4e6ca4f071"
+checksum = "6f063844f8b90519e9b7b1b0e29a97c825cbe2df59e0a222e506d55a9243c020"
 dependencies = [
  "bytes",
  "commonware-codec",
@@ -3165,14 +3185,13 @@ dependencies = [
  "rand_distr",
  "thiserror 2.0.12",
  "tracing",
- "zstd 0.13.3",
 ]
 
 [[package]]
 name = "commonware-runtime"
-version = "0.0.50"
+version = "0.0.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd187c0c69848d605111b67f68223d2aea5fb9f5f2ae817c4627f33fdc00cd89"
+checksum = "a36328c702697a0a1bec98382e5b76ec209403dfa79bb79d1a861f5a3c629c25"
 dependencies = [
  "async-lock",
  "axum 0.8.4",
@@ -3184,6 +3203,7 @@ dependencies = [
  "futures",
  "getrandom 0.2.16",
  "governor",
+ "libc",
  "opentelemetry",
  "opentelemetry-otlp",
  "opentelemetry_sdk",
@@ -3200,9 +3220,9 @@ dependencies = [
 
 [[package]]
 name = "commonware-stream"
-version = "0.0.50"
+version = "0.0.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c37fa662507f5a9343182dfa67c42bbabe3f3e00e77c2ceac3900f678b849c28"
+checksum = "cddd40df46f56a2beafdc9658d395639c15d4c2483e05c73110622763ca082b4"
 dependencies = [
  "bytes",
  "chacha20poly1305",
@@ -3212,20 +3232,24 @@ dependencies = [
  "commonware-runtime",
  "commonware-utils",
  "futures",
+ "hkdf",
  "rand 0.8.5",
  "thiserror 2.0.12",
  "x25519-dalek",
+ "zeroize",
 ]
 
 [[package]]
 name = "commonware-utils"
-version = "0.0.50"
+version = "0.0.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d8e3b8335c6030fd138a0d99a0f40990ab0b657c14f7fcd86f5b353f32ac38c"
+checksum = "a54dfd09f06c05634bfad9c7f9a1218d085c96b87db0d6c6d39c06dc30c91af4"
 dependencies = [
  "bytes",
  "commonware-codec",
  "futures",
+ "getrandom 0.2.16",
+ "rand 0.8.5",
  "thiserror 2.0.12",
 ]
 
@@ -3282,6 +3306,12 @@ name = "constant_time_eq"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "245097e9a4535ee1e3e3931fcfcd55a796a44c643e8596ff6566d68f09b87bbc"
+
+[[package]]
+name = "constant_time_eq"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7c74b8349d32d297c9134b8c88677813a227df8f779daa29bfc29c183fe3dca6"
 
 [[package]]
 name = "core-foundation"
@@ -6766,9 +6796,9 @@ checksum = "d3edd4d5d42c92f0a659926464d4cce56b562761267ecf0f469d85b7de384175"
 
 [[package]]
 name = "redox_syscall"
-version = "0.5.13"
+version = "0.5.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d04b7d0ee6b4a0207a0a7adb104d23ecb0b47d6beae7152d0fa34b692b29fd6"
+checksum = "de3a5d9f0aba1dbcec1cc47f0ff94a4b778fe55bca98a6dfa92e4e094e57b1c4"
 dependencies = [
  "bitflags 2.9.1",
 ]
@@ -9394,7 +9424,7 @@ dependencies = [
  "aes",
  "byteorder",
  "bzip2",
- "constant_time_eq",
+ "constant_time_eq 0.1.5",
  "crc32fast",
  "crossbeam-utils",
  "flate2",
@@ -9402,7 +9432,7 @@ dependencies = [
  "pbkdf2 0.11.0",
  "sha1",
  "time",
- "zstd 0.11.2+zstd.1.5.2",
+ "zstd",
 ]
 
 [[package]]
@@ -9411,16 +9441,7 @@ version = "0.11.2+zstd.1.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "20cc960326ece64f010d2d2107537f26dc589a6573a316bd5b1dba685fa5fde4"
 dependencies = [
- "zstd-safe 5.0.2+zstd.1.5.2",
-]
-
-[[package]]
-name = "zstd"
-version = "0.13.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e91ee311a569c327171651566e07972200e76fcfe2242a4fa446149a3881c08a"
-dependencies = [
- "zstd-safe 7.2.4",
+ "zstd-safe",
 ]
 
 [[package]]
@@ -9430,15 +9451,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d2a5585e04f9eea4b2a3d1eca508c4dee9592a89ef6f450c11719da0726f4db"
 dependencies = [
  "libc",
- "zstd-sys",
-]
-
-[[package]]
-name = "zstd-safe"
-version = "7.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f49c4d5f0abb602a93fb8736af2a4f4dd9512e36f7f570d66e65ff867ed3b9d"
-dependencies = [
  "zstd-sys",
 ]
 
