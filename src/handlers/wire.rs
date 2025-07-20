@@ -1,6 +1,7 @@
 use bytes::{Buf, BufMut};
 use commonware_codec::{EncodeSize, Error, Read, ReadExt, Write};
 
+const SIGNATURE_BYTES: usize = 32;
 /// Represents a top-level message for the Aggregation protocol,
 /// typically sent over a dedicated aggregation communication channel.
 ///
@@ -14,6 +15,7 @@ pub struct Aggregation {
     pub var3: String,
     pub payload: Option<aggregation::Payload>,
 }
+
 
 impl Write for Aggregation {
     fn write(&self, buf: &mut impl BufMut) {
@@ -78,8 +80,7 @@ pub mod aggregation {
     use bytes::{Buf, BufMut};
     use commonware_codec::{EncodeSize, Error, Read, ReadExt, ReadRangeExt, Write};
 
-    const MAX_SIGNATURE_SIZE_BYTES: usize = 256;
-    /// Sent by signer to all others
+    use super::SIGNATURE_BYTES;
 
     /// Defines the different types of messages exchanged during the aggregation protocol.
     #[derive(Clone, Debug, PartialEq)]
@@ -111,7 +112,7 @@ pub mod aggregation {
             let tag = u8::read(buf)?;
             let result = match tag {
                 0 => Payload::Start,
-                1 => Payload::Signature(Vec::<u8>::read_range(buf, 0..MAX_SIGNATURE_SIZE_BYTES)?),
+                1 => Payload::Signature(Vec::<u8>::read_range(buf, 1..(SIGNATURE_BYTES + 1))?),
                 _ => return Err(Error::InvalidEnum(tag)),
             };
             Ok(result)
@@ -131,7 +132,12 @@ pub mod aggregation {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloy::hex;
 
+    // Hex-encoded sample signature used only in tests. We decode it at runtime inside
+    // each test rather than attempting to perform the fallible decode operation in a
+    // `const` context (which is not allowed).
+    const SAMPLE_SIGNATURE_HEX: &str = "4ffa4441848335dace97935d3c167d212fe5563c1ce9a626cc6d69b4fe06449c";
     #[test]
     fn test_aggregation_start_codec() {
         let original = Aggregation {
@@ -151,10 +157,13 @@ mod tests {
     fn test_aggregation_signature_codec() {
         let original = Aggregation {
             round: 1,
-            var1: "test1".to_string(),
+
+           var1: "test1".to_string(),
             var2: "test2".to_string(),
             var3: "test3".to_string(),
-            payload: Some(aggregation::Payload::Signature(vec![1, 2, 3])),
+                 payload: Some(aggregation::Payload::Signature(
+                     hex::decode(SAMPLE_SIGNATURE_HEX).expect("hex decode failed"),
+                 ))
         };
         let mut buf = Vec::with_capacity(original.encode_size());
         original.write(&mut buf);
