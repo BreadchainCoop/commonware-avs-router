@@ -134,19 +134,6 @@ fn main() {
     let port = parts[1].parse::<u16>().expect("Port not well-formed");
     tracing::info!(port, "loaded port");
 
-    // Configure bootstrappers (if provided)
-    // let bootstrappers = matches.get_many::<String>("bootstrappers");
-    // let mut bootstrapper_identities = Vec::new();
-    // if let Some(bootstrappers) = bootstrappers {
-    //     for bootstrapper in bootstrappers {
-    //         let parts = bootstrapper.split('@').collect::<Vec<&str>>();
-    //         let verifier = get_signer(parts[0]).public_key();
-    //         let bootstrapper_address =
-    //             SocketAddr::from_str(parts[1]).expect("Bootstrapper address not well-formed");
-    //         bootstrapper_identities.push((verifier, bootstrapper_address));
-    //     }
-    // }
-
     // Configure network
     const MAX_MESSAGE_SIZE: usize = 1024 * 1024; // 1 MB
     let my_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), port);
