@@ -1,5 +1,4 @@
 use commonware_avs_router::validator::Validator;
-use alloy::sol;
 use bn254::{
     self, Bn254, PublicKey, Signature as Bn254Signature,
 };
@@ -14,12 +13,6 @@ use tracing::info;
 use anyhow::Result;
 
 use commonware_avs_router::wire::{self, aggregation::Payload};
-sol! {
-    contract NumberEncoder {
-        #[derive(Debug)]
-        function yourNumbFunc(uint256 number) public returns (bytes memory);
-    }
-}
 
 pub struct Contributor {
     orchestrator: PublicKey,
