@@ -3065,7 +3065,7 @@ dependencies = [
 [[package]]
 name = "commonware-avs-router"
 version = "0.1.0"
-source = "git+https://github.com/BreadchainCoop/commonware-avs-router?branch=17-code-duplication-in-wirers-and-validatorrs#aa21023ed17baadb619f920932640983c1b8b220"
+source = "git+https://github.com/BreadchainCoop/commonware-avs-router?branch=14-replace-workaround-encoding#cecbc28582f19ca31ad0498a71289e17912c1d47"
 dependencies = [
  "alloy 0.12.6",
  "alloy-primitives",
