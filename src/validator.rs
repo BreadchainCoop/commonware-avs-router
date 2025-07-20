@@ -1,6 +1,5 @@
 use crate::{bindings::counter::Counter, wire};
-use NumberEncoder::yourNumbFuncCall;
-use alloy::{sol, sol_types::SolCall};
+use alloy::{sol_types::SolValue};
 use alloy_primitives::U256;
 use alloy_provider::{
     ProviderBuilder, RootProvider,
@@ -12,13 +11,6 @@ use commonware_cryptography::sha256::Digest;
 use commonware_cryptography::{Hasher, Sha256};
 use commonware_eigenlayer::config::AvsDeployment;
 use std::{env, io::Cursor};
-
-sol! {
-    contract NumberEncoder {
-        #[derive(Debug)]
-        function yourNumbFunc(uint256 number) public returns (bytes memory);
-    }
-}
 pub struct Validator {
     counter: Counter::CounterInstance<
         (),
@@ -60,11 +52,7 @@ impl Validator {
         let aggregation = wire::Aggregation::decode(msg)?;
 
         // Create the payload directly
-        let payload = yourNumbFuncCall {
-            number: U256::from(aggregation.round),
-        }
-        .abi_encode()[4..]
-            .to_vec();
+        let payload = U256::from(aggregation.round).abi_encode();
 
         // Hash the payload
         let mut hasher = Sha256::new();
