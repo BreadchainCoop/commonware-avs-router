@@ -7,6 +7,7 @@ mod wire;
 use ark_bn254::Fr;
 //use ark_ff::{Fp, PrimeField};
 use bn254::Bn254;
+use bn254::PrivateKey;
 use clap::{Arg, Command, value_parser};
 use commonware_cryptography::Signer;
 use commonware_p2p::authenticated::lookup::{self, Network};
@@ -23,7 +24,6 @@ use std::collections::HashMap;
 use std::fs;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    num::NonZeroU32,
 };
 use std::{str::FromStr, time::Duration};
 //use tracing::instrument::WithSubscriber;
@@ -38,20 +38,15 @@ use eigen_logging::log_level::LogLevel;
 struct KeyConfig {
     privateKey: String,
 }
-fn get_signer_from_fr(key: &str) -> Bn254 {
+fn get_signer(key: &str) -> Bn254 {
     let fr = Fr::from_str(key).expect("Invalid decimal string for private key");
-    Bn254::from_scalar(fr)
+    let key = PrivateKey::from(fr);
+    Bn254::new(key).expect("Failed to create signer")
 }
-
 fn load_key_from_file(path: &str) -> String {
     let contents = fs::read_to_string(path).expect("Could not read key file");
     let config: KeyConfig = serde_json::from_str(&contents).expect("Could not parse key file");
     config.privateKey
-}
-
-fn get_signer(key: &str) -> Bn254 {
-    let fr = Fr::from_str(key).expect("Invalid decimal string for private key");
-    Bn254::from_scalar(fr)
 }
 
 // Unique namespace to avoid message replay attacks.
@@ -140,33 +135,34 @@ fn main() {
     tracing::info!(port, "loaded port");
 
     // Configure bootstrappers (if provided)
-    let bootstrappers = matches.get_many::<String>("bootstrappers");
-    let mut bootstrapper_identities = Vec::new();
-    if let Some(bootstrappers) = bootstrappers {
-        for bootstrapper in bootstrappers {
-            let parts = bootstrapper.split('@').collect::<Vec<&str>>();
-            let verifier = get_signer(parts[0]).public_key();
-            let bootstrapper_address =
-                SocketAddr::from_str(parts[1]).expect("Bootstrapper address not well-formed");
-            bootstrapper_identities.push((verifier, bootstrapper_address));
-        }
-    }
+    // let bootstrappers = matches.get_many::<String>("bootstrappers");
+    // let mut bootstrapper_identities = Vec::new();
+    // if let Some(bootstrappers) = bootstrappers {
+    //     for bootstrapper in bootstrappers {
+    //         let parts = bootstrapper.split('@').collect::<Vec<&str>>();
+    //         let verifier = get_signer(parts[0]).public_key();
+    //         let bootstrapper_address =
+    //             SocketAddr::from_str(parts[1]).expect("Bootstrapper address not well-formed");
+    //         bootstrapper_identities.push((verifier, bootstrapper_address));
+    //     }
+    // }
 
     // Configure network
     const MAX_MESSAGE_SIZE: usize = 1024 * 1024; // 1 MB
     let my_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), port);
+    let my_local_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), port);
     let p2p_cfg = lookup::Config::aggressive(
         signer.clone(),
         APPLICATION_NAMESPACE,
         my_addr,
-        my_addr,
+        my_local_addr,
         MAX_MESSAGE_SIZE,
     );
 
     // Start runtime
     runner.start(|context| async move {
         let (mut network, mut oracle) = Network::new(context.with_label("network"), p2p_cfg);
-        let mut recipients ;
+        let mut recipients: Vec<(bn254::PublicKey, SocketAddr)>;
         let quorum_infos;
         {
             eigen_logging::init_logger(LogLevel::Debug);
@@ -180,11 +176,14 @@ fn main() {
             for participant in participants {
                 let verifier = participant.pub_keys.unwrap().g2_pub_key;
                 tracing::info!(key = ?verifier, "registered authorized key",);
-                recipients.push(verifier);
+                if let Some(socket) = participant.socket {
+                    let socket_addr = SocketAddr::from_str(&socket).expect("Bootstrapper address not well-formed");
+                    recipients.push((verifier, socket_addr));
+                }
             }
-            let test_signer = get_signer_from_fr("69");
+            let test_signer = bn254::get_signer_from_fr("69");
             let test_verifier = test_signer.public_key();
-            recipients.push(test_verifier);
+            recipients.push((test_verifier, my_addr));
         }
         let subscriber = tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)
@@ -215,7 +214,6 @@ fn main() {
 
         // Run as the orchestrator
         const DEFAULT_MESSAGE_BACKLOG: usize = 256;
-        const COMPRESSION_LEVEL: Option<i32> = Some(3);
         const AGGREGATION_FREQUENCY: Duration = Duration::from_secs(30);
 
         let (sender, receiver) = network.register(
