@@ -8,7 +8,7 @@ use ark_bn254::{Fr};
 use bn254::{Bn254, PrivateKey};
 use clap::{Arg, Command};
 use commonware_cryptography::Signer;
-use commonware_p2p::authenticated::{self, Network};
+use commonware_p2p::authenticated::lookup::{self, Network};
 use commonware_runtime::{
     Metrics, Runner, Spawner,
     tokio::{self},
@@ -21,6 +21,7 @@ use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     num::NonZeroU32,
 };
+use commonware_utils::NZU32;
 use std::str::FromStr;
 use commonware_eigenlayer::network_configuration::{EigenStakingClient, QuorumInfo};
 use std::env;
@@ -147,30 +148,29 @@ fn main() {
             .finish();
         let _ = tracing::subscriber::set_default(subscriber);
 
-        // Configure bootstrappers (hardcoded)
-        let bootstrapper = "69@127.0.0.1:3000";
-        let parts = bootstrapper.split('@').collect::<Vec<&str>>();
-        let verifier = get_signer_from_fr(parts[0]).public_key();
-        let bootstrapper_address =
-            SocketAddr::from_str(parts[1]).expect("Bootstrapper address not well-formed");
-        let bootstrapper_identities = vec![(verifier, bootstrapper_address)];
-    
         // Configure network
         const MAX_MESSAGE_SIZE: usize = 1024 * 1024; // 1 MB
-        let p2p_cfg = authenticated::Config::aggressive(
+        let my_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), port);
+        let my_local_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), port);
+        let p2p_cfg = lookup::Config::aggressive(
             signer.clone(),
             APPLICATION_NAMESPACE,
-            SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), port),
-            SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), port),
-            bootstrapper_identities.clone(),
+            my_addr,
+            my_local_addr,
             MAX_MESSAGE_SIZE,
         );
         let (mut network, mut oracle) = Network::new(context.with_label("network"), p2p_cfg);
 
         // Provide authorized peers
-        // In a real-world scenario, this would be updated as new peer sets are created (like when
-        // the composition of a validator set changes).
-        oracle.register(0, recipients).await;
+        let mut recipients_with_addr: Vec<(bn254::PublicKey, SocketAddr)> = Vec::new();
+        for participant in &quorum_infos[0].operators {
+            let verifier = participant.pub_keys.as_ref().unwrap().g2_pub_key;
+            if let Some(socket) = &participant.socket {
+                let socket_addr = SocketAddr::from_str(socket).expect("Socket address not well-formed");
+                recipients_with_addr.push((verifier, socket_addr));
+            }
+        }
+        oracle.register(0, recipients_with_addr).await;
 
         // Parse contributors from operator states
         let mut contributors = Vec::new();
@@ -198,9 +198,8 @@ fn main() {
         // Create contributor
         let (sender, receiver) = network.register(
             0,
-            Quota::per_second(NonZeroU32::new(10).unwrap()),
+            Quota::per_second(NZU32!(1)),
             DEFAULT_MESSAGE_BACKLOG,
-            COMPRESSION_LEVEL,
         );
         let orchestrator_key = load_key_from_file(orchestrator_file);
         let orchestrator = get_signer_from_fr(&orchestrator_key).public_key();
@@ -211,6 +210,6 @@ fn main() {
         );
         context.spawn(|_| async move { contributor.run(sender, receiver).await });
 
-        network.start().await.expect("Failed to start network");
+        let _ = network.start().await;
     });
 }
