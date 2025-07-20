@@ -1,4 +1,4 @@
-use crate::handlers::validator::Validator;
+use commonware_avs_router::validator::Validator;
 use alloy::sol;
 use bn254::{
     self, Bn254, PublicKey, Signature as Bn254Signature,
@@ -13,7 +13,7 @@ use std::collections::{HashMap, HashSet};
 use tracing::info;
 use anyhow::Result;
 
-use crate::handlers::wire::{self, aggregation::Payload};
+use commonware_avs_router::wire::{self, aggregation::Payload};
 sol! {
     contract NumberEncoder {
         #[derive(Debug)]
