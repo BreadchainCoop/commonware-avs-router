@@ -40,7 +40,7 @@ struct KeyConfig {
 fn get_signer_from_fr(key: &str) -> Bn254 {
     let fr = Fr::from_str(key).expect("Invalid decimal string for private key");
     let key = PrivateKey::from(fr);
-    <Bn254 as Signer>::from(key).expect("Failed to create signer")
+    <Bn254 as commonware_cryptography::Signer>::from(key).expect("Failed to create signer")
 }
 
 fn load_key_from_file(path: &str) -> String {
@@ -52,7 +52,7 @@ fn load_key_from_file(path: &str) -> String {
 fn get_signer(key: &str) -> Bn254 {
     let fr = Fr::from_str(key).expect("Invalid decimal string for private key");
     let key = PrivateKey::from(fr);
-    <Bn254 as Signer>::from(key).expect("Failed to create signer")
+    <Bn254 as commonware_cryptography::Signer>::from(key).expect("Failed to create signer")
 }
 
 // Unique namespace to avoid message replay attacks.
