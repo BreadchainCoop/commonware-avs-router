@@ -6,6 +6,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+commonware-avs-router = { git = "https://github.com/BreadchainCoop/commonware-avs-router", branch = "17-code-duplication-in-wirers-and-validatorrs" }
 
 alloy = { version = "0.12.6" }
 alloy-network = "0.5.4"
