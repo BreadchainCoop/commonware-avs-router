@@ -6,14 +6,15 @@ mod wire;
 //use alloy_primitives::{address, hex_literal::hex};
 use ark_bn254::Fr;
 //use ark_ff::{Fp, PrimeField};
-use bn254::{Bn254, PrivateKey};
+use bn254::Bn254;
 use clap::{Arg, Command, value_parser};
 use commonware_cryptography::Signer;
-use commonware_p2p::authenticated::{self, Network};
+use commonware_p2p::authenticated::lookup::{self, Network};
 use commonware_runtime::{
     Metrics, Runner, Spawner,
     tokio::{self},
 };
+use commonware_utils::NZU32;
 //use commonware_utils::quorum;
 use eigen_crypto_bls::convert_to_g1_point; //convert_to_g2_point
 use governor::Quota;
@@ -39,8 +40,7 @@ struct KeyConfig {
 }
 fn get_signer_from_fr(key: &str) -> Bn254 {
     let fr = Fr::from_str(key).expect("Invalid decimal string for private key");
-    let key = PrivateKey::from(fr);
-    <Bn254 as commonware_cryptography::Signer>::from(key).expect("Failed to create signer")
+    Bn254::from_scalar(fr)
 }
 
 fn load_key_from_file(path: &str) -> String {
@@ -51,8 +51,7 @@ fn load_key_from_file(path: &str) -> String {
 
 fn get_signer(key: &str) -> Bn254 {
     let fr = Fr::from_str(key).expect("Invalid decimal string for private key");
-    let key = PrivateKey::from(fr);
-    <Bn254 as commonware_cryptography::Signer>::from(key).expect("Failed to create signer")
+    Bn254::from_scalar(fr)
 }
 
 // Unique namespace to avoid message replay attacks.
@@ -155,12 +154,12 @@ fn main() {
 
     // Configure network
     const MAX_MESSAGE_SIZE: usize = 1024 * 1024; // 1 MB
-    let p2p_cfg = authenticated::Config::aggressive(
+    let my_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), port);
+    let p2p_cfg = lookup::Config::aggressive(
         signer.clone(),
         APPLICATION_NAMESPACE,
-        SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), port),
-        SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), port),
-        bootstrapper_identities.clone(),
+        my_addr,
+        my_addr,
         MAX_MESSAGE_SIZE,
     );
 
@@ -221,9 +220,8 @@ fn main() {
 
         let (sender, receiver) = network.register(
             0,
-            Quota::per_second(NonZeroU32::new(10).unwrap()),
+            Quota::per_second(NZU32!(1)),
             DEFAULT_MESSAGE_BACKLOG,
-            COMPRESSION_LEVEL,
         );
         let orchestrator = handlers::Orchestrator::new(
             context.clone(),
