@@ -150,8 +150,8 @@ fn main() {
                     recipients.push((verifier, socket_addr));
                 }
             }
-            let test_verifier = signer.public_key();
-            recipients.push((test_verifier, my_addr));
+            let orchestrator_verifier = signer.public_key();
+            recipients.push((orchestrator_verifier, my_addr));
         }
         let subscriber = tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)
