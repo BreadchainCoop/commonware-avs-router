@@ -1,11 +1,9 @@
 pub mod creator;
 pub mod executor;
-pub mod validator;
-pub mod orchestrator;
 pub mod listening_creator;
+pub mod orchestrator;
 
 pub use orchestrator::Orchestrator;
-pub mod wire;
 
 use std::sync::Arc;
 use crate::handlers::{creator::Creator, listening_creator::ListeningCreator};
