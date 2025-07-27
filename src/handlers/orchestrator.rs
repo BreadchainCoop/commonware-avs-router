@@ -167,7 +167,7 @@ impl<E: Clock> Orchestrator<E> {
                         info!("Verifying signature for round: {} from contributor: {:?}, expected digest: {}",
                               msg.round, contributor, hex(&expected_digest));
 
-                        if !<Bn254 as Verifier>::verify(None, &expected_digest, &sender, &signature) {
+                        if !sender.verify(None, &expected_digest, &signature) {
                             info!("Signature verification failed for contributor: {:?}", contributor);
                             continue;
                         }
