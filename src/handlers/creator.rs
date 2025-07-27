@@ -1,23 +1,14 @@
 use alloy::{
-    primitives::{Address, U256}, sol, sol_types::SolCall
+    primitives::{Address, U256}, sol_types::SolValue
     
 };
 use alloy_provider::ProviderBuilder;
 use alloy_signer_local::PrivateKeySigner;
 use anyhow::Result;
 use std::{env, str::FromStr};
-use NumberEncoder::yourNumbFuncCall;
-
 use crate::bindings::counter::Counter;
 use crate::handlers::{TaskCreator, CounterProvider};
 use commonware_eigenlayer::config::AvsDeployment;
-
-sol! {
-    contract NumberEncoder {
-        #[derive(Debug)]
-        function yourNumbFunc(uint256 number) public returns (bytes memory);
-    }
-}
     
 pub struct Creator {
     counter: Counter::CounterInstance<(), CounterProvider>,
@@ -37,10 +28,7 @@ impl Creator {
     }
 
     pub async fn encode_number_call(&self, number: U256) -> Vec<u8> {
-        yourNumbFuncCall {
-            number,
-        }
-        .abi_encode()[4..].to_vec()
+        number.abi_encode()
     }
 
     async fn get_payload_and_round(&self) -> Result<(Vec<u8>, u64)> {

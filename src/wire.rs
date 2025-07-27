@@ -2,6 +2,7 @@ use bytes::{Buf, BufMut};
 use commonware_codec::{EncodeSize, Error, Read, ReadExt, Write};
 
 const SIGNATURE_BYTES: usize = 32;
+
 /// Represents a top-level message for the Aggregation protocol,
 /// typically sent over a dedicated aggregation communication channel.
 ///
@@ -15,7 +16,6 @@ pub struct Aggregation {
     pub var3: String,
     pub payload: Option<aggregation::Payload>,
 }
-
 
 impl Write for Aggregation {
     fn write(&self, buf: &mut impl BufMut) {
@@ -35,14 +35,15 @@ impl Read for Aggregation {
 
     fn read_cfg(buf: &mut impl Buf, _: &()) -> Result<Self, Error> {
         let round = u64::read(buf)?;
-        
+
         let var1_len = u32::read(buf)? as usize;
         if buf.remaining() < var1_len {
             return Err(Error::EndOfBuffer);
         }
         let mut var1_bytes = vec![0u8; var1_len];
         buf.copy_to_slice(&mut var1_bytes);
-        let var1 = String::from_utf8(var1_bytes).map_err(|_| Error::Invalid("var1", "decoding from utf8 failed"))?;
+        let var1 = String::from_utf8(var1_bytes)
+            .map_err(|_| Error::Invalid("var1", "decoding from utf8 failed"))?;
 
         let var2_len = u32::read(buf)? as usize;
         if buf.remaining() < var2_len {
@@ -50,7 +51,8 @@ impl Read for Aggregation {
         }
         let mut var2_bytes = vec![0u8; var2_len];
         buf.copy_to_slice(&mut var2_bytes);
-        let var2 = String::from_utf8(var2_bytes).map_err(|_| Error::Invalid("var2", "decoding from utf8 failed"))?;
+        let var2 = String::from_utf8(var2_bytes)
+            .map_err(|_| Error::Invalid("var2", "decoding from utf8 failed"))?;
 
         let var3_len = u32::read(buf)? as usize;
         if buf.remaining() < var3_len {
@@ -58,20 +60,30 @@ impl Read for Aggregation {
         }
         let mut var3_bytes = vec![0u8; var3_len];
         buf.copy_to_slice(&mut var3_bytes);
-        let var3 = String::from_utf8(var3_bytes).map_err(|_| Error::Invalid("var3", "decoding from utf8 failed"))?;
-        
+        let var3 = String::from_utf8(var3_bytes)
+            .map_err(|_| Error::Invalid("var3", "decoding from utf8 failed"))?;
+
         let payload = Option::<aggregation::Payload>::read(buf)?;
-        Ok(Self { round, var1, var2, var3, payload })
+        Ok(Self {
+            round,
+            var1,
+            var2,
+            var3,
+            payload,
+        })
     }
 }
 
 impl EncodeSize for Aggregation {
     fn encode_size(&self) -> usize {
-        self.round.encode_size() + 
-        4 + self.var1.len() + 
-        4 + self.var2.len() + 
-        4 + self.var3.len() + 
-        self.payload.encode_size()
+        self.round.encode_size()
+            + 4
+            + self.var1.len()
+            + 4
+            + self.var2.len()
+            + 4
+            + self.var3.len()
+            + self.payload.encode_size()
     }
 }
 
@@ -134,10 +146,9 @@ mod tests {
     use super::*;
     use alloy::hex;
 
-    // Hex-encoded sample signature used only in tests. We decode it at runtime inside
-    // each test rather than attempting to perform the fallible decode operation in a
-    // `const` context (which is not allowed).
-    const SAMPLE_SIGNATURE_HEX: &str = "4ffa4441848335dace97935d3c167d212fe5563c1ce9a626cc6d69b4fe06449c";
+    const SAMPLE_SIGNATURE_HEX: &str =
+        "4ffa4441848335dace97935d3c167d212fe5563c1ce9a626cc6d69b4fe06449c";
+
     #[test]
     fn test_aggregation_start_codec() {
         let original = Aggregation {
@@ -157,13 +168,12 @@ mod tests {
     fn test_aggregation_signature_codec() {
         let original = Aggregation {
             round: 1,
-
-           var1: "test1".to_string(),
+            var1: "test1".to_string(),
             var2: "test2".to_string(),
             var3: "test3".to_string(),
-                 payload: Some(aggregation::Payload::Signature(
-                     hex::decode(SAMPLE_SIGNATURE_HEX).expect("hex decode failed"),
-                 ))
+            payload: Some(aggregation::Payload::Signature(
+                hex::decode(SAMPLE_SIGNATURE_HEX).expect("hex decode failed"),
+            )),
         };
         let mut buf = Vec::with_capacity(original.encode_size());
         original.write(&mut buf);

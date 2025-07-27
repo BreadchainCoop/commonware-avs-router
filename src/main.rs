@@ -1,6 +1,8 @@
 mod bindings;
 mod handlers;
 mod ingress;
+mod validator;
+mod wire;
 //use alloy_primitives::{address, hex_literal::hex};
 use ark_bn254::Fr;
 //use ark_ff::{Fp, PrimeField};

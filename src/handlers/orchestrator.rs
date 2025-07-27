@@ -1,8 +1,8 @@
 use crate::handlers::executor::create_executor;
 use crate::handlers::listening_creator::create_listening_creator_with_server;
 use crate::handlers::creator::create_creator;
-use crate::handlers::validator::Validator;
-use crate::handlers::wire::{self, aggregation::{Payload}};
+use crate::validator::Validator;
+use crate::wire::{self, aggregation::{Payload}};
 use crate::handlers::{TaskCreator, TaskCreatorEnum};
 
 use bn254::{Bn254, G1PublicKey, PublicKey, Signature as Bn254Signature};
