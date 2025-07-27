@@ -1,8 +1,5 @@
-use NumberEncoder::yourNumbFuncCall;
 use alloy::{
-    primitives::{Address, U256},
-    sol,
-    sol_types::SolCall,
+    primitives::{Address, U256}, sol_types::SolValue
 };
 use alloy_provider::ProviderBuilder;
 use alloy_signer_local::PrivateKeySigner;
@@ -15,12 +12,6 @@ use crate::handlers::{TaskCreator, CounterProvider};
 use crate::ingress::{TaskRequest, start_http_server};
 use commonware_eigenlayer::config::AvsDeployment;
 
-sol! {
-    contract NumberEncoder {
-        #[derive(Debug)]
-        function yourNumbFunc(uint256 number) public returns (bytes memory);
-    }
-}
 
 pub struct ListeningCreator {
     counter: Counter::CounterInstance<(), CounterProvider>,
@@ -45,7 +36,7 @@ impl ListeningCreator {
     }
 
     pub async fn encode_number_call(&self, number: U256) -> Vec<u8> {
-        yourNumbFuncCall { number }.abi_encode()[4..].to_vec()
+        number.abi_encode()
     }
 
     // Pulls the next task from the queue, or returns None if empty
