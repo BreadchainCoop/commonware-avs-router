@@ -1,11 +1,2 @@
 /target
 .env
-
-# Test artifacts
-/logs
-test_processes.pids
-*.log
-*.bak
-
-# Script build artifacts
-scripts/target
