@@ -2,7 +2,7 @@ name: Integration Test
 
 on:
   push:
-    branches: [ main, local-ci-2 ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 
