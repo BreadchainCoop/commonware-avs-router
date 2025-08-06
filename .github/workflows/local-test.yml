@@ -198,7 +198,7 @@ jobs:
         
         # Start contributor 1 in background
         source .env
-        cargo run --release -- --key-file $CONTRIBUTOR_1_KEYFILE --port 3001 --orchestrator orchestrator.json > ../logs/contributor1.log 2>&1 &
+        cargo run --release -- --key-file $CONTRIBUTOR_1_KEYFILE --port 3001 --orchestrator ../config/orchestrator.json > ../logs/contributor1.log 2>&1 &
         echo $! > contributor1.pid
         echo "Contributor 1 started with PID: $!"
         
@@ -206,7 +206,7 @@ jobs:
         sleep 1
         
         # Start contributor 2 in background
-        cargo run --release -- --key-file $CONTRIBUTOR_2_KEYFILE --port 3002 --orchestrator orchestrator.json > ../logs/contributor2.log 2>&1 &
+        cargo run --release -- --key-file $CONTRIBUTOR_2_KEYFILE --port 3002 --orchestrator ../config/orchestrator.json > ../logs/contributor2.log 2>&1 &
         echo $! > contributor2.pid
         echo "Contributor 2 started with PID: $!"
         
@@ -214,7 +214,7 @@ jobs:
         sleep 1
         
         # Start contributor 3 in background
-        cargo run --release -- --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestrator orchestrator.json > ../logs/contributor3.log 2>&1 &
+        cargo run --release -- --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestrator ../config/orchestrator.json > ../logs/contributor3.log 2>&1 &
         echo $! > contributor3.pid
         echo "Contributor 3 started with PID: $!"
         
@@ -227,7 +227,7 @@ jobs:
         source .env
         
         # Start orchestrator in background
-        cargo run --release -- --key-file commonware-avs-node/orchestrator.json --port 3000 > logs/orchestrator.log 2>&1 &
+        cargo run --release -- --key-file config/orchestrator.json --port 3000 > logs/orchestrator.log 2>&1 &
         echo $! > orchestrator.pid
         echo "Orchestrator started with PID: $!"
         

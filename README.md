@@ -194,14 +194,14 @@ In 3 different terminals:
 ```bash
 cd commonware-avs-node
 source .env
-cargo run --release -- --key-file $CONTRIBUTOR_1_KEYFILE --port 3001 --orchestrator orchestrator.json 
+cargo run --release -- --key-file $CONTRIBUTOR_1_KEYFILE --port 3001 --orchestrator ../config/orchestrator.json 
 ```
 
 ## Contributor 2
 ```bash
 cd commonware-avs-node
 source .env
-cargo run --release -- --key-file $CONTRIBUTOR_2_KEYFILE --port 3002 --orchestrator orchestrator.json 
+cargo run --release -- --key-file $CONTRIBUTOR_2_KEYFILE --port 3002 --orchestrator ../config/orchestrator.json 
 
 ```
 
@@ -209,7 +209,7 @@ cargo run --release -- --key-file $CONTRIBUTOR_2_KEYFILE --port 3002 --orchestra
 ```bash
 cd commonware-avs-node
 source .env
-cargo run --release -- --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestrator orchestrator.json 
+cargo run --release -- --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestrator ../config/orchestrator.json 
 ```
 Note that the further in time you get from the deployment, the longer the init for the contributors will take and you may need to init them 1 by 1 in order to not max out rpc limits.
 
@@ -336,21 +336,21 @@ Open 3 separate terminals and run each contributor:
 ```bash
 cd commonware-avs-node
 source .env
-cargo run --release -- --key-file $CONTRIBUTOR_1_KEYFILE --port 3001 --orchestrator orchestrator.json
+cargo run --release -- --key-file $CONTRIBUTOR_1_KEYFILE --port 3001 --orchestrator ../config/orchestrator.json
 ```
 
 **Terminal 2 - Contributor 2:**
 ```bash
 cd commonware-avs-node  
 source .env
-cargo run --release -- --key-file $CONTRIBUTOR_2_KEYFILE --port 3002 --orchestrator orchestrator.json
+cargo run --release -- --key-file $CONTRIBUTOR_2_KEYFILE --port 3002 --orchestrator ../config/orchestrator.json
 ```
 
 **Terminal 3 - Contributor 3:**
 ```bash
 cd commonware-avs-node
 source .env  
-cargo run --release -- --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestrator orchestrator.json
+cargo run --release -- --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestrator ../config/orchestrator.json
 ```
 
 ### 7. Start the Router Orchestrator
