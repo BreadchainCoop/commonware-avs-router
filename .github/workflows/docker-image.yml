@@ -3,6 +3,10 @@ name: Docker CI/CD
 on:
   release:
     types: [created]
+  push:
+    branches:
+      - dev
+      - 21-release-001
 
 env:
   REGISTRY: ghcr.io
@@ -42,11 +46,13 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
+            type=ref,event=branch
             type=ref,event=tag
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
             type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=dev,enable=${{ github.ref == 'refs/heads/dev' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
