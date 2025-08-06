@@ -194,14 +194,14 @@ In 3 different terminals:
 ```bash
 cd commonware-avs-node
 source .env
-cargo run --release -- --key-file $CONTRIBUTOR_1_KEYFILE --port 3001 --orchestrator ../config/orchestrator.json 
+cargo run --release -- --key-file $CONTRIBUTOR_1_KEYFILE --port 3001 --orchestrator ../orchestrator.json 
 ```
 
 ## Contributor 2
 ```bash
 cd commonware-avs-node
 source .env
-cargo run --release -- --key-file $CONTRIBUTOR_2_KEYFILE --port 3002 --orchestrator ../config/orchestrator.json 
+cargo run --release -- --key-file $CONTRIBUTOR_2_KEYFILE --port 3002 --orchestrator ../orchestrator.json 
 
 ```
 
@@ -209,7 +209,7 @@ cargo run --release -- --key-file $CONTRIBUTOR_2_KEYFILE --port 3002 --orchestra
 ```bash
 cd commonware-avs-node
 source .env
-cargo run --release -- --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestrator ../config/orchestrator.json 
+cargo run --release -- --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestrator ../orchestrator.json 
 ```
 Note that the further in time you get from the deployment, the longer the init for the contributors will take and you may need to init them 1 by 1 in order to not max out rpc limits.
 
@@ -226,7 +226,7 @@ The contract addresses are automatically read from the `avs_deploy.json` file. Y
 
 ## Orchestrator
 ```bash
-cargo run --release -- --key-file config/orchestrator.json --port 3000
+cargo run --release -- --key-file orchestrator.json --port 3000
 ```
 
 # Local Mode Setup 
@@ -336,21 +336,21 @@ Open 3 separate terminals and run each contributor:
 ```bash
 cd commonware-avs-node
 source .env
-cargo run --release -- --key-file $CONTRIBUTOR_1_KEYFILE --port 3001 --orchestrator ../config/orchestrator.json
+cargo run --release -- --key-file $CONTRIBUTOR_1_KEYFILE --port 3001 --orchestrator ../orchestrator.json
 ```
 
 **Terminal 2 - Contributor 2:**
 ```bash
 cd commonware-avs-node  
 source .env
-cargo run --release -- --key-file $CONTRIBUTOR_2_KEYFILE --port 3002 --orchestrator ../config/orchestrator.json
+cargo run --release -- --key-file $CONTRIBUTOR_2_KEYFILE --port 3002 --orchestrator ../orchestrator.json
 ```
 
 **Terminal 3 - Contributor 3:**
 ```bash
 cd commonware-avs-node
 source .env  
-cargo run --release -- --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestrator ../config/orchestrator.json
+cargo run --release -- --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestrator ../orchestrator.json
 ```
 
 ### 7. Start the Router Orchestrator
@@ -360,7 +360,7 @@ In a 4th terminal, start the main orchestrator:
 ```bash
 cd .. # Back to router root directory
 source .env
-cargo run --release -- --key-file config/orchestrator.json --port 3000
+cargo run --release -- --key-file orchestrator.json --port 3000
 ```
 
 ### Quick Test
@@ -429,7 +429,7 @@ When ingress is enabled, the following HTTP endpoint becomes available:
 1. Start the orchestrator with ingress enabled:
 ```bash
 source .env
-cargo run --release -- --key-file config/orchestrator.json --port 3000
+cargo run --release -- --key-file orchestrator.json --port 3000
 ```
 
 2. Send a task request to trigger an aggregation round:
