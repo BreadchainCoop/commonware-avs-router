@@ -299,7 +299,7 @@ if ! source .env; then
     exit 1
 fi
 
-cargo run --release --quiet -- --key-file orchestrator.json --port 3000 > "$LOG_DIR/orchestrator.log" 2>&1 &
+cargo run --release --quiet -- --key-file config/orchestrator.json --port 3000 > "$LOG_DIR/orchestrator.log" 2>&1 &
 ORCHESTRATOR_PID=$!
 echo "orchestrator:$ORCHESTRATOR_PID" >> "$PIDS_FILE"
 echo "Orchestrator started with PID: $ORCHESTRATOR_PID"

@@ -227,7 +227,7 @@ jobs:
         source .env
         
         # Start orchestrator in background
-        cargo run --release -- --key-file orchestrator.json --port 3000 > logs/orchestrator.log 2>&1 &
+        cargo run --release -- --key-file config/orchestrator.json --port 3000 > logs/orchestrator.log 2>&1 &
         echo $! > orchestrator.pid
         echo "Orchestrator started with PID: $!"
         
