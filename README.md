@@ -226,7 +226,7 @@ The contract addresses are automatically read from the `avs_deploy.json` file. Y
 
 ## Orchestrator
 ```bash
-cargo run --release -- --key-file commonware-avs-node/orchestrator.json --port 3000
+cargo run --release -- --key-file config/orchestrator.json --port 3000
 ```
 
 # Local Mode Setup 
@@ -360,7 +360,7 @@ In a 4th terminal, start the main orchestrator:
 ```bash
 cd .. # Back to router root directory
 source .env
-cargo run --release -- --key-file commonware-avs-node/orchestrator.json --port 3000
+cargo run --release -- --key-file config/orchestrator.json --port 3000
 ```
 
 ### Quick Test
@@ -403,3 +403,60 @@ The integration test confirms:
 This provides confidence that the core BLS signature aggregation protocol works correctly in an end-to-end scenario.
 
 For detailed documentation and troubleshooting, see `scripts/README.md`.
+
+## Ingress Mode Setup
+
+When the `INGRESS` environment variable is set to `true`, the orchestrator will start an HTTP server on port 8080 to accept external task requests. This allows external systems to trigger aggregation rounds via HTTP endpoints.
+
+### Enable Ingress Mode
+
+To enable ingress mode, add the following to your `.env` file:
+
+```bash
+INGRESS=true
+```
+
+### HTTP Endpoints
+
+When ingress is enabled, the following HTTP endpoint becomes available:
+
+- **POST /trigger**: Accepts task requests to trigger new aggregation rounds
+  - Request body: JSON with `body` field containing `var1`, `var2`, and `var3` (all strings)
+  - Response: JSON with `success` and `message` fields
+
+### Example Usage
+
+1. Start the orchestrator with ingress enabled:
+```bash
+source .env
+cargo run --release -- --key-file config/orchestrator.json --port 3000
+```
+
+2. Send a task request to trigger an aggregation round:
+```bash
+curl -X POST http://localhost:8080/trigger \
+  -H "Content-Type: application/json" \
+  -d '{
+    "body": {
+      "var1": "2024-01-15 14:30:00",
+      "var2": "value2_123",
+      "var3": "value3_1705327800"
+    }
+  }'
+```
+
+### Ingress Script
+
+You can also use the provided script to trigger tasks automatically:
+
+```bash
+cd src/ingress
+./trigger_endpoint.sh
+```
+
+This script sends task requests to the ingress endpoint every 30 seconds with:
+- `var1`: Current timestamp
+- `var2`: Value with request counter
+- `var3`: Unix timestamp
+
+It will continue running until you stop it with Ctrl+C. The script displays the response status and body for each request.
