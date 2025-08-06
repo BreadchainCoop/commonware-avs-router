@@ -41,7 +41,7 @@ jobs:
         with:
           context: .
           platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           tags: |
             ${{ env.REGISTRY }}/${{ steps.repo.outputs.name }}:${{ github.event_name == 'release' && github.ref_name || (github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'dev') }}
             ${{ env.REGISTRY }}/${{ steps.repo.outputs.name }}:latest
