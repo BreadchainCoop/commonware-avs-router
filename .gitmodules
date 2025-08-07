@@ -1,6 +1,7 @@
 [submodule "eigenlayer-bls-local"]
 	path = eigenlayer-bls-local
 	url = https://github.com/BreadchainCoop/eigenlayer-bls-local.git
+        branch = dev
 [submodule "commonware-avs-node"]
 	path = commonware-avs-node
 	url = https://github.com/BreadchainCoop/commonware-avs-node.git

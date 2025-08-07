@@ -363,6 +363,47 @@ source .env
 cargo run --release -- --key-file config/orchestrator.json --port 3000
 ```
 
+### Quick Test
+
+Run the full integration test with a single command:
+
+```bash
+./scripts/router_e2e_local.sh
+```
+
+This will:
+1. Set up the local blockchain environment
+2. Start all components (orchestrator + 3 contributors)  
+3. Wait for signature aggregation cycles
+4. Verify the counter contract was incremented at least twice
+5. Clean up all processes
+
+Expected runtime: ~5-7 minutes
+
+Check the Read me in scripts for more info and debugging
+
+### CI/CD Integration
+
+The integration test runs automatically on:
+- Pushes to `main` and `local-ci` branches
+- Pull requests to `main`
+
+View the workflow at `.github/workflows/integration-test.yml`
+
+### What the Test Validates
+
+The integration test confirms:
+- ✅ Local blockchain starts and contracts deploy successfully
+- ✅ All contributors connect and initialize properly  
+- ✅ Orchestrator coordinates signature aggregation cycles
+- ✅ BLS signatures are collected, aggregated, and verified
+- ✅ On-chain increment function is called when threshold is reached
+- ✅ Counter value increases by at least 2 within the test timeout
+
+This provides confidence that the core BLS signature aggregation protocol works correctly in an end-to-end scenario.
+
+For detailed documentation and troubleshooting, see `scripts/README.md`.
+
 ## Ingress Mode Setup
 
 When the `INGRESS` environment variable is set to `true`, the orchestrator will start an HTTP server on port 8080 to accept external task requests. This allows external systems to trigger aggregation rounds via HTTP endpoints.
