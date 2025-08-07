@@ -6,6 +6,9 @@ use tokio::time::sleep;
 use commonware_avs_router::bindings::counter::Counter;
 use commonware_eigenlayer::config::AvsDeployment;
 
+const DEFAULT_HTTP_RPC: &str = "http://localhost:8545";
+const DEFAULT_AVS_DEPLOYMENT_PATH: &str = "../eigenlayer-bls-local/.nodes/avs_deploy.json";
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Load environment variables
@@ -13,7 +16,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     
     // Load configuration - try different possible paths
     let deployment_path = env::var("AVS_DEPLOYMENT_PATH")
-        .unwrap_or_else(|_| "../eigenlayer-bls-local/.nodes/avs_deploy.json".to_string());
+        .unwrap_or_else(|_| DEFAULT_AVS_DEPLOYMENT_PATH.to_string());
     
     println!("Trying to load deployment from: {}", deployment_path);
     
@@ -31,7 +34,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         AvsDeployment::load().map_err(|e| format!("Failed to load deployment: {}", e))?
     };
     let counter_address = deployment.counter_address().map_err(|e| format!("Failed to get counter address: {}", e))?;
-    let http_rpc = env::var("HTTP_RPC").unwrap_or_else(|_| "http://localhost:8545".to_string());
+    let http_rpc = env::var("HTTP_RPC").unwrap_or_else(|_| DEFAULT_HTTP_RPC.to_string());
     
     println!("Connecting to RPC: {}", http_rpc);
     println!("Counter address: {}", counter_address);
