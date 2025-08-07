@@ -372,11 +372,9 @@ pub mod BN254 {
             #[inline]
             fn topic_preimage_length(rust: &Self::RustType) -> usize {
                 <alloy::sol_types::sol_data::FixedArray<
-                        alloy::sol_types::sol_data::Uint<256>,
-                        2usize,
-                    > as alloy_sol_types::EventTopic>::topic_preimage_length(
-                        &rust.X
-                    )
+                    alloy::sol_types::sol_data::Uint<256>,
+                    2usize,
+                > as alloy_sol_types::EventTopic>::topic_preimage_length(&rust.X)
                     + <alloy::sol_types::sol_data::FixedArray<
                         alloy::sol_types::sol_data::Uint<256>,
                         2usize,

@@ -53,12 +53,7 @@ async fn get_operator_states() -> Result<Vec<QuorumInfo>, Box<dyn std::error::Er
     let avs_deployment_path =
         env::var("AVS_DEPLOYMENT_PATH").expect("AVS_DEPLOYMENT_PATH must be set");
     println!("pre init");
-    let client = EigenStakingClient::new(
-        http_rpc,
-        ws_rpc,
-        avs_deployment_path,
-    )
-    .await?;
+    let client = EigenStakingClient::new(http_rpc, ws_rpc, avs_deployment_path).await?;
     println!("init passed");
     client.get_operator_states().await
 }

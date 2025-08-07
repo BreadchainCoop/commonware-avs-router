@@ -372,11 +372,9 @@ pub mod BN254 {
             #[inline]
             fn topic_preimage_length(rust: &Self::RustType) -> usize {
                 <alloy::sol_types::sol_data::FixedArray<
-                        alloy::sol_types::sol_data::Uint<256>,
-                        2usize,
-                    > as alloy_sol_types::EventTopic>::topic_preimage_length(
-                        &rust.X
-                    )
+                    alloy::sol_types::sol_data::Uint<256>,
+                    2usize,
+                > as alloy_sol_types::EventTopic>::topic_preimage_length(&rust.X)
                     + <alloy::sol_types::sol_data::FixedArray<
                         alloy::sol_types::sol_data::Uint<256>,
                         2usize,
@@ -960,14 +958,12 @@ pub mod IBLSApkRegistryTypes {
             #[inline]
             fn topic_preimage_length(rust: &Self::RustType) -> usize {
                 <BN254::G1Point as alloy_sol_types::EventTopic>::topic_preimage_length(
-                        &rust.pubkeyRegistrationSignature,
-                    )
-                    + <BN254::G1Point as alloy_sol_types::EventTopic>::topic_preimage_length(
-                        &rust.pubkeyG1,
-                    )
-                    + <BN254::G2Point as alloy_sol_types::EventTopic>::topic_preimage_length(
-                        &rust.pubkeyG2,
-                    )
+                    &rust.pubkeyRegistrationSignature,
+                ) + <BN254::G1Point as alloy_sol_types::EventTopic>::topic_preimage_length(
+                    &rust.pubkeyG1,
+                ) + <BN254::G2Point as alloy_sol_types::EventTopic>::topic_preimage_length(
+                    &rust.pubkeyG2,
+                )
             }
             #[inline]
             fn encode_topic_preimage(
@@ -6905,7 +6901,8 @@ pub mod BLSApkRegistry {
             data: &[u8],
             validate: bool,
         ) -> alloy_sol_types::Result<Self> {
-            type DecodeShimErrorFn = fn(&[u8], bool) -> alloy_sol_types::Result<BLSApkRegistryErrors>;
+            type DecodeShimErrorFn =
+                fn(&[u8], bool) -> alloy_sol_types::Result<BLSApkRegistryErrors>;
             static DECODE_SHIMS: &[DecodeShimErrorFn] = &[
                 {
                     fn ZeroPubKey(
