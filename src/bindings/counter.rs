@@ -6999,7 +6999,8 @@ pub mod Counter {
             data: &[u8],
             validate: bool,
         ) -> alloy_sol_types::Result<Self> {
-            static DECODE_SHIMS: &[fn(&[u8], bool) -> alloy_sol_types::Result<CounterCalls>] = &[
+            type DecodeShimFn = fn(&[u8], bool) -> alloy_sol_types::Result<CounterCalls>;
+            static DECODE_SHIMS: &[DecodeShimFn] = &[
                 {
                     fn trySignatureAndApkVerification(
                         data: &[u8],
@@ -7547,7 +7548,8 @@ pub mod Counter {
             data: &[u8],
             validate: bool,
         ) -> alloy_sol_types::Result<Self> {
-            static DECODE_SHIMS: &[fn(&[u8], bool) -> alloy_sol_types::Result<CounterErrors>] = &[
+            type DecodeShimErrorFn = fn(&[u8], bool) -> alloy_sol_types::Result<CounterErrors>;
+            static DECODE_SHIMS: &[DecodeShimErrorFn] = &[
                 {
                     fn InvalidHash(
                         data: &[u8],

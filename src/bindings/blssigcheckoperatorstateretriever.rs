@@ -3670,12 +3670,8 @@ pub mod BLSSigCheckOperatorStateRetriever {
             data: &[u8],
             validate: bool,
         ) -> alloy_sol_types::Result<Self> {
-            static DECODE_SHIMS: &[fn(
-                &[u8],
-                bool,
-            ) -> alloy_sol_types::Result<
-                BLSSigCheckOperatorStateRetrieverCalls,
-            >] = &[
+            type DecodeShimFn = fn(&[u8], bool) -> alloy_sol_types::Result<BLSSigCheckOperatorStateRetrieverCalls>;
+            static DECODE_SHIMS: &[DecodeShimFn] = &[
                 {
                     fn getBatchOperatorId(
                         data: &[u8],
@@ -3923,12 +3919,8 @@ pub mod BLSSigCheckOperatorStateRetriever {
             data: &[u8],
             validate: bool,
         ) -> alloy_sol_types::Result<Self> {
-            static DECODE_SHIMS: &[fn(
-                &[u8],
-                bool,
-            ) -> alloy_sol_types::Result<
-                BLSSigCheckOperatorStateRetrieverErrors,
-            >] = &[
+            type DecodeShimErrorFn = fn(&[u8], bool) -> alloy_sol_types::Result<BLSSigCheckOperatorStateRetrieverErrors>;
+            static DECODE_SHIMS: &[DecodeShimErrorFn] = &[
                 {
                     fn OperatorNotRegistered(
                         data: &[u8],

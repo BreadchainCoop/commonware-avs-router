@@ -6309,11 +6309,8 @@ pub mod BLSApkRegistry {
             data: &[u8],
             validate: bool,
         ) -> alloy_sol_types::Result<Self> {
-            static DECODE_SHIMS: &[fn(
-                &[u8],
-                bool,
-            )
-                -> alloy_sol_types::Result<BLSApkRegistryCalls>] = &[
+            type DecodeShimFn = fn(&[u8], bool) -> alloy_sol_types::Result<BLSApkRegistryCalls>;
+            static DECODE_SHIMS: &[DecodeShimFn] = &[
                 {
                     fn operatorToPubkey(
                         data: &[u8],
@@ -6908,11 +6905,8 @@ pub mod BLSApkRegistry {
             data: &[u8],
             validate: bool,
         ) -> alloy_sol_types::Result<Self> {
-            static DECODE_SHIMS: &[fn(
-                &[u8],
-                bool,
-            )
-                -> alloy_sol_types::Result<BLSApkRegistryErrors>] = &[
+            type DecodeShimErrorFn = fn(&[u8], bool) -> alloy_sol_types::Result<BLSApkRegistryErrors>;
+            static DECODE_SHIMS: &[DecodeShimErrorFn] = &[
                 {
                     fn ZeroPubKey(
                         data: &[u8],
