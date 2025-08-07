@@ -10,24 +10,22 @@ use bn254::Bn254;
 use bn254::PrivateKey;
 use clap::{Arg, Command, value_parser};
 use commonware_cryptography::Signer;
+use commonware_eigenlayer::network_configuration::{EigenStakingClient, QuorumInfo};
 use commonware_p2p::authenticated::lookup::{self, Network};
 use commonware_runtime::{
     Metrics, Runner, Spawner,
     tokio::{self},
 };
 use commonware_utils::NZU32;
+use dotenv;
+use eigen_logging::log_level::LogLevel;
 use governor::Quota;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::fs;
-use std::{
-    net::{IpAddr, Ipv4Addr, SocketAddr},
-};
-use std::{str::FromStr, time::Duration};
-use commonware_eigenlayer::network_configuration::{EigenStakingClient, QuorumInfo};
 use std::env;
-use dotenv;
-use eigen_logging::log_level::LogLevel;
+use std::fs;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::{str::FromStr, time::Duration};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -50,16 +48,18 @@ const APPLICATION_NAMESPACE: &[u8] = b"_COMMONWARE_AGGREGATION_";
 
 async fn get_operator_states() -> Result<Vec<QuorumInfo>, Box<dyn std::error::Error>> {
     dotenv::dotenv().ok();
-    
+
     let http_rpc = env::var("HTTP_RPC").expect("HTTP_RPC must be set");
     let ws_rpc = env::var("WS_RPC").expect("WS_RPC must be set");
-    let avs_deployment_path = env::var("AVS_DEPLOYMENT_PATH").expect("AVS_DEPLOYMENT_PATH must be set");
+    let avs_deployment_path =
+        env::var("AVS_DEPLOYMENT_PATH").expect("AVS_DEPLOYMENT_PATH must be set");
     println!("pre init");
     let client = EigenStakingClient::new(
         String::from(http_rpc),
         String::from(ws_rpc),
         String::from(avs_deployment_path),
-    ).await?;
+    )
+    .await?;
     println!("init passed");
     client.get_operator_states().await
 }
@@ -136,7 +136,9 @@ fn main() {
         {
             eigen_logging::init_logger(LogLevel::Debug);
             // Get operator states and configure allowed peers
-            quorum_infos = get_operator_states().await.expect("Failed to get operator states");
+            quorum_infos = get_operator_states()
+                .await
+                .expect("Failed to get operator states");
             recipients = Vec::new();
             let participants = quorum_infos[0].operators.clone(); //TODO: Fix hardcoded quorum_number
             if participants.len() == 0 {
@@ -146,7 +148,8 @@ fn main() {
                 let verifier = participant.pub_keys.unwrap().g2_pub_key;
                 tracing::info!(key = ?verifier, "registered authorized key",);
                 if let Some(socket) = participant.socket {
-                    let socket_addr = SocketAddr::from_str(&socket).expect("Bootstrapper address not well-formed");
+                    let socket_addr = SocketAddr::from_str(&socket)
+                        .expect("Bootstrapper address not well-formed");
                     recipients.push((verifier, socket_addr));
                 }
             }
@@ -154,9 +157,9 @@ fn main() {
             recipients.push((orchestrator_verifier, my_addr));
         }
         let subscriber = tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::DEBUG)
-        .with_writer(std::io::stdout)
-        .finish();
+            .with_max_level(tracing::Level::DEBUG)
+            .with_writer(std::io::stdout)
+            .finish();
         let _ = tracing::subscriber::set_default(subscriber);
 
         // Provide authorized peers
@@ -184,11 +187,8 @@ fn main() {
         const DEFAULT_MESSAGE_BACKLOG: usize = 256;
         const AGGREGATION_FREQUENCY: Duration = Duration::from_secs(30);
 
-        let (sender, receiver) = network.register(
-            0,
-            Quota::per_second(NZU32!(1)),
-            DEFAULT_MESSAGE_BACKLOG,
-        );
+        let (sender, receiver) =
+            network.register(0, Quota::per_second(NZU32!(1)), DEFAULT_MESSAGE_BACKLOG);
         let orchestrator = handlers::Orchestrator::new(
             context.clone(),
             signer,
@@ -196,7 +196,8 @@ fn main() {
             contributors,
             contributors_map,
             threshold as usize,
-        ).await;
+        )
+        .await;
 
         context.spawn(|_| async move { orchestrator.run(sender, receiver).await });
 
