@@ -460,3 +460,15 @@ This script sends task requests to the ingress endpoint every 30 seconds with:
 - `var3`: Unix timestamp
 
 It will continue running until you stop it with Ctrl+C. The script displays the response status and body for each request.
+
+## Contributor Guide
+
+### Code Quality Checks
+
+Before submitting code changes, ensure your code passes the following checks:
+
+#### Formatting Check
+Run `cargo fmt` to automatically format your code according to Rust style guidelines:
+
+#### Clippy Checks
+Run `cargo clippy` to check for common mistakes and code improvements:
