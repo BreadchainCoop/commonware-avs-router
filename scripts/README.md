@@ -102,4 +102,4 @@ cargo run --bin verify_increments
 
 ### Environment Variables Needed for Local Test
 
-- `PRIVATE_KEY` -private key for transactions
+- `PRIVATE_KEY` - private key for transactions
