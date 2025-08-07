@@ -178,8 +178,7 @@ pub mod BN254 {
         impl alloy_sol_types::EventTopic for G1Point {
             #[inline]
             fn topic_preimage_length(rust: &Self::RustType) -> usize {
-                0usize
-                    + <alloy::sol_types::sol_data::Uint<
+                <alloy::sol_types::sol_data::Uint<
                         256,
                     > as alloy_sol_types::EventTopic>::topic_preimage_length(&rust.X)
                     + <alloy::sol_types::sol_data::Uint<
@@ -372,8 +371,7 @@ pub mod BN254 {
         impl alloy_sol_types::EventTopic for G2Point {
             #[inline]
             fn topic_preimage_length(rust: &Self::RustType) -> usize {
-                0usize
-                    + <alloy::sol_types::sol_data::FixedArray<
+                <alloy::sol_types::sol_data::FixedArray<
                         alloy::sol_types::sol_data::Uint<256>,
                         2usize,
                     > as alloy_sol_types::EventTopic>::topic_preimage_length(
@@ -829,8 +827,7 @@ pub mod IBLSSignatureCheckerTypes {
         impl alloy_sol_types::EventTopic for NonSignerStakesAndSignature {
             #[inline]
             fn topic_preimage_length(rust: &Self::RustType) -> usize {
-                0usize
-                    + <alloy::sol_types::sol_data::Array<
+                <alloy::sol_types::sol_data::Array<
                         alloy::sol_types::sol_data::Uint<32>,
                     > as alloy_sol_types::EventTopic>::topic_preimage_length(
                         &rust.nonSignerQuorumBitmapIndices,
@@ -1286,8 +1283,7 @@ pub mod OperatorStateRetriever {
         impl alloy_sol_types::EventTopic for CheckSignaturesIndices {
             #[inline]
             fn topic_preimage_length(rust: &Self::RustType) -> usize {
-                0usize
-                    + <alloy::sol_types::sol_data::Array<
+                <alloy::sol_types::sol_data::Array<
                         alloy::sol_types::sol_data::Uint<32>,
                     > as alloy_sol_types::EventTopic>::topic_preimage_length(
                         &rust.nonSignerQuorumBitmapIndices,
@@ -1524,8 +1520,7 @@ pub mod OperatorStateRetriever {
         impl alloy_sol_types::EventTopic for Operator {
             #[inline]
             fn topic_preimage_length(rust: &Self::RustType) -> usize {
-                0usize
-                    + <alloy::sol_types::sol_data::Address as alloy_sol_types::EventTopic>::topic_preimage_length(
+                <alloy::sol_types::sol_data::Address as alloy_sol_types::EventTopic>::topic_preimage_length(
                         &rust.operator,
                     )
                     + <alloy::sol_types::sol_data::FixedBytes<
