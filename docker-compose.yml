@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  eigenlayer-bls:
+    image: ghcr.io/breadchaincoop/eigenlayer-bls:latest
+    container_name: eigenlayer-bls
+    ports:
+      - "8545:8545"
+    volumes:
+      - ./config:/config
+    environment:
+      - NODE_ENV=development
+      - NUM_OPERATORS=3
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8545"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - avs-network
+
+networks:
+  avs-network:
+    driver: bridge

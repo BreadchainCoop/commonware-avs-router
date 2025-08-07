@@ -2,6 +2,27 @@
 
 This repository implements a BLS signature aggregation protocol with on-chain execution, where multiple operators sign messages that are then aggregated and executed on-chain when a threshold is reached.
 
+## Docker Image
+
+The EigenLayer BLS environment is now available as a Docker image, eliminating the need for the `eigenlayer-bls-local` submodule. The Docker images are built and published via CI/CD pipeline.
+
+**Docker Hub**: `ghcr.io/breadchaincoop/eigenlayer-bls:latest`
+
+The Docker image provides:
+- Pre-configured local blockchain (Anvil)
+- Deployed EigenLayer contracts
+- Test operator keys and configurations
+- AVS deployment configuration
+
+### Migration from Submodule
+
+If you're upgrading from a version that used the `eigenlayer-bls-local` submodule:
+
+1. Remove the old submodule directory: `rm -rf eigenlayer-bls-local`
+2. Update your `.env` file to use the new paths (see `example.env`)
+3. Use `docker-compose up -d` instead of initializing the submodule
+4. Configuration files and keys will now be in the `./config` directory instead of `eigenlayer-bls-local/.nodes`
+
 ## System Architecture
 
 The system consists of several key components that work together to implement the signature aggregation protocol:
@@ -162,16 +183,33 @@ cargo run -- --key-file <path_to_key_file> --port <port_number>
 
 ## Set Up Environment 
 
+### Using Docker Images (Recommended)
+
+The EigenLayer BLS environment is available as pre-built Docker images. 
+
+#### Option 1: Docker Compose (Easiest)
+
 ```sh
-git submodule update --init --recursive
-cd eigenlayer-bls-local
+docker-compose up -d
 ```
-Follow the instructions in the `eigenlayer-bls-local/README.md` to run TESTNET mode 
+
+#### Option 2: Docker Run
+
+```sh
+docker pull ghcr.io/breadchaincoop/eigenlayer-bls:latest
+docker run -d -p 8545:8545 -v $(pwd)/config:/config ghcr.io/breadchaincoop/eigenlayer-bls:latest
+```
+
+This will:
+- Run a local blockchain on port 8545
+- Deploy all necessary EigenLayer contracts
+- Register test operators
+- Save deployment info and keys to the mounted `/config` volume
 
 When the process is finished (You should see `Operator X weight in quorum 0: 11887896997963931 [1.188e16]` where X is the number of test accounts configured) 
 
 ```sh
-docker compose down 
+docker stop <container-id>
 ```
 
 ## Set Up Nodes 
@@ -186,7 +224,7 @@ The contract addresses (COUNTER_ADDRESS, REGISTRY_COORDINATOR_ADDRESS, BLS_APK_R
 - RPC URLs (`HTTP_RPC`, `WS_RPC`) 
 - The path to the deployment file (`AVS_DEPLOYMENT_PATH`)
 
-For `CONTRIBUTOR_X_KEYFILE`, use the `../eigenlayer-bls-local/.nodes/operator_keys/testaccX.bls.key.json` keyfiles.
+For `CONTRIBUTOR_X_KEYFILE`, use the `/config/operator_keys/testaccX.bls.key.json` keyfiles from the Docker volume.
 
 In 3 different terminals: 
 
@@ -254,19 +292,19 @@ To get Holesky testnet ETH for your private key, you can use:
 
 ## Step-by-Step Local Mode Setup
 
-### 1. Initialize Submodules and Build Environment
+### 1. Start Local Blockchain and Deploy Contracts
+
+Run the EigenLayer BLS Docker container with local blockchain and 3 operators:
 
 ```bash
-git submodule update --init --recursive
-cd eigenlayer-bls-local
-```
+# Using docker-compose (recommended)
+docker-compose up -d
 
-### 2. Start Local Blockchain and Deploy Contracts
-
-Configure local mode as per the instructions in the read me for eigenlayer-bls-local and run the local EigenLayer environment with 3 operators:
-
-```bash
-docker compose up
+# Or using docker run
+docker run -d --name eigenlayer-bls \
+  -p 8545:8545 \
+  -v $(pwd)/config:/config \
+  ghcr.io/breadchaincoop/eigenlayer-bls:latest
 ```
 
 **Important**: Wait for the deployment to complete. You should see outputs like:
@@ -310,10 +348,10 @@ WS_RPC=ws://localhost:8545
 PRIVATE_KEY=
 
 # Other settings remain the same
-AVS_DEPLOYMENT_PATH="eigenlayer-bls-local/.nodes/avs_deploy.json"
-CONTRIBUTOR_1_KEYFILE="eigenlayer-bls-local/.nodes/operator_keys/testacc1.private.bls.key.json"
-CONTRIBUTOR_2_KEYFILE="eigenlayer-bls-local/.nodes/operator_keys/testacc2.private.bls.key.json"
-CONTRIBUTOR_3_KEYFILE="eigenlayer-bls-local/.nodes/operator_keys/testacc3.private.bls.key.json"
+AVS_DEPLOYMENT_PATH="config/avs_deploy.json"
+CONTRIBUTOR_1_KEYFILE="config/operator_keys/testacc1.private.bls.key.json"
+CONTRIBUTOR_2_KEYFILE="config/operator_keys/testacc2.private.bls.key.json"
+CONTRIBUTOR_3_KEYFILE="config/operator_keys/testacc3.private.bls.key.json"
 ```
 
 ### 5. Set Up AVS Nodes
