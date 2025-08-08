@@ -460,3 +460,10 @@ This script sends task requests to the ingress endpoint every 30 seconds with:
 - `var3`: Unix timestamp
 
 It will continue running until you stop it with Ctrl+C. The script displays the response status and body for each request.
+
+## Contributing
+
+- Please ensure code respects formatting and linting before pushing:
+  - `cargo fmt --all -- --check`
+  - `cargo clippy --all-targets --all-features -- -D warnings`
+- CI runs these checks on PRs; make sure they pass locally to avoid failures.
