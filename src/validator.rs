@@ -1,5 +1,5 @@
 use crate::{bindings::counter::Counter, wire};
-use alloy::{sol_types::SolValue};
+use alloy::sol_types::SolValue;
 use alloy_primitives::U256;
 use alloy_provider::{
     ProviderBuilder, RootProvider,
