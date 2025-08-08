@@ -12,7 +12,9 @@ library BN254 {
     non_snake_case,
     clippy::pub_underscore_fields,
     clippy::style,
-    clippy::empty_structs_with_brackets
+    clippy::empty_structs_with_brackets,
+    clippy::identity_op,
+    clippy::type_complexity
 )]
 pub mod BN254 {
     
@@ -7589,10 +7591,8 @@ function trySignatureAndApkVerification(bytes32 msgHash, BN254.G1Point memory ap
             data: &[u8],
             validate: bool,
         ) -> alloy_sol_types::Result<Self> {
-            static DECODE_SHIMS: &[fn(
-                &[u8],
-                bool,
-            ) -> alloy_sol_types::Result<CounterCalls>] = &[
+            type DecodeShim<T> = fn(&[u8], bool) -> alloy_sol_types::Result<T>;
+            static DECODE_SHIMS: &[DecodeShim<CounterCalls>] = &[
                 {
                     fn trySignatureAndApkVerification(
                         data: &[u8],
@@ -8211,10 +8211,8 @@ function trySignatureAndApkVerification(bytes32 msgHash, BN254.G1Point memory ap
             data: &[u8],
             validate: bool,
         ) -> alloy_sol_types::Result<Self> {
-            static DECODE_SHIMS: &[fn(
-                &[u8],
-                bool,
-            ) -> alloy_sol_types::Result<CounterErrors>] = &[
+            type DecodeShim<T> = fn(&[u8], bool) -> alloy_sol_types::Result<T>;
+            static DECODE_SHIMS: &[DecodeShim<CounterErrors>] = &[
                 {
                     fn InvalidHash(
                         data: &[u8],

@@ -11,17 +11,18 @@ use commonware_cryptography::sha256::Digest;
 use commonware_cryptography::{Hasher, Sha256};
 use commonware_eigenlayer::config::AvsDeployment;
 use std::{env, io::Cursor};
-pub struct Validator {
-    counter: Counter::CounterInstance<
-        (),
-        FillProvider<
-            JoinFill<
-                alloy_provider::Identity,
-                JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>,
-            >,
-            RootProvider,
-        >,
+
+// Type alias to reduce complexity
+type CounterProvider = FillProvider<
+    JoinFill<
+        alloy_provider::Identity,
+        JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>,
     >,
+    RootProvider,
+>;
+
+pub struct Validator {
+    counter: Counter::CounterInstance<(), CounterProvider>,
 }
 
 impl Validator {

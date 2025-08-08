@@ -12,7 +12,11 @@ library BN254 {
     non_snake_case,
     clippy::pub_underscore_fields,
     clippy::style,
-    clippy::empty_structs_with_brackets
+    clippy::empty_structs_with_brackets,
+    clippy::identity_op,
+    clippy::useless_conversion,
+    clippy::clone_on_copy,
+    clippy::type_complexity
 )]
 pub mod BN254 {
     
@@ -6808,10 +6812,8 @@ function verifyAndRegisterG2PubkeyForOperator(address operator, BN254.G2Point me
             data: &[u8],
             validate: bool,
         ) -> alloy_sol_types::Result<Self> {
-            static DECODE_SHIMS: &[fn(
-                &[u8],
-                bool,
-            ) -> alloy_sol_types::Result<BLSApkRegistryCalls>] = &[
+            type DecodeShim<T> = fn(&[u8], bool) -> alloy_sol_types::Result<T>;
+            static DECODE_SHIMS: &[DecodeShim<BLSApkRegistryCalls>] = &[
                 {
                     fn operatorToPubkey(
                         data: &[u8],
@@ -7438,10 +7440,8 @@ function verifyAndRegisterG2PubkeyForOperator(address operator, BN254.G2Point me
             data: &[u8],
             validate: bool,
         ) -> alloy_sol_types::Result<Self> {
-            static DECODE_SHIMS: &[fn(
-                &[u8],
-                bool,
-            ) -> alloy_sol_types::Result<BLSApkRegistryErrors>] = &[
+            type DecodeShim<T> = fn(&[u8], bool) -> alloy_sol_types::Result<T>;
+            static DECODE_SHIMS: &[DecodeShim<BLSApkRegistryErrors>] = &[
                 {
                     fn ZeroPubKey(
                         data: &[u8],

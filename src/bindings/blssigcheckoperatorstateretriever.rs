@@ -12,7 +12,11 @@ library BN254 {
     non_snake_case,
     clippy::pub_underscore_fields,
     clippy::style,
-    clippy::empty_structs_with_brackets
+    clippy::empty_structs_with_brackets,
+    clippy::identity_op,
+    clippy::type_complexity,
+    clippy::useless_conversion,
+    clippy::clone_on_copy
 )]
 pub mod BN254 {
     
@@ -3986,10 +3990,8 @@ function getQuorumBitmapsAtBlockNumber(address registryCoordinator, bytes32[] me
             data: &[u8],
             validate: bool,
         ) -> alloy_sol_types::Result<Self> {
-            static DECODE_SHIMS: &[fn(
-                &[u8],
-                bool,
-            ) -> alloy_sol_types::Result<BLSSigCheckOperatorStateRetrieverCalls>] = &[
+            type DecodeShim<T> = fn(&[u8], bool) -> alloy_sol_types::Result<T>;
+            static DECODE_SHIMS: &[DecodeShim<BLSSigCheckOperatorStateRetrieverCalls>] = &[
                 {
                     fn getBatchOperatorId(
                         data: &[u8],
@@ -4279,10 +4281,8 @@ function getQuorumBitmapsAtBlockNumber(address registryCoordinator, bytes32[] me
             data: &[u8],
             validate: bool,
         ) -> alloy_sol_types::Result<Self> {
-            static DECODE_SHIMS: &[fn(
-                &[u8],
-                bool,
-            ) -> alloy_sol_types::Result<BLSSigCheckOperatorStateRetrieverErrors>] = &[
+            type DecodeShim<T> = fn(&[u8], bool) -> alloy_sol_types::Result<T>;
+            static DECODE_SHIMS: &[DecodeShim<BLSSigCheckOperatorStateRetrieverErrors>] = &[
                 {
                     fn OperatorNotRegistered(
                         data: &[u8],
