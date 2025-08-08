@@ -2718,7 +2718,7 @@ dependencies = [
 [[package]]
 name = "bn254"
 version = "0.1.3"
-source = "git+https://github.com/BreadchainCoop/bn254.git?branch=1-update-commonware-to-0055-and-refactor-lookup-repository-for-authenticated-p2p#a6f3c8dd2960dc61ad2f0d8481d8873a153ff982"
+source = "git+https://github.com/BreadchainCoop/bn254.git#8e8b32a5899707b04ce53e7f1a096213589d504c"
 dependencies = [
  "ark-bn254",
  "ark-ec",
@@ -3120,7 +3120,7 @@ dependencies = [
 [[package]]
 name = "commonware-eigenlayer"
 version = "0.1.0"
-source = "git+https://github.com/BreadchainCoop/commonware-avs-network-lookup?branch=8-update-commonware-to-0055-and-refactor-lookup-repository-for-authenticated-p2p#d9894fd5b31bb7aeae0678c30ecdb484757f9855"
+source = "git+https://github.com/BreadchainCoop/commonware-avs-network-lookup#a76cb2f9b619001ec48eaf299cfd1a80fe08b50c"
 dependencies = [
  "alloy 0.8.3",
  "alloy-network 0.5.4",
