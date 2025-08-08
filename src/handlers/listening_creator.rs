@@ -1,5 +1,6 @@
 use alloy::{
-    primitives::{Address, U256}, sol_types::SolValue
+    primitives::{Address, U256},
+    sol_types::SolValue,
 };
 use alloy_provider::ProviderBuilder;
 use alloy_signer_local::PrivateKeySigner;
@@ -8,10 +9,9 @@ use tokio::sync::Mutex;
 use tracing::info;
 
 use crate::bindings::counter::Counter;
-use crate::handlers::{TaskCreator, CounterProvider};
+use crate::handlers::{CounterProvider, TaskCreator};
 use crate::ingress::{TaskRequest, start_http_server};
 use commonware_eigenlayer::config::AvsDeployment;
-
 
 pub struct ListeningCreator {
     counter: Counter::CounterInstance<(), CounterProvider>,
@@ -19,10 +19,7 @@ pub struct ListeningCreator {
 }
 
 impl ListeningCreator {
-    pub fn new(
-        provider: CounterProvider,
-        counter_address: Address,
-    ) -> Self {
+    pub fn new(provider: CounterProvider, counter_address: Address) -> Self {
         let counter = Counter::new(counter_address, provider.clone());
         Self {
             counter,
@@ -51,9 +48,7 @@ impl ListeningCreator {
 
     // Single entry point that can be called by the orchestrator
     // This is where queue requests would be pulled from
-    pub async fn get_payload_and_round(
-        &self,
-    ) -> anyhow::Result<(Vec<u8>, u64)> {
+    pub async fn get_payload_and_round(&self) -> anyhow::Result<(Vec<u8>, u64)> {
         // Wait for a task to be available
         let task = loop {
             if let Some(task) = self.get_next_task().await {
@@ -63,7 +58,7 @@ impl ListeningCreator {
         };
         let current_number = self.get_current_number().await?;
         let mut payload = self.get_payload_for_round(current_number).await?.0;
-        
+
         // Encode the three variables into the payload
         payload.extend_from_slice(task.body.var1.as_bytes());
         payload.push(0); // null terminator
@@ -71,15 +66,12 @@ impl ListeningCreator {
         payload.push(0); // null terminator
         payload.extend_from_slice(task.body.var3.as_bytes());
         payload.push(0); // null terminator
-        
+
         Ok((payload, current_number))
     }
 
     // Optional: Method to get payload for a specific round number
-    pub async fn get_payload_for_round(
-        &self,
-        round_number: u64,
-    ) -> anyhow::Result<(Vec<u8>, u64)> {
+    pub async fn get_payload_for_round(&self, round_number: u64) -> anyhow::Result<(Vec<u8>, u64)> {
         let encoded = self.encode_number_call(U256::from(round_number)).await;
         info!("Created payload for specific round: {}", round_number);
         Ok((encoded, round_number))
@@ -96,7 +88,9 @@ impl ListeningCreator {
 
 impl TaskCreator for ListeningCreator {
     async fn get_payload_and_round(&self) -> anyhow::Result<(Vec<u8>, u64)> {
-        self.get_payload_and_round().await.map_err(|e| anyhow::anyhow!("ListeningCreator error: {}", e))
+        self.get_payload_and_round()
+            .await
+            .map_err(|e| anyhow::anyhow!("ListeningCreator error: {}", e))
     }
 }
 
@@ -111,8 +105,11 @@ pub async fn create_listening_creator_with_server(
         .wallet(signer)
         .connect(&http_rpc)
         .await?;
-    let deployment = AvsDeployment::load().map_err(|e| anyhow::anyhow!("Failed to load deployment: {}", e))?;
-    let counter_address = deployment.counter_address().map_err(|e| anyhow::anyhow!("Failed to get counter address: {}", e))?;
+    let deployment =
+        AvsDeployment::load().map_err(|e| anyhow::anyhow!("Failed to load deployment: {}", e))?;
+    let counter_address = deployment
+        .counter_address()
+        .map_err(|e| anyhow::anyhow!("Failed to get counter address: {}", e))?;
     let creator = Arc::new(ListeningCreator::new(provider, counter_address));
     let server_creator = creator.clone();
     tokio::spawn(async move {

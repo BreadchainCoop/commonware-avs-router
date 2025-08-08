@@ -936,7 +936,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tokio-stream",
- "tower",
+ "tower 0.5.2",
  "tracing",
 ]
 
@@ -955,7 +955,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tokio-stream",
- "tower",
+ "tower 0.5.2",
  "tracing",
 ]
 
@@ -998,7 +998,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tokio-stream",
- "tower",
+ "tower 0.5.2",
  "tracing",
  "url",
  "wasmtimer 0.2.1",
@@ -1021,7 +1021,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tokio-stream",
- "tower",
+ "tower 0.5.2",
  "tracing",
  "url",
  "wasmtimer 0.4.2",
@@ -1047,7 +1047,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tokio-stream",
- "tower",
+ "tower 0.5.2",
  "tracing",
  "url",
  "wasmtimer 0.4.2",
@@ -1074,7 +1074,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tokio-stream",
- "tower",
+ "tower 0.5.2",
  "tracing",
  "tracing-futures",
  "url",
@@ -1560,7 +1560,7 @@ dependencies = [
  "serde_json",
  "thiserror 1.0.69",
  "tokio",
- "tower",
+ "tower 0.5.2",
  "tracing",
  "url",
  "wasmtimer 0.2.1",
@@ -1580,7 +1580,7 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.12",
  "tokio",
- "tower",
+ "tower 0.5.2",
  "tracing",
  "url",
  "wasmtimer 0.4.2",
@@ -1600,7 +1600,7 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.12",
  "tokio",
- "tower",
+ "tower 0.5.2",
  "tracing",
  "url",
  "wasmtimer 0.4.2",
@@ -1622,7 +1622,7 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.12",
  "tokio",
- "tower",
+ "tower 0.5.2",
  "tracing",
  "url",
  "wasmtimer 0.4.2",
@@ -1638,7 +1638,7 @@ dependencies = [
  "alloy-transport 0.5.4",
  "reqwest 0.12.20",
  "serde_json",
- "tower",
+ "tower 0.5.2",
  "tracing",
  "url",
 ]
@@ -1653,7 +1653,7 @@ dependencies = [
  "alloy-transport 0.8.3",
  "reqwest 0.12.20",
  "serde_json",
- "tower",
+ "tower 0.5.2",
  "tracing",
  "url",
 ]
@@ -1668,7 +1668,7 @@ dependencies = [
  "alloy-transport 0.9.2",
  "reqwest 0.12.20",
  "serde_json",
- "tower",
+ "tower 0.5.2",
  "tracing",
  "url",
 ]
@@ -1683,7 +1683,7 @@ dependencies = [
  "alloy-transport 0.12.6",
  "reqwest 0.12.20",
  "serde_json",
- "tower",
+ "tower 0.5.2",
  "tracing",
  "url",
 ]
@@ -2135,6 +2135,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "arrayref"
+version = "0.3.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "76a2e8124351fda1ef8aaaa3bbd7ebbcb486bbcd4225aca0aa0d84bb2db8fecb"
+
+[[package]]
 name = "arrayvec"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2236,7 +2242,7 @@ version = "0.1.0"
 dependencies = [
  "alloy 0.12.6",
  "commonware-avs-router",
- "commonware-eigenlayer",
+ "commonware-eigenlayer 0.1.0 (git+https://github.com/BreadchainCoop/commonware-avs-network-lookup)",
  "dotenv",
  "serde",
  "tokio",
@@ -2451,13 +2457,13 @@ dependencies = [
 
 [[package]]
 name = "axum"
-version = "0.8.4"
+version = "0.7.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "021e862c184ae977658b36c4500f7feac3221ca5da43e3f25bd04ab6c79a29b5"
+checksum = "edca88bc138befd0323b20752846e6587272d3b03b0343c8ea28a6f819e6e71f"
 dependencies = [
- "axum-core",
+ "async-trait",
+ "axum-core 0.4.5",
  "bytes",
- "form_urlencoded",
  "futures-util",
  "http 1.3.1",
  "http-body 1.0.1",
@@ -2465,7 +2471,7 @@ dependencies = [
  "hyper 1.6.0",
  "hyper-util",
  "itoa",
- "matchit",
+ "matchit 0.7.3",
  "memchr",
  "mime",
  "percent-encoding",
@@ -2477,7 +2483,62 @@ dependencies = [
  "serde_urlencoded",
  "sync_wrapper 1.0.2",
  "tokio",
- "tower",
+ "tower 0.5.2",
+ "tower-layer",
+ "tower-service",
+ "tracing",
+]
+
+[[package]]
+name = "axum"
+version = "0.8.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "021e862c184ae977658b36c4500f7feac3221ca5da43e3f25bd04ab6c79a29b5"
+dependencies = [
+ "axum-core 0.5.2",
+ "bytes",
+ "form_urlencoded",
+ "futures-util",
+ "http 1.3.1",
+ "http-body 1.0.1",
+ "http-body-util",
+ "hyper 1.6.0",
+ "hyper-util",
+ "itoa",
+ "matchit 0.8.4",
+ "memchr",
+ "mime",
+ "percent-encoding",
+ "pin-project-lite",
+ "rustversion",
+ "serde",
+ "serde_json",
+ "serde_path_to_error",
+ "serde_urlencoded",
+ "sync_wrapper 1.0.2",
+ "tokio",
+ "tower 0.5.2",
+ "tower-layer",
+ "tower-service",
+ "tracing",
+]
+
+[[package]]
+name = "axum-core"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09f2bd6146b97ae3359fa0cc6d6b376d9539582c7b4220f041a33ec24c226199"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "futures-util",
+ "http 1.3.1",
+ "http-body 1.0.1",
+ "http-body-util",
+ "mime",
+ "pin-project-lite",
+ "rustversion",
+ "sync_wrapper 1.0.2",
  "tower-layer",
  "tower-service",
  "tracing",
@@ -2625,6 +2686,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "blake3"
+version = "1.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3888aaa89e4b2a40fca9848e400f6a658a5a3978de7be858e209cafa8be9a4a0"
+dependencies = [
+ "arrayref",
+ "arrayvec",
+ "cc",
+ "cfg-if",
+ "constant_time_eq 0.3.1",
+]
+
+[[package]]
 name = "block-buffer"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2657,6 +2731,23 @@ dependencies = [
 [[package]]
 name = "bn254"
 version = "0.1.3"
+source = "git+https://github.com/BreadchainCoop/bn254.git?branch=1-update-commonware-to-0055-and-refactor-lookup-repository-for-authenticated-p2p#a6f3c8dd2960dc61ad2f0d8481d8873a153ff982"
+dependencies = [
+ "ark-bn254",
+ "ark-ec",
+ "ark-ff 0.5.0",
+ "ark-serialize 0.5.0",
+ "bytes",
+ "commonware-codec 0.0.56",
+ "commonware-cryptography 0.0.56",
+ "commonware-utils 0.0.56",
+ "eigen-crypto-bn254 0.5.0",
+ "rand 0.8.5",
+]
+
+[[package]]
+name = "bn254"
+version = "0.1.3"
 source = "git+https://github.com/BreadchainCoop/bn254.git#fd0a22a0af16cd9d8efdd435171abad35cf4c5b5"
 dependencies = [
  "ark-bn254",
@@ -2664,9 +2755,9 @@ dependencies = [
  "ark-ff 0.5.0",
  "ark-serialize 0.5.0",
  "bytes",
- "commonware-codec",
- "commonware-cryptography",
- "commonware-utils",
+ "commonware-codec 0.0.50",
+ "commonware-cryptography 0.0.50",
+ "commonware-utils 0.0.50",
  "eigen-crypto-bn254 0.5.0",
  "rand 0.8.5",
 ]
@@ -2983,20 +3074,23 @@ dependencies = [
  "alloy-provider 0.12.6",
  "alloy-signer 0.12.6",
  "alloy-signer-local 0.12.6",
+ "anyhow",
  "ark-bn254",
  "ark-ec",
  "ark-ff 0.5.0",
  "ark-serialize 0.5.0",
- "bn254",
+ "async-trait",
+ "axum 0.7.9",
+ "bn254 0.1.3 (git+https://github.com/BreadchainCoop/bn254.git?branch=1-update-commonware-to-0055-and-refactor-lookup-repository-for-authenticated-p2p)",
  "bytes",
  "clap",
- "commonware-codec",
- "commonware-cryptography",
- "commonware-eigenlayer",
+ "commonware-codec 0.0.56",
+ "commonware-cryptography 0.0.56",
+ "commonware-eigenlayer 0.1.0 (git+https://github.com/BreadchainCoop/commonware-avs-network-lookup?branch=8-update-commonware-to-0055-and-refactor-lookup-repository-for-authenticated-p2p)",
  "commonware-macros",
  "commonware-p2p",
  "commonware-runtime",
- "commonware-utils",
+ "commonware-utils 0.0.56",
  "dotenv",
  "eigen-crypto-bls 0.5.0",
  "eigen-crypto-bn254 0.5.0",
@@ -3004,6 +3098,7 @@ dependencies = [
  "futures",
  "futures-util",
  "governor",
+ "hex",
  "num-bigint",
  "prometheus-client 0.23.1",
  "prost",
@@ -3012,6 +3107,9 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
+ "tokio",
+ "tower 0.4.13",
+ "tower-http 0.5.2",
  "tracing",
  "tracing-subscriber 0.3.19",
  "url",
@@ -3029,6 +3127,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "commonware-codec"
+version = "0.0.56"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7c1495b0aef5282425702984c382ab7499bb4b4b4b03f68702b55f1a9e330253"
+dependencies = [
+ "bytes",
+ "paste",
+ "thiserror 2.0.12",
+]
+
+[[package]]
 name = "commonware-cryptography"
 version = "0.0.50"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3036,8 +3145,8 @@ checksum = "d0ade135f1071a9bfb71fc4d3788b91a572bccc26341eaf90d45fe376d5709f0"
 dependencies = [
  "blst",
  "bytes",
- "commonware-codec",
- "commonware-utils",
+ "commonware-codec 0.0.50",
+ "commonware-utils 0.0.50",
  "ed25519-consensus",
  "getrandom 0.2.16",
  "p256",
@@ -3046,6 +3155,60 @@ dependencies = [
  "sha2 0.10.9",
  "thiserror 2.0.12",
  "zeroize",
+]
+
+[[package]]
+name = "commonware-cryptography"
+version = "0.0.56"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44d70336ad273f7c64a95076292be717ed21543bb484300c707da3fe85d80517"
+dependencies = [
+ "blake3",
+ "blst",
+ "bytes",
+ "commonware-codec 0.0.56",
+ "commonware-utils 0.0.56",
+ "ed25519-consensus",
+ "getrandom 0.2.16",
+ "p256",
+ "rand 0.8.5",
+ "rayon",
+ "sha2 0.10.9",
+ "thiserror 2.0.12",
+ "zeroize",
+]
+
+[[package]]
+name = "commonware-eigenlayer"
+version = "0.1.0"
+source = "git+https://github.com/BreadchainCoop/commonware-avs-network-lookup?branch=8-update-commonware-to-0055-and-refactor-lookup-repository-for-authenticated-p2p#d9894fd5b31bb7aeae0678c30ecdb484757f9855"
+dependencies = [
+ "alloy 0.8.3",
+ "alloy-network 0.5.4",
+ "alloy-primitives",
+ "alloy-provider 0.5.4",
+ "alloy-transport 0.5.4",
+ "alloy-transport-http 0.5.4",
+ "anyhow",
+ "bn254 0.1.3 (git+https://github.com/BreadchainCoop/bn254.git?branch=1-update-commonware-to-0055-and-refactor-lookup-repository-for-authenticated-p2p)",
+ "eigen-client-avsregistry",
+ "eigen-common",
+ "eigen-crypto-bls 0.1.3",
+ "eigen-crypto-bn254 0.1.3",
+ "eigen-logging",
+ "eigen-services-avsregistry",
+ "eigen-services-blsaggregation",
+ "eigen-services-operatorsinfo",
+ "eigen-types",
+ "eigen-utils 0.1.3",
+ "eyre",
+ "rand 0.9.1",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-rustls 0.24.1",
+ "tokio-util",
+ "url",
 ]
 
 [[package]]
@@ -3060,7 +3223,7 @@ dependencies = [
  "alloy-transport 0.5.4",
  "alloy-transport-http 0.5.4",
  "anyhow",
- "bn254",
+ "bn254 0.1.3 (git+https://github.com/BreadchainCoop/bn254.git)",
  "eigen-client-avsregistry",
  "eigen-common",
  "eigen-crypto-bls 0.1.3",
@@ -3083,9 +3246,9 @@ dependencies = [
 
 [[package]]
 name = "commonware-macros"
-version = "0.0.50"
+version = "0.0.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1bca9d98414fa30ddf59d9c1d7048f5e91d70046ac89f31dc75a9b561b268d91"
+checksum = "407cdbaaac826e4df259fe2c73e23fe78bc2ec335b966794438c1d74315d84c8"
 dependencies = [
  "futures",
  "proc-macro2",
@@ -3097,17 +3260,17 @@ dependencies = [
 
 [[package]]
 name = "commonware-p2p"
-version = "0.0.50"
+version = "0.0.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf11caab1ed26972d23e4e146c186f40d00a3456850ae3b3bb58dd4e6ca4f071"
+checksum = "6f063844f8b90519e9b7b1b0e29a97c825cbe2df59e0a222e506d55a9243c020"
 dependencies = [
  "bytes",
- "commonware-codec",
- "commonware-cryptography",
+ "commonware-codec 0.0.56",
+ "commonware-cryptography 0.0.56",
  "commonware-macros",
  "commonware-runtime",
  "commonware-stream",
- "commonware-utils",
+ "commonware-utils 0.0.56",
  "either",
  "futures",
  "governor",
@@ -3116,25 +3279,25 @@ dependencies = [
  "rand_distr",
  "thiserror 2.0.12",
  "tracing",
- "zstd 0.13.3",
 ]
 
 [[package]]
 name = "commonware-runtime"
-version = "0.0.50"
+version = "0.0.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd187c0c69848d605111b67f68223d2aea5fb9f5f2ae817c4627f33fdc00cd89"
+checksum = "a36328c702697a0a1bec98382e5b76ec209403dfa79bb79d1a861f5a3c629c25"
 dependencies = [
  "async-lock",
- "axum",
+ "axum 0.8.4",
  "bytes",
  "cfg-if",
  "commonware-macros",
- "commonware-utils",
+ "commonware-utils 0.0.56",
  "criterion",
  "futures",
  "getrandom 0.2.16",
  "governor",
+ "libc",
  "opentelemetry",
  "opentelemetry-otlp",
  "opentelemetry_sdk",
@@ -3151,21 +3314,23 @@ dependencies = [
 
 [[package]]
 name = "commonware-stream"
-version = "0.0.50"
+version = "0.0.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c37fa662507f5a9343182dfa67c42bbabe3f3e00e77c2ceac3900f678b849c28"
+checksum = "cddd40df46f56a2beafdc9658d395639c15d4c2483e05c73110622763ca082b4"
 dependencies = [
  "bytes",
  "chacha20poly1305",
- "commonware-codec",
- "commonware-cryptography",
+ "commonware-codec 0.0.56",
+ "commonware-cryptography 0.0.56",
  "commonware-macros",
  "commonware-runtime",
- "commonware-utils",
+ "commonware-utils 0.0.56",
  "futures",
+ "hkdf",
  "rand 0.8.5",
  "thiserror 2.0.12",
  "x25519-dalek",
+ "zeroize",
 ]
 
 [[package]]
@@ -3175,8 +3340,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7d8e3b8335c6030fd138a0d99a0f40990ab0b657c14f7fcd86f5b353f32ac38c"
 dependencies = [
  "bytes",
- "commonware-codec",
+ "commonware-codec 0.0.50",
  "futures",
+ "thiserror 2.0.12",
+]
+
+[[package]]
+name = "commonware-utils"
+version = "0.0.56"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a54dfd09f06c05634bfad9c7f9a1218d085c96b87db0d6c6d39c06dc30c91af4"
+dependencies = [
+ "bytes",
+ "commonware-codec 0.0.56",
+ "futures",
+ "getrandom 0.2.16",
+ "rand 0.8.5",
  "thiserror 2.0.12",
 ]
 
@@ -3233,6 +3412,12 @@ name = "constant_time_eq"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "245097e9a4535ee1e3e3931fcfcd55a796a44c643e8596ff6566d68f09b87bbc"
+
+[[package]]
+name = "constant_time_eq"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7c74b8349d32d297c9134b8c88677813a227df8f779daa29bfc29c183fe3dca6"
 
 [[package]]
 name = "core-foundation"
@@ -5568,6 +5753,12 @@ dependencies = [
 
 [[package]]
 name = "matchit"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0e7465ac9959cc2b1404e8e2367b43684a6d13790fe23056cc8c6c5a6b7bcb94"
+
+[[package]]
+name = "matchit"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "47e1ffaa40ddd1f3ed91f717a33c8c0ee23fff369e3aa8772b9605cc1d22f4c3"
@@ -6849,8 +7040,8 @@ dependencies = [
  "tokio",
  "tokio-native-tls",
  "tokio-rustls 0.26.2",
- "tower",
- "tower-http",
+ "tower 0.5.2",
+ "tower-http 0.6.6",
  "tower-service",
  "url",
  "wasm-bindgen",
@@ -8174,6 +8365,17 @@ dependencies = [
 
 [[package]]
 name = "tower"
+version = "0.4.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b8fa9be0de6cf49e536ce1851f987bd21a43b771b09473c3549a6c853db37c1c"
+dependencies = [
+ "tower-layer",
+ "tower-service",
+ "tracing",
+]
+
+[[package]]
+name = "tower"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d039ad9159c98b70ecfd540b2573b97f7f52c3e8d9f8ad57a24b916a536975f9"
@@ -8190,6 +8392,22 @@ dependencies = [
 
 [[package]]
 name = "tower-http"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e9cd434a998747dd2c4276bc96ee2e0c7a2eadf3cae88e52be55a05fa9053f5"
+dependencies = [
+ "bitflags 2.9.1",
+ "bytes",
+ "http 1.3.1",
+ "http-body 1.0.1",
+ "http-body-util",
+ "pin-project-lite",
+ "tower-layer",
+ "tower-service",
+]
+
+[[package]]
+name = "tower-http"
 version = "0.6.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "adc82fd73de2a9722ac5da747f12383d2bfdb93591ee6c58486e0097890f05f2"
@@ -8201,7 +8419,7 @@ dependencies = [
  "http-body 1.0.1",
  "iri-string",
  "pin-project-lite",
- "tower",
+ "tower 0.5.2",
  "tower-layer",
  "tower-service",
 ]
@@ -9271,7 +9489,7 @@ dependencies = [
  "aes",
  "byteorder",
  "bzip2",
- "constant_time_eq",
+ "constant_time_eq 0.1.5",
  "crc32fast",
  "crossbeam-utils",
  "flate2",
@@ -9279,7 +9497,7 @@ dependencies = [
  "pbkdf2 0.11.0",
  "sha1",
  "time",
- "zstd 0.11.2+zstd.1.5.2",
+ "zstd",
 ]
 
 [[package]]
@@ -9288,16 +9506,7 @@ version = "0.11.2+zstd.1.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "20cc960326ece64f010d2d2107537f26dc589a6573a316bd5b1dba685fa5fde4"
 dependencies = [
- "zstd-safe 5.0.2+zstd.1.5.2",
-]
-
-[[package]]
-name = "zstd"
-version = "0.13.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e91ee311a569c327171651566e07972200e76fcfe2242a4fa446149a3881c08a"
-dependencies = [
- "zstd-safe 7.2.4",
+ "zstd-safe",
 ]
 
 [[package]]
@@ -9307,15 +9516,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d2a5585e04f9eea4b2a3d1eca508c4dee9592a89ef6f450c11719da0726f4db"
 dependencies = [
  "libc",
- "zstd-sys",
-]
-
-[[package]]
-name = "zstd-safe"
-version = "7.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f49c4d5f0abb602a93fb8736af2a4f4dd9512e36f7f570d66e65ff867ed3b9d"
-dependencies = [
  "zstd-sys",
 ]
 
