@@ -33,7 +33,7 @@ impl Executor {
             X: U256::from_str(&g1_pubkey.get_x()).map_err(|e| anyhow::anyhow!("Failed to parse X coordinate: {}", e))?,
             Y: U256::from_str(&g1_pubkey.get_y()).map_err(|e| anyhow::anyhow!("Failed to parse Y coordinate: {}", e))?,
         };
-        let hex_string = format!("0x{}", hex(&alloy_primitives::keccak256(&g1_point.abi_encode().to_vec()).to_vec()));
+        let hex_string = format!("0x{}", hex(alloy_primitives::keccak256(g1_point.abi_encode()).as_ref()));
         let address = self.bls_apk_registry.pubkeyHashToOperator(FixedBytes::<32>::from_str(&hex_string).map_err(|e| anyhow::anyhow!("Failed to parse hex string: {}", e))?).call().await.map_err(|e| anyhow::anyhow!("Failed to get operator from pubkey hash: {}", e))?.operator;
         self.g1_hash_map.insert(contributor.clone(), address);
         Ok(address)

@@ -26,7 +26,6 @@ use std::{
 use std::{str::FromStr, time::Duration};
 use commonware_eigenlayer::network_configuration::{EigenStakingClient, QuorumInfo};
 use std::env;
-use dotenv;
 use eigen_logging::log_level::LogLevel;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -56,9 +55,9 @@ async fn get_operator_states() -> Result<Vec<QuorumInfo>, Box<dyn std::error::Er
     let avs_deployment_path = env::var("AVS_DEPLOYMENT_PATH").expect("AVS_DEPLOYMENT_PATH must be set");
     println!("pre init");
     let client = EigenStakingClient::new(
-        String::from(http_rpc),
-        String::from(ws_rpc),
-        String::from(avs_deployment_path),
+        http_rpc,
+        ws_rpc,
+        avs_deployment_path,
     ).await?;
     println!("init passed");
     client.get_operator_states().await
@@ -139,7 +138,7 @@ fn main() {
             quorum_infos = get_operator_states().await.expect("Failed to get operator states");
             recipients = Vec::new();
             let participants = quorum_infos[0].operators.clone(); //TODO: Fix hardcoded quorum_number
-            if participants.len() == 0 {
+            if participants.is_empty() {
                 panic!("Please provide at least one participant");
             }
             for participant in participants {
@@ -166,7 +165,7 @@ fn main() {
         let mut contributors = Vec::new();
         let mut contributors_map = HashMap::new();
         let operators = &quorum_infos[0].operators;
-        if operators.len() == 0 {
+        if operators.is_empty() {
             panic!("Please provide at least one contributor");
         }
         for operator in operators {

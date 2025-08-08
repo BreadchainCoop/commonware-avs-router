@@ -192,8 +192,7 @@ struct G1Point { uint256 X; uint256 Y; }
         impl alloy_sol_types::EventTopic for G1Point {
             #[inline]
             fn topic_preimage_length(rust: &Self::RustType) -> usize {
-                0usize
-                    + <alloy::sol_types::sol_data::Uint<
+                <alloy::sol_types::sol_data::Uint<
                         256,
                     > as alloy_sol_types::EventTopic>::topic_preimage_length(&rust.X)
                     + <alloy::sol_types::sol_data::Uint<
@@ -417,8 +416,7 @@ struct G2Point { uint256[2] X; uint256[2] Y; }
         impl alloy_sol_types::EventTopic for G2Point {
             #[inline]
             fn topic_preimage_length(rust: &Self::RustType) -> usize {
-                0usize
-                    + <alloy::sol_types::sol_data::FixedArray<
+                <alloy::sol_types::sol_data::FixedArray<
                         alloy::sol_types::sol_data::Uint<256>,
                         2usize,
                     > as alloy_sol_types::EventTopic>::topic_preimage_length(&rust.X)
@@ -802,8 +800,7 @@ struct ApkUpdate { bytes24 apkHash; uint32 updateBlockNumber; uint32 nextUpdateB
         impl alloy_sol_types::EventTopic for ApkUpdate {
             #[inline]
             fn topic_preimage_length(rust: &Self::RustType) -> usize {
-                0usize
-                    + <alloy::sol_types::sol_data::FixedBytes<
+                <alloy::sol_types::sol_data::FixedBytes<
                         24,
                     > as alloy_sol_types::EventTopic>::topic_preimage_length(
                         &rust.apkHash,
@@ -1072,8 +1069,7 @@ struct PubkeyRegistrationParams { BN254.G1Point pubkeyRegistrationSignature; BN2
         impl alloy_sol_types::EventTopic for PubkeyRegistrationParams {
             #[inline]
             fn topic_preimage_length(rust: &Self::RustType) -> usize {
-                0usize
-                    + <BN254::G1Point as alloy_sol_types::EventTopic>::topic_preimage_length(
+                <BN254::G1Point as alloy_sol_types::EventTopic>::topic_preimage_length(
                         &rust.pubkeyRegistrationSignature,
                     )
                     + <BN254::G1Point as alloy_sol_types::EventTopic>::topic_preimage_length(
@@ -3218,7 +3214,7 @@ event Initialized(uint8 version);
             }
             #[inline]
             fn topics(&self) -> <Self::TopicList as alloy_sol_types::SolType>::RustType {
-                (Self::SIGNATURE_HASH.into(),)
+                (Self::SIGNATURE_HASH,)
             }
             #[inline]
             fn encode_topics_raw(
@@ -3327,7 +3323,7 @@ event NewG2PubkeyRegistration(address indexed operator, BN254.G2Point pubkeyG2);
             }
             #[inline]
             fn topics(&self) -> <Self::TopicList as alloy_sol_types::SolType>::RustType {
-                (Self::SIGNATURE_HASH.into(), self.operator.clone())
+                (Self::SIGNATURE_HASH, self.operator)
             }
             #[inline]
             fn encode_topics_raw(
@@ -3451,7 +3447,7 @@ event NewPubkeyRegistration(address indexed operator, BN254.G1Point pubkeyG1, BN
             }
             #[inline]
             fn topics(&self) -> <Self::TopicList as alloy_sol_types::SolType>::RustType {
-                (Self::SIGNATURE_HASH.into(), self.operator.clone())
+                (Self::SIGNATURE_HASH, self.operator)
             }
             #[inline]
             fn encode_topics_raw(
@@ -3577,7 +3573,7 @@ event OperatorAddedToQuorums(address operator, bytes32 operatorId, bytes quorumN
             }
             #[inline]
             fn topics(&self) -> <Self::TopicList as alloy_sol_types::SolType>::RustType {
-                (Self::SIGNATURE_HASH.into(),)
+                (Self::SIGNATURE_HASH,)
             }
             #[inline]
             fn encode_topics_raw(
@@ -3700,7 +3696,7 @@ event OperatorRemovedFromQuorums(address operator, bytes32 operatorId, bytes quo
             }
             #[inline]
             fn topics(&self) -> <Self::TopicList as alloy_sol_types::SolType>::RustType {
-                (Self::SIGNATURE_HASH.into(),)
+                (Self::SIGNATURE_HASH,)
             }
             #[inline]
             fn encode_topics_raw(

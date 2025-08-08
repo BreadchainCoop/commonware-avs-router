@@ -192,8 +192,7 @@ struct G1Point { uint256 X; uint256 Y; }
         impl alloy_sol_types::EventTopic for G1Point {
             #[inline]
             fn topic_preimage_length(rust: &Self::RustType) -> usize {
-                0usize
-                    + <alloy::sol_types::sol_data::Uint<
+                <alloy::sol_types::sol_data::Uint<
                         256,
                     > as alloy_sol_types::EventTopic>::topic_preimage_length(&rust.X)
                     + <alloy::sol_types::sol_data::Uint<
@@ -417,8 +416,7 @@ struct G2Point { uint256[2] X; uint256[2] Y; }
         impl alloy_sol_types::EventTopic for G2Point {
             #[inline]
             fn topic_preimage_length(rust: &Self::RustType) -> usize {
-                0usize
-                    + <alloy::sol_types::sol_data::FixedArray<
+                <alloy::sol_types::sol_data::FixedArray<
                         alloy::sol_types::sol_data::Uint<256>,
                         2usize,
                     > as alloy_sol_types::EventTopic>::topic_preimage_length(&rust.X)
@@ -922,8 +920,7 @@ struct NonSignerStakesAndSignature { uint32[] nonSignerQuorumBitmapIndices; BN25
         impl alloy_sol_types::EventTopic for NonSignerStakesAndSignature {
             #[inline]
             fn topic_preimage_length(rust: &Self::RustType) -> usize {
-                0usize
-                    + <alloy::sol_types::sol_data::Array<
+                <alloy::sol_types::sol_data::Array<
                         alloy::sol_types::sol_data::Uint<32>,
                     > as alloy_sol_types::EventTopic>::topic_preimage_length(
                         &rust.nonSignerQuorumBitmapIndices,
@@ -1412,8 +1409,7 @@ struct CheckSignaturesIndices { uint32[] nonSignerQuorumBitmapIndices; uint32[] 
         impl alloy_sol_types::EventTopic for CheckSignaturesIndices {
             #[inline]
             fn topic_preimage_length(rust: &Self::RustType) -> usize {
-                0usize
-                    + <alloy::sol_types::sol_data::Array<
+                <alloy::sol_types::sol_data::Array<
                         alloy::sol_types::sol_data::Uint<32>,
                     > as alloy_sol_types::EventTopic>::topic_preimage_length(
                         &rust.nonSignerQuorumBitmapIndices,
@@ -1678,8 +1674,7 @@ struct Operator { address operator; bytes32 operatorId; uint96 stake; }
         impl alloy_sol_types::EventTopic for Operator {
             #[inline]
             fn topic_preimage_length(rust: &Self::RustType) -> usize {
-                0usize
-                    + <alloy::sol_types::sol_data::Address as alloy_sol_types::EventTopic>::topic_preimage_length(
+                <alloy::sol_types::sol_data::Address as alloy_sol_types::EventTopic>::topic_preimage_length(
                         &rust.operator,
                     )
                     + <alloy::sol_types::sol_data::FixedBytes<
