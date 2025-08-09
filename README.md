@@ -197,7 +197,13 @@ cargo run -- --key-file <path_to_key_file> --port <port_number>
    # Edit .env to set your configuration
    ```
 
-2. **Start Services**:
+2. **Set Up Config**:
+   ```sh
+   cp config/config.example.json config/config.json
+   # Edit config/config.json if you need different operator socket addresses
+   ```
+
+3. **Start Services**:
    ```sh
    docker-compose up
    ```
@@ -208,7 +214,7 @@ cargo run -- --key-file <path_to_key_file> --port <port_number>
    - Register test operators with BLS keys
    - Save all configuration to `.nodes/` directory
 
-3. **Wait for Completion**:
+4. **Wait for Completion**:
    Look for output like:
    ```
    Operator 1 weight in quorum 0: 11887896997963931 [1.188e16]
@@ -216,7 +222,7 @@ cargo run -- --key-file <path_to_key_file> --port <port_number>
    Operator 3 weight in quorum 0: 11887896997963931 [1.188e16]
    ```
 
-4. **Keep Services Running**:
+5. **Keep Services Running**:
    The containers need to stay running for the AVS nodes to connect.
    To run in background: `docker-compose up -d`
 
