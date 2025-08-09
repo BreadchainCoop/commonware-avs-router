@@ -7,7 +7,7 @@
     missing_docs,
     dead_code
 )]
-pub mod blssigcheckoperatorstateretriever;
+pub mod blsapkregistry;
 #[allow(
     non_camel_case_types,
     non_snake_case,
@@ -17,7 +17,7 @@ pub mod blssigcheckoperatorstateretriever;
     missing_docs,
     dead_code
 )]
-pub mod blsapkregistry;
+pub mod blssigcheckoperatorstateretriever;
 #[allow(
     non_camel_case_types,
     non_snake_case,

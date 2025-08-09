@@ -16,4 +16,4 @@ pub struct TaskRequest {
 pub struct TaskResponse {
     pub success: bool,
     pub message: String,
-} 
+}
