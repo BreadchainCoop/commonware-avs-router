@@ -4,11 +4,9 @@ on:
   pull_request:
     branches:
       - dev
-      - 21-release-00*
   push:
     branches:
       - dev
-      - 21-release-001
   release:
     types: [created]
 
