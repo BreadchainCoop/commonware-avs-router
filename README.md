@@ -4,7 +4,7 @@ This repository implements a BLS signature aggregation protocol with on-chain ex
 
 ## Docker Setup
 
-The EigenLayer BLS environment is now deployed using Docker images, eliminating the need for the `eigenlayer-bls-local` submodule. The setup uses three main services:
+The EigenLayer BLS environment is deployed using Docker images. The setup uses three main services:
 
 ### Docker Images
 
@@ -19,15 +19,6 @@ The EigenLayer BLS environment is now deployed using Docker images, eliminating 
 - Deployed AVS contracts (registry coordinator, counter)
 - Generated test operator accounts with BLS keys
 - Configuration files saved to `.nodes/` directory
-
-### Migration from Submodule
-
-If you're upgrading from a version that used the `eigenlayer-bls-local` submodule:
-
-1. Remove the old submodule: `rm -rf eigenlayer-bls-local`
-2. Copy `example.env` to `.env` and configure it
-3. Run `docker-compose up` to start all services
-4. Configuration files and keys will be generated in `.nodes/` directory
 
 ## System Architecture
 
