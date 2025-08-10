@@ -1,9 +1,6 @@
 name: Docker CI/CD
 
 on:
-  pull_request:
-    branches:
-      - dev
   push:
     branches:
       - dev
@@ -52,7 +49,7 @@ jobs:
       - name: Create and push multi-arch manifest
         run: |
           NAME="${{ env.REGISTRY }}/${{ github.repository }}" && NAME="${NAME,,}"
-          TAG="${{ github.event_name == 'release' && github.ref_name || (github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'dev') }}"
+          TAG="${{ github.event_name == 'release' && github.ref_name || 'dev' }}"
           docker buildx imagetools create \
             -t "${NAME}:${TAG}" \
             -t "${NAME}:latest" \
