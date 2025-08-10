@@ -188,8 +188,12 @@ cargo run -- --key-file <path_to_key_file> --port <port_number>
    # Edit .env to set your configuration
    ```
 
-2. **Set Up Config**:
+2. **Set Up Config and Directories**:
    ```sh
+   # Create required directories
+   mkdir -p .nodes/operator_keys
+   
+   # Copy config template
    cp config/config.example.json config/config.json
    # Edit config/config.json if you need different operator socket addresses
    ```
