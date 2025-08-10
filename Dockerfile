@@ -15,8 +15,6 @@ COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
 
 # Copy source code
 COPY src ./src
-COPY eigenlayer-bls-local ./eigenlayer-bls-local
-COPY commonware-avs-node ./commonware-avs-node
 
 # Build the application
 RUN cargo build --release
