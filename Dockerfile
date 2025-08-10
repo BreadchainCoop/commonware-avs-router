@@ -48,8 +48,8 @@ USER appuser
 # Set working directory
 WORKDIR /app
 
-# Expose any necessary ports (adjust as needed based on your application)
-EXPOSE 8080
+# Expose port 3000 for the application
+EXPOSE 3000
 
 # Run the binary
 ENTRYPOINT ["commonware-avs-router"]
