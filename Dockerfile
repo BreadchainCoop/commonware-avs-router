@@ -1,22 +1,18 @@
 # Build stage
 FROM rust:1.83 AS builder
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    pkg-config \
-    libssl-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create app directory
 WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
 
 # Copy manifest files
 COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
 
-# Copy source code
-COPY src ./src
+# Pre-build deps
+RUN mkdir src && echo 'fn main(){}' > src/main.rs
+RUN cargo build --release || true
+RUN rm -rf src
 
-# Build the application
+# Now copy real source and do the actual build
+COPY src ./src
 RUN cargo build --release
 
 # Runtime stage
@@ -51,3 +47,4 @@ EXPOSE 3000
 
 # Run the binary
 ENTRYPOINT ["commonware-avs-router"]
+
