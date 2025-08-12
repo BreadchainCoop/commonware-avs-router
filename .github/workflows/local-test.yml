@@ -25,7 +25,7 @@ jobs:
       with:
         repository: BreadchainCoop/commonware-avs-node
         path: commonware-avs-node
-        ref: main
+        ref: dev
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
