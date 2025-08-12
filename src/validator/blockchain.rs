@@ -15,7 +15,7 @@ use std::{env, io::Cursor};
 use super::interface::ValidatorTrait;
 
 /// Blockchain-based validator implementation.
-/// 
+///
 /// This implementation performs validation using blockchain state,
 /// specifically checking round numbers against the on-chain counter
 /// contract and extracting payloads from wire messages.
@@ -25,10 +25,10 @@ pub struct BlockchainValidator {
 
 impl BlockchainValidator {
     /// Creates a new BlockchainValidator instance.
-    /// 
+    ///
     /// This method initializes the validator with a connection to the
     /// blockchain counter contract for round number validation.
-    /// 
+    ///
     /// # Returns
     /// * `Result<Self>` - The initialized validator or an error
     pub async fn new() -> Result<Self> {
@@ -46,13 +46,13 @@ impl BlockchainValidator {
     }
 
     /// Verifies that the message round number matches the current blockchain state.
-    /// 
+    ///
     /// This method checks if the round number in the message matches
     /// the current round number from the blockchain counter contract.
-    /// 
+    ///
     /// # Arguments
     /// * `msg` - The message bytes to verify
-    /// 
+    ///
     /// # Returns
     /// * `Result<()>` - Success if round numbers match, or an error
     async fn verify_message_round(&self, msg: &[u8]) -> Result<()> {

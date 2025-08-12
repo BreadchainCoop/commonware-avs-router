@@ -7,7 +7,7 @@ use commonware_cryptography::{Hasher, Sha256};
 use super::interface::ValidatorTrait;
 
 /// Mock validator implementation for testing purposes.
-/// 
+///
 /// This implementation provides a configurable mock that can be used
 /// for unit testing without requiring blockchain connections. It allows
 /// for predictable behavior and easy test scenario setup.
@@ -22,13 +22,13 @@ pub struct MockValidator {
 
 impl MockValidator {
     /// Creates a new MockValidator that always succeeds.
-    /// 
+    ///
     /// This constructor creates a mock validator that will accept
     /// any message and return a predictable hash.
-    /// 
+    ///
     /// # Arguments
     /// * `expected_round` - The round number that will be used for validation
-    /// 
+    ///
     /// # Returns
     /// * `Self` - The new MockValidator instance
     pub fn new_success(expected_round: u64) -> Self {
@@ -40,13 +40,13 @@ impl MockValidator {
     }
 
     /// Creates a new MockValidator that always fails.
-    /// 
+    ///
     /// This constructor creates a mock validator that will reject
     /// any message with a custom error message.
-    /// 
+    ///
     /// # Arguments
     /// * `error_message` - The error message to return on validation failure
-    /// 
+    ///
     /// # Returns
     /// * `Self` - The new MockValidator instance
     pub fn new_failure(error_message: String) -> Self {
@@ -58,14 +58,14 @@ impl MockValidator {
     }
 
     /// Creates a new MockValidator with custom configuration.
-    /// 
+    ///
     /// This constructor allows for fine-grained control over the mock's behavior.
-    /// 
+    ///
     /// # Arguments
     /// * `expected_round` - The round number that will be used for validation
     /// * `should_succeed` - Whether validation should succeed or fail
     /// * `error_message` - Optional error message for failure scenarios
-    /// 
+    ///
     /// # Returns
     /// * `Self` - The new MockValidator instance
     pub fn new_custom(
@@ -81,10 +81,10 @@ impl MockValidator {
     }
 
     /// Updates the expected round number.
-    /// 
+    ///
     /// This method allows changing the expected round number
     /// during test execution.
-    /// 
+    ///
     /// # Arguments
     /// * `round` - The new expected round number
     pub fn set_expected_round(&mut self, round: u64) {
@@ -92,10 +92,10 @@ impl MockValidator {
     }
 
     /// Updates the success/failure behavior.
-    /// 
+    ///
     /// This method allows changing whether validation should
     /// succeed or fail during test execution.
-    /// 
+    ///
     /// # Arguments
     /// * `should_succeed` - Whether validation should succeed
     pub fn set_should_succeed(&mut self, should_succeed: bool) {
@@ -103,10 +103,10 @@ impl MockValidator {
     }
 
     /// Updates the error message for failure scenarios.
-    /// 
+    ///
     /// This method allows changing the error message that
     /// will be returned on validation failure.
-    /// 
+    ///
     /// # Arguments
     /// * `error_message` - The new error message
     pub fn set_error_message(&mut self, error_message: Option<String>) {
