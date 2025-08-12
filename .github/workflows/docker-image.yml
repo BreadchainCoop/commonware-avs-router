@@ -3,7 +3,6 @@ name: Docker CI/CD
 on:
   push:
     branches:
-      - docker-ci-cd-release-builds
       - dev
   release:
     types: [created]
