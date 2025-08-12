@@ -62,9 +62,33 @@ jobs:
 
     - name: Set up environment
       run: |
-        # Copy environment files
-        cp example.env .env
-        cp commonware-avs-node/example.env commonware-avs-node/.env
+        # Debug: Check what files are present
+        echo "=== Current directory contents ==="
+        ls -la
+        
+        echo "=== Checking for example.env ==="
+        if [ -f example.env ]; then
+          echo "example.env found"
+          cp example.env .env
+        else
+          echo "ERROR: example.env not found"
+          exit 1
+        fi
+        
+        echo "=== Checking commonware-avs-node ==="
+        if [ -d commonware-avs-node ]; then
+          echo "commonware-avs-node directory found"
+          ls -la commonware-avs-node/
+          if [ -f commonware-avs-node/example.env ]; then
+            cp commonware-avs-node/example.env commonware-avs-node/.env
+          else
+            echo "No example.env in commonware-avs-node, creating from main .env"
+            cp .env commonware-avs-node/.env
+          fi
+        else
+          echo "ERROR: commonware-avs-node directory not found"
+          exit 1
+        fi
         
         # Create required directories
         mkdir -p .nodes/operator_keys
@@ -211,25 +235,59 @@ jobs:
     - name: Collect logs on failure
       if: failure()
       run: |
+        echo "=== Working directory ==="
+        pwd
+        ls -la
+        
         echo "=== Docker Compose status ==="
-        docker compose ps
+        if [ -f .env ]; then
+          docker compose ps || true
+        else
+          echo ".env file not found, checking Docker containers directly"
+          docker ps -a || true
+        fi
         
         echo "=== Router logs ==="
-        tail -50 logs/router.log || true
+        if [ -f logs/router.log ]; then
+          tail -50 logs/router.log || true
+        else
+          echo "No router log found"
+        fi
         
         echo "=== Node logs ==="
-        tail -50 logs/node1.log || true
-        tail -50 logs/node2.log || true
-        tail -50 logs/node3.log || true
+        if [ -f logs/node1.log ]; then
+          tail -50 logs/node1.log || true
+        else
+          echo "No node1 log found"
+        fi
+        
+        if [ -f logs/node2.log ]; then
+          tail -50 logs/node2.log || true
+        else
+          echo "No node2 log found"
+        fi
+        
+        if [ -f logs/node3.log ]; then
+          tail -50 logs/node3.log || true
+        else
+          echo "No node3 log found"
+        fi
         
         echo "=== EigenLayer logs ==="
-        docker compose logs eigenlayer --tail=100 || true
+        if [ -f .env ]; then
+          docker compose logs eigenlayer --tail=100 || true
+        else
+          echo "Cannot get eigenlayer logs without .env file"
+          docker logs $(docker ps -aq --filter "name=eigenlayer") --tail=100 || true
+        fi
         
         echo "=== Deployment file check ==="
         ls -la .nodes/ || true
         if [ -f .nodes/avs_deploy.json ]; then
           echo "Deployment file contents:"
           cat .nodes/avs_deploy.json
+        else
+          echo "No deployment file found"
         fi
 
     - name: Cleanup
@@ -244,5 +302,11 @@ jobs:
         [ -f node3.pid ] && kill $(cat node3.pid) || true
         
         echo "Stopping Docker Compose services..."
-        docker compose down -v || true
+        if [ -f .env ]; then
+          docker compose down -v || true
+        else
+          echo "No .env file, stopping containers directly"
+          docker stop $(docker ps -aq) || true
+          docker rm $(docker ps -aq) || true
+        fi
         echo "Cleanup completed"
