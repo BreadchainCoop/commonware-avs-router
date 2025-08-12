@@ -11,6 +11,7 @@ use super::interface::ValidatorTrait;
 /// This implementation provides a configurable mock that can be used
 /// for unit testing without requiring blockchain connections. It allows
 /// for predictable behavior and easy test scenario setup.
+#[allow(dead_code)]
 pub struct MockValidator {
     /// The expected round number for validation
     expected_round: u64,
@@ -20,6 +21,7 @@ pub struct MockValidator {
     error_message: Option<String>,
 }
 
+#[allow(dead_code)]
 impl MockValidator {
     /// Creates a new MockValidator that always succeeds.
     ///

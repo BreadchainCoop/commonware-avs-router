@@ -36,11 +36,16 @@ pub mod mock;
 pub mod tests;
 
 // Re-export the main types for easy access
+#[allow(unused_imports)]
 pub use blockchain::BlockchainValidator;
+#[allow(unused_imports)]
 pub use factory::{
     ValidatorConfig, ValidatorType, create_blockchain_validator, create_failing_mock_validator,
     create_mock_validator,
 };
+#[allow(unused_imports)]
 pub use generic::Validator;
+#[allow(unused_imports)]
 pub use interface::ValidatorTrait;
+#[allow(unused_imports)]
 pub use mock::MockValidator;

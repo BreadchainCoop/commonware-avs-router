@@ -57,6 +57,7 @@ impl<T: ValidatorTrait> Validator<T> {
     ///
     /// # Returns
     /// * `Result<Digest>` - The hash of the extracted payload, or an error
+    #[allow(dead_code)]
     pub async fn get_payload_from_message(&self, msg: &[u8]) -> Result<Digest> {
         self.validator_impl.get_payload_from_message(msg).await
     }

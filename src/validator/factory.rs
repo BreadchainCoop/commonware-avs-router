@@ -5,6 +5,7 @@ use super::{blockchain::BlockchainValidator, generic::Validator, mock::MockValid
 
 /// Configuration for validator factory creation.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ValidatorConfig {
     /// The type of validator to create
     pub validator_type: ValidatorType,
@@ -16,6 +17,7 @@ pub struct ValidatorConfig {
 
 /// Types of validators that can be created by the factory.
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 pub enum ValidatorType {
     /// Blockchain-based validator for production use
     Blockchain,
@@ -37,6 +39,7 @@ impl Default for ValidatorConfig {
     }
 }
 
+#[allow(dead_code)]
 impl ValidatorConfig {
     /// Creates a new ValidatorConfig with the specified validator type.
     pub fn new(validator_type: ValidatorType) -> Self {
@@ -123,6 +126,7 @@ pub async fn create_blockchain_validator() -> Result<Validator<BlockchainValidat
 ///
 /// # Returns
 /// * `Validator<MockValidator>` - The created validator
+#[allow(dead_code)]
 pub fn create_mock_validator(expected_round: u64) -> Validator<MockValidator> {
     let mock_validator = MockValidator::new_success(expected_round);
     Validator::new(mock_validator)
@@ -138,6 +142,7 @@ pub fn create_mock_validator(expected_round: u64) -> Validator<MockValidator> {
 ///
 /// # Returns
 /// * `Validator<MockValidator>` - The created validator
+#[allow(dead_code)]
 pub fn create_failing_mock_validator(error_message: String) -> Validator<MockValidator> {
     let mock_validator = MockValidator::new_failure(error_message);
     Validator::new(mock_validator)
