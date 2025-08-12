@@ -9,7 +9,7 @@ use super::interface::ValidatorTrait;
 /// Mock validator implementation for testing purposes.
 ///
 /// This implementation provides a configurable mock that can be used
-/// for unit testing without requiring blockchain connections. It allows
+/// for unit testing without requiring a real connection to a node. It allows
 /// for predictable behavior and easy test scenario setup.
 #[allow(dead_code)]
 pub struct MockValidator {

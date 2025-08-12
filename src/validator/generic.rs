@@ -1,7 +1,7 @@
 use anyhow::Result;
 use commonware_cryptography::sha256::Digest;
 
-use super::{blockchain::BlockchainValidator, interface::ValidatorTrait};
+use super::interface::ValidatorTrait;
 
 /// Generic validator that can work with any implementation of ValidatorTrait.
 ///
@@ -63,17 +63,4 @@ impl<T: ValidatorTrait> Validator<T> {
     }
 }
 
-// Convenience implementation for creating a BlockchainValidator
-impl Validator<BlockchainValidator> {
-    /// Creates a new Validator with a BlockchainValidator implementation.
-    ///
-    /// This is a convenience method that creates a BlockchainValidator
-    /// and wraps it in a Validator struct.
-    ///
-    /// # Returns
-    /// * `Result<Self>` - The new Validator instance or an error
-    pub async fn new_blockchain() -> Result<Self> {
-        let blockchain_validator = BlockchainValidator::new().await?;
-        Ok(Self::new(blockchain_validator))
-    }
-}
+

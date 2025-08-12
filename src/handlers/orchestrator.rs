@@ -2,7 +2,8 @@ use crate::handlers::creator::create_creator;
 use crate::handlers::executor::create_executor;
 use crate::handlers::listening_creator::create_listening_creator_with_server;
 use crate::handlers::{TaskCreator, TaskCreatorEnum};
-use crate::validator::factory;
+use crate::validator::Validator;
+use crate::handlers::counter_validator::CounterValidator;
 use crate::wire::{self, aggregation::Payload};
 
 use bn254::{Bn254, G1PublicKey, PublicKey, Signature as Bn254Signature};
@@ -82,7 +83,8 @@ impl<E: Clock> Orchestrator<E> {
             task_creator = TaskCreatorEnum::Creator(creator);
         };
         let mut executor = create_executor().await.unwrap();
-        let validator = factory::create_blockchain_validator().await.unwrap();
+        let counter_validator = CounterValidator::new().await.unwrap();
+        let validator = Validator::new(counter_validator);
 
         loop {
             let (payload, current_number) = task_creator.get_payload_and_round().await.unwrap();

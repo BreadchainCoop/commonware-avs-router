@@ -5,8 +5,7 @@ use commonware_cryptography::sha256::Digest;
 ///
 /// This trait provides a generic interface for validation operations,
 /// allowing different implementations to be swapped without changing
-/// the consuming code. Implementations can range from blockchain-based
-/// validators to mock validators for testing.
+/// the consuming code.
 #[async_trait::async_trait]
 pub trait ValidatorTrait: Send + Sync {
     /// Validates a message and returns the expected hash.

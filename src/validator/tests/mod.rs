@@ -4,10 +4,9 @@ use alloy_primitives::U256;
 use commonware_codec::Encode;
 use commonware_cryptography::sha256::Digest;
 use commonware_cryptography::{Hasher, Sha256};
-use std::env;
+
 
 use super::{
-    factory::{self, ValidatorConfig, ValidatorType},
     generic::Validator,
     mock::MockValidator,
 };
@@ -153,9 +152,10 @@ async fn test_mock_validator_mutability() {
 }
 
 #[tokio::test]
-async fn test_factory_create_mock_validator() {
+async fn test_create_mock_validator() {
     let expected_round = 25;
-    let validator = factory::create_mock_validator(expected_round);
+    let mock_validator = MockValidator::new_success(expected_round);
+    let validator = Validator::new(mock_validator);
 
     let test_message = create_test_message(expected_round);
     let expected_hash = create_expected_payload_hash(expected_round);
@@ -168,9 +168,10 @@ async fn test_factory_create_mock_validator() {
 }
 
 #[tokio::test]
-async fn test_factory_create_failing_mock_validator() {
-    let error_message = "Factory failure test".to_string();
-    let validator = factory::create_failing_mock_validator(error_message.clone());
+async fn test_create_failing_mock_validator() {
+    let error_message = "Failure test".to_string();
+    let mock_validator = MockValidator::new_failure(error_message.clone());
+    let validator = Validator::new(mock_validator);
 
     let test_message = create_test_message(1);
 
@@ -181,115 +182,7 @@ async fn test_factory_create_failing_mock_validator() {
     assert!(result.unwrap_err().to_string().contains(&error_message));
 }
 
-#[test]
-fn test_validator_config_default() {
-    let config = ValidatorConfig::default();
-    assert_eq!(config.validator_type, ValidatorType::Blockchain);
-    assert_eq!(config.expected_round, None);
-    assert_eq!(config.error_message, None);
-}
 
-#[test]
-fn test_validator_config_builder_pattern() {
-    let config = ValidatorConfig::new(ValidatorType::MockSuccess)
-        .with_expected_round(42)
-        .with_error_message("test error".to_string());
-
-    assert_eq!(config.validator_type, ValidatorType::MockSuccess);
-    assert_eq!(config.expected_round, Some(42));
-    assert_eq!(config.error_message, Some("test error".to_string()));
-}
-
-#[test]
-fn test_validator_config_from_env_default() {
-    // Clear any existing environment variables
-    unsafe {
-        env::remove_var("VALIDATOR_TYPE");
-        env::remove_var("VALIDATOR_EXPECTED_ROUND");
-        env::remove_var("VALIDATOR_ERROR_MESSAGE");
-    }
-
-    let config = ValidatorConfig::from_env().unwrap();
-    assert_eq!(config.validator_type, ValidatorType::Blockchain);
-    assert_eq!(config.expected_round, None);
-    assert_eq!(config.error_message, None);
-}
-
-#[test]
-fn test_validator_config_from_env_mock_success() {
-    unsafe {
-        env::set_var("VALIDATOR_TYPE", "mock_success");
-        env::set_var("VALIDATOR_EXPECTED_ROUND", "123");
-        env::remove_var("VALIDATOR_ERROR_MESSAGE");
-    }
-
-    let config = ValidatorConfig::from_env().unwrap();
-    assert_eq!(config.validator_type, ValidatorType::MockSuccess);
-    assert_eq!(config.expected_round, Some(123));
-    assert_eq!(config.error_message, None);
-
-    // Clean up
-    unsafe {
-        env::remove_var("VALIDATOR_TYPE");
-        env::remove_var("VALIDATOR_EXPECTED_ROUND");
-    }
-}
-
-#[test]
-fn test_validator_config_from_env_mock_failure() {
-    unsafe {
-        env::set_var("VALIDATOR_TYPE", "mock_failure");
-        env::set_var("VALIDATOR_ERROR_MESSAGE", "environment error");
-        env::remove_var("VALIDATOR_EXPECTED_ROUND");
-    }
-
-    let config = ValidatorConfig::from_env().unwrap();
-    assert_eq!(config.validator_type, ValidatorType::MockFailure);
-    assert_eq!(config.expected_round, None);
-    assert_eq!(config.error_message, Some("environment error".to_string()));
-
-    // Clean up
-    unsafe {
-        env::remove_var("VALIDATOR_TYPE");
-        env::remove_var("VALIDATOR_ERROR_MESSAGE");
-    }
-}
-
-#[test]
-fn test_validator_config_from_env_invalid_type() {
-    unsafe {
-        env::set_var("VALIDATOR_TYPE", "invalid_type");
-    }
-
-    let result = ValidatorConfig::from_env();
-    assert!(result.is_err());
-    assert!(
-        result
-            .unwrap_err()
-            .to_string()
-            .contains("Invalid VALIDATOR_TYPE")
-    );
-
-    // Clean up
-    unsafe {
-        env::remove_var("VALIDATOR_TYPE");
-    }
-}
-
-#[test]
-fn test_validator_config_from_env_case_insensitive() {
-    unsafe {
-        env::set_var("VALIDATOR_TYPE", "MOCK_SUCCESS");
-    }
-
-    let config = ValidatorConfig::from_env().unwrap();
-    assert_eq!(config.validator_type, ValidatorType::MockSuccess);
-
-    // Clean up
-    unsafe {
-        env::remove_var("VALIDATOR_TYPE");
-    }
-}
 
 #[tokio::test]
 async fn test_validator_generic_constraints() {
@@ -307,43 +200,4 @@ async fn test_validator_generic_constraints() {
     assert_eq!(result.unwrap(), expected_hash);
 }
 
-#[test]
-fn test_validator_type_equality() {
-    assert_eq!(ValidatorType::Blockchain, ValidatorType::Blockchain);
-    assert_eq!(ValidatorType::Mock, ValidatorType::Mock);
-    assert_eq!(ValidatorType::MockSuccess, ValidatorType::MockSuccess);
-    assert_eq!(ValidatorType::MockFailure, ValidatorType::MockFailure);
 
-    assert_ne!(ValidatorType::Blockchain, ValidatorType::Mock);
-    assert_ne!(ValidatorType::MockSuccess, ValidatorType::MockFailure);
-}
-
-#[test]
-fn test_validator_type_debug() {
-    assert_eq!(format!("{:?}", ValidatorType::Blockchain), "Blockchain");
-    assert_eq!(format!("{:?}", ValidatorType::Mock), "Mock");
-    assert_eq!(format!("{:?}", ValidatorType::MockSuccess), "MockSuccess");
-    assert_eq!(format!("{:?}", ValidatorType::MockFailure), "MockFailure");
-}
-
-#[test]
-fn test_validator_config_debug() {
-    let config = ValidatorConfig::new(ValidatorType::MockSuccess).with_expected_round(42);
-
-    let debug_str = format!("{:?}", config);
-    assert!(debug_str.contains("MockSuccess"));
-    assert!(debug_str.contains("42"));
-}
-
-#[test]
-fn test_validator_config_clone() {
-    let config = ValidatorConfig::new(ValidatorType::Mock)
-        .with_expected_round(100)
-        .with_error_message("test".to_string());
-
-    let cloned_config = config.clone();
-
-    assert_eq!(config.validator_type, cloned_config.validator_type);
-    assert_eq!(config.expected_round, cloned_config.expected_round);
-    assert_eq!(config.error_message, cloned_config.error_message);
-}

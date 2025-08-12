@@ -12,25 +12,15 @@ use commonware_cryptography::{Hasher, Sha256};
 use commonware_eigenlayer::config::AvsDeployment;
 use std::{env, io::Cursor};
 
-use super::interface::ValidatorTrait;
+use crate::validator::interface::ValidatorTrait;
 
-/// Blockchain-based validator implementation.
-///
-/// This implementation performs validation using blockchain state,
-/// specifically checking round numbers against the on-chain counter
-/// contract and extracting payloads from wire messages.
-pub struct BlockchainValidator {
+/// Counter-specific validator implementation.
+pub struct CounterValidator {
     counter: Counter::CounterInstance<(), CounterProvider>,
 }
 
-impl BlockchainValidator {
-    /// Creates a new BlockchainValidator instance.
-    ///
-    /// This method initializes the validator with a connection to the
-    /// blockchain counter contract for round number validation.
-    ///
-    /// # Returns
-    /// * `Result<Self>` - The initialized validator or an error
+impl CounterValidator {
+    /// Creates a new CounterValidator instance.
     pub async fn new() -> Result<Self> {
         let http_rpc = env::var("HTTP_RPC").expect("HTTP_RPC must be set");
         let provider = ProviderBuilder::new().on_http(url::Url::parse(&http_rpc).unwrap());
@@ -45,16 +35,7 @@ impl BlockchainValidator {
         Ok(Self { counter })
     }
 
-    /// Verifies that the message round number matches the current blockchain state.
-    ///
-    /// This method checks if the round number in the message matches
-    /// the current round number from the blockchain counter contract.
-    ///
-    /// # Arguments
-    /// * `msg` - The message bytes to verify
-    ///
-    /// # Returns
-    /// * `Result<()>` - Success if round numbers match, or an error
+    /// Verifies that the message round number matches the current onchain state.
     async fn verify_message_round(&self, msg: &[u8]) -> Result<()> {
         let aggregation = wire::Aggregation::read(&mut Cursor::new(msg))?;
         let current_number = self.counter.number().call().await?;
@@ -73,20 +54,14 @@ impl BlockchainValidator {
 }
 
 #[async_trait::async_trait]
-impl ValidatorTrait for BlockchainValidator {
+impl ValidatorTrait for CounterValidator {
     async fn validate_and_return_expected_hash(&self, msg: &[u8]) -> Result<Digest> {
-        // First verify the message round
         self.verify_message_round(msg).await?;
-
-        // Then get the payload hash
         self.get_payload_from_message(msg).await
     }
 
     async fn get_payload_from_message(&self, msg: &[u8]) -> Result<Digest> {
-        // Decode the wire message
         let aggregation = wire::Aggregation::decode(msg)?;
-
-        // Create the payload directly
         let payload = U256::from(aggregation.round).abi_encode();
 
         // Hash the payload
@@ -98,7 +73,7 @@ impl ValidatorTrait for BlockchainValidator {
     }
 }
 
-// Type alias to reduce complexity
+/// Type alias to reduce complexity
 type CounterProvider = FillProvider<
     JoinFill<
         alloy_provider::Identity,
