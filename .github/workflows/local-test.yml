@@ -178,10 +178,23 @@ jobs:
         # Create logs directory
         mkdir -p ../logs
         
+        # Debug: List available keyfiles
+        echo "Available keyfiles in .nodes/operator_keys:"
+        ls -la ../.nodes/operator_keys/ || echo "operator_keys directory not found"
+        
         # Set CONTRIBUTOR_KEYFILE paths relative to current directory
-        export CONTRIBUTOR_1_KEYFILE="../.nodes/operator_keys/operator_1.json"
-        export CONTRIBUTOR_2_KEYFILE="../.nodes/operator_keys/operator_2.json"
-        export CONTRIBUTOR_3_KEYFILE="../.nodes/operator_keys/operator_3.json"
+        export CONTRIBUTOR_1_KEYFILE="../.nodes/operator_keys/testacc1.private.bls.key.json"
+        export CONTRIBUTOR_2_KEYFILE="../.nodes/operator_keys/testacc2.private.bls.key.json"
+        export CONTRIBUTOR_3_KEYFILE="../.nodes/operator_keys/testacc3.private.bls.key.json"
+        
+        # Verify keyfiles exist
+        for keyfile in "$CONTRIBUTOR_1_KEYFILE" "$CONTRIBUTOR_2_KEYFILE" "$CONTRIBUTOR_3_KEYFILE"; do
+          if [ -f "$keyfile" ]; then
+            echo "✓ Found keyfile: $keyfile"
+          else
+            echo "✗ Missing keyfile: $keyfile"
+          fi
+        done
         
         # Start node 1
         ./target/release/commonware-avs-node --key-file $CONTRIBUTOR_1_KEYFILE --port 3001 --orchestrator orchestrator.json > ../logs/node1.log 2>&1 &
