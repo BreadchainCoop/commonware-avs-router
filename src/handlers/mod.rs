@@ -1,5 +1,5 @@
-pub mod creator;
 pub mod counter_validator;
+pub mod creator;
 pub mod executor;
 pub mod listening_creator;
 pub mod orchestrator;
@@ -39,7 +39,9 @@ pub type ViewOnlyProvider = FillProvider<
 /// Shared trait for creators that can generate payloads and round numbers
 pub trait TaskCreator: Send + Sync {
     /// Get the current payload and round number
-    fn get_payload_and_round(&self) -> impl std::future::Future<Output = anyhow::Result<(Vec<u8>, u64)>> + Send;
+    fn get_payload_and_round(
+        &self,
+    ) -> impl std::future::Future<Output = anyhow::Result<(Vec<u8>, u64)>> + Send;
 }
 enum TaskCreatorEnum {
     Creator(Creator),

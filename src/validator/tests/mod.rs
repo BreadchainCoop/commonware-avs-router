@@ -5,11 +5,7 @@ use commonware_codec::Encode;
 use commonware_cryptography::sha256::Digest;
 use commonware_cryptography::{Hasher, Sha256};
 
-
-use super::{
-    generic::Validator,
-    mock::MockValidator,
-};
+use super::{generic::Validator, mock::MockValidator};
 
 /// Test helper for creating test messages
 fn create_test_message(round: u64) -> Vec<u8> {
@@ -182,8 +178,6 @@ async fn test_create_failing_mock_validator() {
     assert!(result.unwrap_err().to_string().contains(&error_message));
 }
 
-
-
 #[tokio::test]
 async fn test_validator_generic_constraints() {
     // Test that the generic Validator works with different implementations
@@ -199,5 +193,3 @@ async fn test_validator_generic_constraints() {
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), expected_hash);
 }
-
-

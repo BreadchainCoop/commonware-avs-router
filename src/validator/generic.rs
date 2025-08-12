@@ -62,5 +62,3 @@ impl<T: ValidatorTrait> Validator<T> {
         self.validator_impl.get_payload_from_message(msg).await
     }
 }
-
-
