@@ -180,7 +180,7 @@ echo "Final eigenlayer-bls-local .env configuration:"
 cat .env
 
 # Build the Docker images first (as per README instructions)
-echo -e "${YELLOW}Building Docker images...${NC}"
+echo -e "\n${YELLOW}Building Docker images...${NC}"
 echo -n "Do you want to build with --no-cache? Ensures fresh images. (y/N): "
 read -r use_no_cache
 
