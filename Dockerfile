@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends pkg-config libs
 # Copy manifest files
 COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
 
-# Pre-build deps
+# Pre-build depss
 RUN mkdir src && echo 'fn main(){}' > src/main.rs
 RUN cargo build --release || true
 RUN rm -rf src
