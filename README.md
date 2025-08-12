@@ -147,6 +147,83 @@ The following environment variables are required:
 cargo run -- --key-file <path_to_key_file> --port <port_number>
 ```
 
+## Docker
+
+Docker images are automatically built and published to GitHub Container Registry (ghcr.io) when a new release is created. The images support both `linux/amd64` and `linux/arm64` architectures.
+
+### Pulling the Docker Image
+
+Pull the latest release:
+```bash
+docker pull ghcr.io/breadchaincoop/commonware-avs-router-2:latest
+```
+
+Pull a specific version:
+```bash
+docker pull ghcr.io/breadchaincoop/commonware-avs-router-2:v1.0.0
+```
+
+### Running the Docker Container
+
+Run the orchestrator using Docker:
+```bash
+docker run -v /path/to/config:/app/config \
+  -v /path/to/keys:/app/keys \
+  -e HTTP_RPC=<your_http_rpc> \
+  -e WS_RPC=<your_ws_rpc> \
+  -e AVS_DEPLOYMENT_PATH=/app/config/avs_deploy.json \
+  -e OPERATOR_STATE_RETRIEVER=<address> \
+  -e PRIVATE_KEY=<your_private_key> \
+  -e CONTRIBUTOR_1_KEYFILE=/app/keys/contributor1.bls.key.json \
+  -e CONTRIBUTOR_2_KEYFILE=/app/keys/contributor2.bls.key.json \
+  -e CONTRIBUTOR_3_KEYFILE=/app/keys/contributor3.bls.key.json \
+  -p 3000:3000 \
+  ghcr.io/breadchaincoop/commonware-avs-router-2:latest \
+  --key-file /app/config/orchestrator.json --port 3000
+```
+
+### Docker Compose Example
+
+Create a `docker-compose.yml` file:
+```yaml
+version: '3.8'
+
+services:
+  orchestrator:
+    image: ghcr.io/breadchaincoop/commonware-avs-router-2:latest
+    volumes:
+      - ./config:/app/config
+      - ./keys:/app/keys
+    environment:
+      - HTTP_RPC=${HTTP_RPC}
+      - WS_RPC=${WS_RPC}
+      - AVS_DEPLOYMENT_PATH=/app/config/avs_deploy.json
+      - OPERATOR_STATE_RETRIEVER=${OPERATOR_STATE_RETRIEVER}
+      - PRIVATE_KEY=${PRIVATE_KEY}
+      - CONTRIBUTOR_1_KEYFILE=/app/keys/contributor1.bls.key.json
+      - CONTRIBUTOR_2_KEYFILE=/app/keys/contributor2.bls.key.json
+      - CONTRIBUTOR_3_KEYFILE=/app/keys/contributor3.bls.key.json
+    ports:
+      - "3000:3000"
+    command: ["--key-file", "/app/config/orchestrator.json", "--port", "3000"]
+```
+
+Then run:
+```bash
+docker-compose up
+```
+
+### Building the Docker Image Locally
+
+If you want to build the image locally:
+```bash
+docker build -t commonware-avs-router:local .
+```
+
+For multi-architecture build (requires Docker Buildx):
+```bash
+docker buildx build --platform linux/amd64,linux/arm64 -t commonware-avs-router:local .
+
 ## Dependencies
 
 - alloy: Ethereum interaction
