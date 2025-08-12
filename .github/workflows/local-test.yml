@@ -20,6 +20,13 @@ jobs:
       with:
         fetch-depth: 1
 
+    - name: Checkout commonware-avs-node
+      uses: actions/checkout@v3
+      with:
+        repository: BreadchainCoop/commonware-avs-node
+        path: commonware-avs-node
+        ref: main
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
 
@@ -37,17 +44,27 @@ jobs:
           ~/.cargo/git
           target
           scripts/target
+          commonware-avs-node/target
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-    - name: Build verification script
+    - name: Build projects
       run: |
+        echo "Building router..."
+        cargo build --release
+        echo "Building AVS node..."
+        cd commonware-avs-node
+        cargo build --release
+        cd ..
+        echo "Building verification script..."
         cd scripts
         cargo build --release --bin verify_increments
+        cd ..
 
     - name: Set up environment
       run: |
         # Copy environment files
         cp example.env .env
+        cp commonware-avs-node/example.env commonware-avs-node/.env
         
         # Create required directories
         mkdir -p .nodes/operator_keys
@@ -55,7 +72,7 @@ jobs:
         # Copy config template
         cp config/config.example.json config/config.json
         
-        # Update .env for local mode (Linux sed doesn't need '')
+        # Update .env for local mode
         sed -i 's|^HTTP_RPC=.*|HTTP_RPC=http://localhost:8545|' .env
         sed -i 's|^WS_RPC=.*|WS_RPC=ws://localhost:8545|' .env
         sed -i 's|^RPC_URL=.*|RPC_URL=http://ethereum:8545|' .env
@@ -73,10 +90,17 @@ jobs:
         sed -i 's|^#DELEGATION_MANAGER_ADDRESS=|DELEGATION_MANAGER_ADDRESS=|' .env
         sed -i 's|^#STRATEGY_MANAGER_ADDRESS=|STRATEGY_MANAGER_ADDRESS=|' .env
         sed -i 's|^#LST_CONTRACT_ADDRESS=|LST_CONTRACT_ADDRESS=|' .env
+        sed -i 's|^#LST_CONTRACT_ADDRESS=|LST_CONTRACT_ADDRESS=|' .env
         sed -i 's|^#LST_STRATEGY_ADDRESS=|LST_STRATEGY_ADDRESS=|' .env
         sed -i 's|^#BLS_SIGNATURE_CHECKER_ADDRESS=|BLS_SIGNATURE_CHECKER_ADDRESS=|' .env
         sed -i 's|^#OPERATOR_STATE_RETRIEVER_ADDRESS=|OPERATOR_STATE_RETRIEVER_ADDRESS=|' .env
         sed -i 's|^#ALLOCATION_MANAGER_ADDRESS=|ALLOCATION_MANAGER_ADDRESS=|' .env
+        
+        # Update commonware-avs-node .env file
+        sed -i 's|^HTTP_RPC=.*|HTTP_RPC=http://localhost:8545|' commonware-avs-node/.env
+        sed -i 's|^WS_RPC=.*|WS_RPC=ws://localhost:8545|' commonware-avs-node/.env
+        sed -i 's|^AVS_DEPLOYMENT_PATH=.*|AVS_DEPLOYMENT_PATH="../.nodes/avs_deploy.json"|' commonware-avs-node/.env
+        sed -i "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$DEFAULT_PRIVATE_KEY|" commonware-avs-node/.env
         
         echo "Environment configuration:"
         grep -E "^(ENVIRONMENT|HTTP_RPC|PRIVATE_KEY)" .env
@@ -84,7 +108,7 @@ jobs:
     - name: Pull Docker images
       run: docker compose pull
 
-    - name: Start Docker Compose services
+    - name: Start infrastructure services
       run: |
         docker compose up -d
         
@@ -116,30 +140,52 @@ jobs:
           exit 1
         fi
         
-        # Give extra time for nodes to initialize
-        echo "Waiting for nodes to initialize..."
-        sleep 30
+        # Give extra time for services to stabilize
+        sleep 10
 
-    - name: Check service health
+    - name: Start AVS nodes
       run: |
-        # Check if services are running
-        docker compose ps
+        cd commonware-avs-node
+        source .env
         
-        # Check service status
-        for service in node1 node2 node3 router; do
-          if docker compose ps | grep -q "$service.*Up"; then
-            echo "Service $service is running"
-          else
-            echo "Warning: Service $service might not be ready"
-          fi
-        done
+        # Create logs directory
+        mkdir -p ../logs
         
-        # Show recent logs
-        echo "=== Recent router logs ==="
-        docker compose logs --tail=20 router || true
+        # Start node 1
+        ./target/release/commonware-avs-node --key-file $CONTRIBUTOR_1_KEYFILE --port 3001 --orchestrator orchestrator.json > ../logs/node1.log 2>&1 &
+        echo $! > ../node1.pid
+        echo "Node 1 started with PID: $(cat ../node1.pid)"
         
-        echo "=== Recent node1 logs ==="
-        docker compose logs --tail=20 node1 || true
+        sleep 2
+        
+        # Start node 2
+        ./target/release/commonware-avs-node --key-file $CONTRIBUTOR_2_KEYFILE --port 3002 --orchestrator orchestrator.json > ../logs/node2.log 2>&1 &
+        echo $! > ../node2.pid
+        echo "Node 2 started with PID: $(cat ../node2.pid)"
+        
+        sleep 2
+        
+        # Start node 3  
+        ./target/release/commonware-avs-node --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestrator orchestrator.json > ../logs/node3.log 2>&1 &
+        echo $! > ../node3.pid
+        echo "Node 3 started with PID: $(cat ../node3.pid)"
+        
+        # Wait for nodes to initialize
+        echo "Waiting for nodes to initialize..."
+        sleep 15
+
+    - name: Start router
+      run: |
+        source .env
+        
+        # Start router in orchestrator mode
+        ./target/release/commonware-avs-router --key-file config/orchestrator.json --port 3000 > logs/router.log 2>&1 &
+        echo $! > router.pid
+        echo "Router started with PID: $(cat router.pid)"
+        
+        # Wait for router to initialize
+        echo "Waiting for router to initialize..."
+        sleep 15
 
     - name: Wait for aggregation cycles
       run: |
@@ -169,12 +215,12 @@ jobs:
         docker compose ps
         
         echo "=== Router logs ==="
-        docker compose logs router || true
+        tail -50 logs/router.log || true
         
         echo "=== Node logs ==="
-        docker compose logs node1 --tail=50 || true
-        docker compose logs node2 --tail=50 || true
-        docker compose logs node3 --tail=50 || true
+        tail -50 logs/node1.log || true
+        tail -50 logs/node2.log || true
+        tail -50 logs/node3.log || true
         
         echo "=== EigenLayer logs ==="
         docker compose logs eigenlayer --tail=100 || true
@@ -189,6 +235,14 @@ jobs:
     - name: Cleanup
       if: always()
       run: |
+        echo "Stopping processes..."
+        
+        # Kill router and nodes
+        [ -f router.pid ] && kill $(cat router.pid) || true
+        [ -f node1.pid ] && kill $(cat node1.pid) || true
+        [ -f node2.pid ] && kill $(cat node2.pid) || true
+        [ -f node3.pid ] && kill $(cat node3.pid) || true
+        
         echo "Stopping Docker Compose services..."
         docker compose down -v || true
         echo "Cleanup completed"

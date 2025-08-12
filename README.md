@@ -4,15 +4,13 @@ This repository implements a BLS signature aggregation protocol with on-chain ex
 
 ## Quick Start with Docker
 
-The complete AVS environment can be run using Docker Compose, which includes:
+The infrastructure for the AVS environment can be run using Docker Compose:
 
-### Services Included
+### Infrastructure Services
 
 - **ethereum**: Local blockchain (Anvil) on port 8545
 - **eigenlayer**: Contract deployment and operator registration
 - **signer**: BLS signature service (Cerberus) on port 50051
-- **node1, node2, node3**: AVS contributor nodes on ports 3001-3003
-- **router**: AVS router with ingress API on port 8080
 
 ### What Gets Deployed
 
@@ -20,6 +18,8 @@ The complete AVS environment can be run using Docker Compose, which includes:
 - AVS contracts (registry coordinator, counter)
 - Test operator accounts with BLS keys
 - All configuration saved to `.nodes/` directory
+
+Note: The AVS nodes and router need to be built and run locally (see Manual Setup sections below)
 
 ## System Architecture
 
