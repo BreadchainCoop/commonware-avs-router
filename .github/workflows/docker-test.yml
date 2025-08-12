@@ -1,0 +1,194 @@
+name: Docker Integration Test
+
+on:
+  push:
+    branches: [ dev, 54-release-002, deprecate-eigenlayer-bls-submodule ]
+  pull_request:
+    branches: [ dev, 54-release-002, 21-release-001 ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  docker-integration-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 1
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+
+    - name: Cache Rust dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+          scripts/target
+        key: ${{ runner.os }}-cargo-docker-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Build verification script
+      run: |
+        cd scripts
+        cargo build --release --bin verify_increments
+
+    - name: Set up environment
+      run: |
+        # Copy environment files
+        cp example.env .env
+        
+        # Create required directories
+        mkdir -p .nodes/operator_keys
+        
+        # Copy config template
+        cp config/config.example.json config/config.json
+        
+        # Update .env for local mode
+        sed -i 's|^HTTP_RPC=.*|HTTP_RPC=http://localhost:8545|' .env
+        sed -i 's|^WS_RPC=.*|WS_RPC=ws://localhost:8545|' .env
+        sed -i 's|^RPC_URL=.*|RPC_URL=http://ethereum:8545|' .env
+        sed -i 's|^ENVIRONMENT=.*|ENVIRONMENT=LOCAL|' .env
+        
+        # Set FORK_URL for local forking
+        sed -i 's|^# FORK_URL=.*|FORK_URL=https://ethereum-holesky.publicnode.com|' .env
+        
+        # Use default Anvil private key for testing
+        DEFAULT_PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+        sed -i "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$DEFAULT_PRIVATE_KEY|" .env
+        sed -i "s|^FUNDED_KEY=.*|FUNDED_KEY=$DEFAULT_PRIVATE_KEY|" .env
+        
+        # Uncomment Holesky contract addresses for LOCAL mode
+        sed -i 's|^#DELEGATION_MANAGER_ADDRESS=|DELEGATION_MANAGER_ADDRESS=|' .env
+        sed -i 's|^#STRATEGY_MANAGER_ADDRESS=|STRATEGY_MANAGER_ADDRESS=|' .env
+        sed -i 's|^#LST_CONTRACT_ADDRESS=|LST_CONTRACT_ADDRESS=|' .env
+        sed -i 's|^#LST_STRATEGY_ADDRESS=|LST_STRATEGY_ADDRESS=|' .env
+        sed -i 's|^#BLS_SIGNATURE_CHECKER_ADDRESS=|BLS_SIGNATURE_CHECKER_ADDRESS=|' .env
+        sed -i 's|^#OPERATOR_STATE_RETRIEVER_ADDRESS=|OPERATOR_STATE_RETRIEVER_ADDRESS=|' .env
+        sed -i 's|^#ALLOCATION_MANAGER_ADDRESS=|ALLOCATION_MANAGER_ADDRESS=|' .env
+        
+        echo "Environment configuration:"
+        grep -E "^(ENVIRONMENT|HTTP_RPC|PRIVATE_KEY)" .env
+
+    - name: Pull Docker images
+      run: docker compose pull
+
+    - name: Start Docker Compose services
+      run: |
+        docker compose up -d
+        
+        # Show running containers
+        docker compose ps
+
+    - name: Wait for EigenLayer setup
+      run: |
+        echo "Waiting for EigenLayer setup to complete..."
+        timeout=300
+        elapsed=0
+        
+        while [ $elapsed -lt $timeout ]; do
+          # Check if eigenlayer container has completed setup
+          if docker compose logs eigenlayer 2>/dev/null | grep -q "Operator 3 weight in quorum" && [ -f .nodes/avs_deploy.json ]; then
+            echo "EigenLayer setup completed successfully"
+            break
+          fi
+          
+          echo "Waiting for EigenLayer setup... ($elapsed/$timeout seconds)"
+          sleep 10
+          elapsed=$((elapsed + 10))
+        done
+        
+        if [ $elapsed -ge $timeout ]; then
+          echo "Timeout waiting for EigenLayer setup"
+          echo "Eigenlayer logs:"
+          docker compose logs eigenlayer
+          exit 1
+        fi
+        
+        # Give extra time for nodes to initialize
+        echo "Waiting for nodes to initialize..."
+        sleep 30
+
+    - name: Check service health
+      run: |
+        # Check if services are running
+        docker compose ps
+        
+        # Check node health (may not have health endpoints, so we'll just check if containers are running)
+        for service in node1 node2 node3 router; do
+          if docker compose ps | grep -q "$service.*Up"; then
+            echo "Service $service is running"
+          else
+            echo "Warning: Service $service might not be ready"
+          fi
+        done
+        
+        # Show recent logs
+        echo "=== Recent router logs ==="
+        docker compose logs --tail=20 router || true
+        
+        echo "=== Recent node1 logs ==="
+        docker compose logs --tail=20 node1 || true
+
+    - name: Wait for aggregation cycles
+      run: |
+        echo "Waiting for signature aggregation cycles..."
+        echo "This will take approximately 2-3 minutes..."
+        sleep 120
+
+    - name: Verify counter increments
+      run: |
+        cd scripts
+        source ../.env
+        export AVS_DEPLOYMENT_PATH="../.nodes/avs_deploy.json"
+        
+        if [ ! -f "$AVS_DEPLOYMENT_PATH" ]; then
+          echo "Deployment file not found at $AVS_DEPLOYMENT_PATH"
+          ls -la ../.nodes/
+          exit 1
+        fi
+        
+        echo "Running verification..."
+        cargo run --release --bin verify_increments
+
+    - name: Collect logs on failure
+      if: failure()
+      run: |
+        echo "=== Docker Compose status ==="
+        docker compose ps
+        
+        echo "=== Router logs ==="
+        docker compose logs router || true
+        
+        echo "=== Node logs ==="
+        docker compose logs node1 --tail=50 || true
+        docker compose logs node2 --tail=50 || true
+        docker compose logs node3 --tail=50 || true
+        
+        echo "=== EigenLayer logs ==="
+        docker compose logs eigenlayer --tail=100 || true
+        
+        echo "=== Deployment file check ==="
+        ls -la .nodes/ || true
+        if [ -f .nodes/avs_deploy.json ]; then
+          echo "Deployment file contents:"
+          cat .nodes/avs_deploy.json
+        fi
+
+    - name: Cleanup
+      if: always()
+      run: |
+        echo "Stopping Docker Compose services..."
+        docker compose down -v || true
+        echo "Cleanup completed"
