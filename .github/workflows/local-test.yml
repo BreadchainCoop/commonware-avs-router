@@ -219,8 +219,8 @@ jobs:
 
     - name: Start AVS nodes
       run: |
-        # Copy orchestrator.json to commonware-avs-node directory
-        cp config/orchestrator.json commonware-avs-node/orchestrator.json
+        # The commonware-avs-node already has the correct orchestrator.json with G2 public key
+        # No need to copy from config/ (which has wrong format)
         
         cd commonware-avs-node
         source .env
