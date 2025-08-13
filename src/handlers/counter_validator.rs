@@ -12,20 +12,15 @@ use commonware_cryptography::{Hasher, Sha256};
 use commonware_eigenlayer::config::AvsDeployment;
 use std::{env, io::Cursor};
 
-// Type alias to reduce complexity
-type CounterProvider = FillProvider<
-    JoinFill<
-        alloy_provider::Identity,
-        JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>,
-    >,
-    RootProvider,
->;
+use crate::validator::interface::ValidatorTrait;
 
-pub struct Validator {
+/// Counter-specific validator implementation.
+pub struct CounterValidator {
     counter: Counter::CounterInstance<(), CounterProvider>,
 }
 
-impl Validator {
+impl CounterValidator {
+    /// Creates a new CounterValidator instance.
     pub async fn new() -> Result<Self> {
         let http_rpc = env::var("HTTP_RPC").expect("HTTP_RPC must be set");
         let provider = ProviderBuilder::new().on_http(url::Url::parse(&http_rpc).unwrap());
@@ -40,29 +35,7 @@ impl Validator {
         Ok(Self { counter })
     }
 
-    pub async fn validate_and_return_expected_hash(&self, msg: &[u8]) -> Result<Digest> {
-        // First verify the message round
-        self.verify_message_round(msg).await?;
-
-        // Then get the payload hash
-        self.get_payload_from_message(msg).await
-    }
-
-    pub async fn get_payload_from_message(&self, msg: &[u8]) -> Result<Digest> {
-        // Decode the wire message
-        let aggregation = wire::Aggregation::decode(msg)?;
-
-        // Create the payload directly
-        let payload = U256::from(aggregation.round).abi_encode();
-
-        // Hash the payload
-        let mut hasher = Sha256::new();
-        hasher.update(&payload);
-        let payload_hash = hasher.finalize();
-
-        Ok(payload_hash)
-    }
-
+    /// Verifies that the message round number matches the current onchain state.
     async fn verify_message_round(&self, msg: &[u8]) -> Result<()> {
         let aggregation = wire::Aggregation::read(&mut Cursor::new(msg))?;
         let current_number = self.counter.number().call().await?;
@@ -79,3 +52,32 @@ impl Validator {
         Ok(())
     }
 }
+
+#[async_trait::async_trait]
+impl ValidatorTrait for CounterValidator {
+    async fn validate_and_return_expected_hash(&self, msg: &[u8]) -> Result<Digest> {
+        self.verify_message_round(msg).await?;
+        self.get_payload_from_message(msg).await
+    }
+
+    async fn get_payload_from_message(&self, msg: &[u8]) -> Result<Digest> {
+        let aggregation = wire::Aggregation::decode(msg)?;
+        let payload = U256::from(aggregation.round).abi_encode();
+
+        // Hash the payload
+        let mut hasher = Sha256::new();
+        hasher.update(&payload);
+        let payload_hash = hasher.finalize();
+
+        Ok(payload_hash)
+    }
+}
+
+/// Type alias to reduce complexity
+type CounterProvider = FillProvider<
+    JoinFill<
+        alloy_provider::Identity,
+        JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>,
+    >,
+    RootProvider,
+>;

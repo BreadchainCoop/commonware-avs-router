@@ -1,3 +1,4 @@
+use crate::handlers::counter_validator::CounterValidator;
 use crate::handlers::creator::create_creator;
 use crate::handlers::executor::create_executor;
 use crate::handlers::listening_creator::create_listening_creator_with_server;
@@ -82,7 +83,8 @@ impl<E: Clock> Orchestrator<E> {
             task_creator = TaskCreatorEnum::Creator(creator);
         };
         let mut executor = create_executor().await.unwrap();
-        let validator = Validator::new().await.unwrap();
+        let counter_validator = CounterValidator::new().await.unwrap();
+        let validator = Validator::new(counter_validator);
 
         loop {
             let (payload, current_number) = task_creator.get_payload_and_round().await.unwrap();

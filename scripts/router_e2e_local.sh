@@ -135,7 +135,7 @@ sed -i '' 's|^ENVIRONMENT=.*|ENVIRONMENT=LOCAL|' .env
 sed -i '' 's|^RPC_URL=.*|RPC_URL=http://ethereum:8545|' .env
 
 # Set FORK_URL to Holesky RPC for forking (required for LOCAL mode)
-sed -i '' 's|^FORK_URL=.*|FORK_URL=https://ethereum-holesky.publicnode.com|' .env
+sed -i '' 's|^FORK_URL=.*|FORK_URL=https://ethereum-holesky-rpc.publicnode.com|' .env
 
 # Uncomment Holesky contract addresses for LOCAL mode
 sed -i '' 's|^#DELEGATION_MANAGER_ADDRESS=0xA44151489861Fe9e3055d95adC98FbD462B948e7|DELEGATION_MANAGER_ADDRESS=0xA44151489861Fe9e3055d95adC98FbD462B948e7|' .env
@@ -180,7 +180,7 @@ echo "Final eigenlayer-bls-local .env configuration:"
 cat .env
 
 # Build the Docker images first (as per README instructions)
-echo -e "${YELLOW}Building Docker images...${NC}"
+echo -e "\n${YELLOW}Building Docker images...${NC}"
 echo -n "Do you want to build with --no-cache? Ensures fresh images. (y/N): "
 read -r use_no_cache
 
