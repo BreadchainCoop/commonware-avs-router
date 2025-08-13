@@ -233,9 +233,9 @@ jobs:
         ls -la ../.nodes/operator_keys/ || echo "operator_keys directory not found"
         
         # Set CONTRIBUTOR_KEYFILE paths relative to current directory
-        export CONTRIBUTOR_1_KEYFILE="../.nodes/operator_keys/testacc1.bls.key.json"
-        export CONTRIBUTOR_2_KEYFILE="../.nodes/operator_keys/testacc2.bls.key.json"
-        export CONTRIBUTOR_3_KEYFILE="../.nodes/operator_keys/testacc3.bls.key.json"
+        export CONTRIBUTOR_1_KEYFILE="../.nodes/operator_keys/testacc1.private.bls.key.json"
+        export CONTRIBUTOR_2_KEYFILE="../.nodes/operator_keys/testacc2.private.bls.key.json"
+        export CONTRIBUTOR_3_KEYFILE="../.nodes/operator_keys/testacc3.private.bls.key.json"
         
         # Verify keyfiles exist
         for keyfile in "$CONTRIBUTOR_1_KEYFILE" "$CONTRIBUTOR_2_KEYFILE" "$CONTRIBUTOR_3_KEYFILE"; do
