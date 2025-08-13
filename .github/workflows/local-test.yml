@@ -107,48 +107,23 @@ jobs:
         
         # For LOCAL mode forking from Holesky, use Holesky contract addresses
         # These are required by the eigenlayer container's main.sh script
-        # Either uncomment existing lines or append if not present
-        if grep -q "^#DELEGATION_MANAGER_ADDRESS=" .env; then
-          sed -i 's|^#DELEGATION_MANAGER_ADDRESS=.*|DELEGATION_MANAGER_ADDRESS=0xA44151489861Fe9e3055d95adC98FbD462B948e7|' .env
-        else
-          echo "DELEGATION_MANAGER_ADDRESS=0xA44151489861Fe9e3055d95adC98FbD462B948e7" >> .env
-        fi
+        # Remove any existing entries (commented or not) and add fresh ones
+        sed -i '/^#*DELEGATION_MANAGER_ADDRESS=/d' .env
+        sed -i '/^#*STRATEGY_MANAGER_ADDRESS=/d' .env
+        sed -i '/^#*LST_CONTRACT_ADDRESS=/d' .env
+        sed -i '/^#*LST_STRATEGY_ADDRESS=/d' .env
+        sed -i '/^#*BLS_SIGNATURE_CHECKER_ADDRESS=/d' .env
+        sed -i '/^#*OPERATOR_STATE_RETRIEVER_ADDRESS=/d' .env
+        sed -i '/^#*ALLOCATION_MANAGER_ADDRESS=/d' .env
         
-        if grep -q "^#STRATEGY_MANAGER_ADDRESS=" .env; then
-          sed -i 's|^#STRATEGY_MANAGER_ADDRESS=.*|STRATEGY_MANAGER_ADDRESS=0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6|' .env
-        else
-          echo "STRATEGY_MANAGER_ADDRESS=0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6" >> .env
-        fi
-        
-        if grep -q "^#LST_CONTRACT_ADDRESS=" .env; then
-          sed -i 's|^#LST_CONTRACT_ADDRESS=.*|LST_CONTRACT_ADDRESS=0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034|' .env
-        else
-          echo "LST_CONTRACT_ADDRESS=0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034" >> .env
-        fi
-        
-        if grep -q "^#LST_STRATEGY_ADDRESS=" .env; then
-          sed -i 's|^#LST_STRATEGY_ADDRESS=.*|LST_STRATEGY_ADDRESS=0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3|' .env
-        else
-          echo "LST_STRATEGY_ADDRESS=0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3" >> .env
-        fi
-        
-        if grep -q "^#BLS_SIGNATURE_CHECKER_ADDRESS=" .env; then
-          sed -i 's|^#BLS_SIGNATURE_CHECKER_ADDRESS=.*|BLS_SIGNATURE_CHECKER_ADDRESS=0xca249215e082e17c12bb3c4881839a3f883e5c6b|' .env
-        else
-          echo "BLS_SIGNATURE_CHECKER_ADDRESS=0xca249215e082e17c12bb3c4881839a3f883e5c6b" >> .env
-        fi
-        
-        if grep -q "^#OPERATOR_STATE_RETRIEVER_ADDRESS=" .env; then
-          sed -i 's|^#OPERATOR_STATE_RETRIEVER_ADDRESS=.*|OPERATOR_STATE_RETRIEVER_ADDRESS=0xB4baAfee917fb4449f5ec64804217bccE9f46C67|' .env
-        else
-          echo "OPERATOR_STATE_RETRIEVER_ADDRESS=0xB4baAfee917fb4449f5ec64804217bccE9f46C67" >> .env
-        fi
-        
-        if grep -q "^#ALLOCATION_MANAGER_ADDRESS=" .env; then
-          sed -i 's|^#ALLOCATION_MANAGER_ADDRESS=.*|ALLOCATION_MANAGER_ADDRESS=0x78469728304326CBc65f8f95FA756B0B73164462|' .env
-        else
-          echo "ALLOCATION_MANAGER_ADDRESS=0x78469728304326CBc65f8f95FA756B0B73164462" >> .env
-        fi
+        # Add the contract addresses
+        echo "DELEGATION_MANAGER_ADDRESS=0xA44151489861Fe9e3055d95adC98FbD462B948e7" >> .env
+        echo "STRATEGY_MANAGER_ADDRESS=0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6" >> .env
+        echo "LST_CONTRACT_ADDRESS=0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034" >> .env
+        echo "LST_STRATEGY_ADDRESS=0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3" >> .env
+        echo "BLS_SIGNATURE_CHECKER_ADDRESS=0xca249215e082e17c12bb3c4881839a3f883e5c6b" >> .env
+        echo "OPERATOR_STATE_RETRIEVER_ADDRESS=0xB4baAfee917fb4449f5ec64804217bccE9f46C67" >> .env
+        echo "ALLOCATION_MANAGER_ADDRESS=0x78469728304326CBc65f8f95FA756B0B73164462" >> .env
         
         # Set FORK_URL for local forking
         sed -i 's|^# FORK_URL=.*|FORK_URL=https://ethereum-holesky.publicnode.com|' .env
