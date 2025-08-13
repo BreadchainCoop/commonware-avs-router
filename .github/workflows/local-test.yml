@@ -102,6 +102,19 @@ jobs:
         sed -i 's|^RPC_URL=.*|RPC_URL=http://ethereum:8545|' .env
         sed -i 's|^ENVIRONMENT=.*|ENVIRONMENT=LOCAL|' .env
         
+        # Ensure TEST_ACCOUNTS is set
+        sed -i 's|^TEST_ACCOUNTS=.*|TEST_ACCOUNTS=3|' .env
+        
+        # For LOCAL mode forking from Holesky, use Holesky contract addresses
+        # These are required by the eigenlayer container's main.sh script
+        echo "DELEGATION_MANAGER_ADDRESS=0xA44151489861Fe9e3055d95adC98FbD462B948e7" >> .env
+        echo "STRATEGY_MANAGER_ADDRESS=0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6" >> .env
+        echo "LST_CONTRACT_ADDRESS=0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034" >> .env
+        echo "LST_STRATEGY_ADDRESS=0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3" >> .env
+        echo "BLS_SIGNATURE_CHECKER_ADDRESS=0xca249215e082e17c12bb3c4881839a3f883e5c6b" >> .env
+        echo "OPERATOR_STATE_RETRIEVER_ADDRESS=0xB4baAfee917fb4449f5ec64804217bccE9f46C67" >> .env
+        echo "ALLOCATION_MANAGER_ADDRESS=0x78469728304326CBc65f8f95FA756B0B73164462" >> .env
+        
         # Set FORK_URL for local forking
         sed -i 's|^# FORK_URL=.*|FORK_URL=https://ethereum-holesky.publicnode.com|' .env
         
@@ -110,15 +123,8 @@ jobs:
         sed -i "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$DEFAULT_PRIVATE_KEY|" .env
         sed -i "s|^FUNDED_KEY=.*|FUNDED_KEY=$DEFAULT_PRIVATE_KEY|" .env
         
-        # Uncomment Holesky contract addresses for LOCAL mode
-        sed -i 's|^#DELEGATION_MANAGER_ADDRESS=|DELEGATION_MANAGER_ADDRESS=|' .env
-        sed -i 's|^#STRATEGY_MANAGER_ADDRESS=|STRATEGY_MANAGER_ADDRESS=|' .env
-        sed -i 's|^#LST_CONTRACT_ADDRESS=|LST_CONTRACT_ADDRESS=|' .env
-        sed -i 's|^#LST_CONTRACT_ADDRESS=|LST_CONTRACT_ADDRESS=|' .env
-        sed -i 's|^#LST_STRATEGY_ADDRESS=|LST_STRATEGY_ADDRESS=|' .env
-        sed -i 's|^#BLS_SIGNATURE_CHECKER_ADDRESS=|BLS_SIGNATURE_CHECKER_ADDRESS=|' .env
-        sed -i 's|^#OPERATOR_STATE_RETRIEVER_ADDRESS=|OPERATOR_STATE_RETRIEVER_ADDRESS=|' .env
-        sed -i 's|^#ALLOCATION_MANAGER_ADDRESS=|ALLOCATION_MANAGER_ADDRESS=|' .env
+        # For LOCAL mode, keep contract addresses commented out so they can be auto-deployed
+        # The eigenlayer container will deploy these contracts and save addresses to avs_deploy.json
         
         # Update commonware-avs-node .env file
         sed -i 's|^HTTP_RPC=.*|HTTP_RPC=http://localhost:8545|' commonware-avs-node/.env
@@ -145,11 +151,36 @@ jobs:
         timeout=300
         elapsed=0
         
+        # Show initial eigenlayer logs to see if it's starting correctly
+        echo "=== Initial EigenLayer container logs ==="
+        docker compose logs eigenlayer --tail=50
+        
         while [ $elapsed -lt $timeout ]; do
           # Check if eigenlayer container has completed setup
           if docker compose logs eigenlayer 2>/dev/null | grep -q "Operator 3 weight in quorum" && [ -f .nodes/avs_deploy.json ]; then
             echo "EigenLayer setup completed successfully"
+            
+            # Check what files were created
+            echo "=== Files created by eigenlayer container ==="
+            echo "Contents of .nodes directory:"
+            ls -la .nodes/
+            echo "Contents of .nodes/operator_keys directory:"
+            ls -la .nodes/operator_keys/
+            
+            # Show the end of eigenlayer logs to see completion
+            echo "=== Final EigenLayer logs ==="
+            docker compose logs eigenlayer --tail=20
             break
+          fi
+          
+          # Check if container exited with error
+          if [ "$(docker compose ps -q eigenlayer | xargs docker inspect -f '{{.State.Status}}')" = "exited" ]; then
+            echo "EigenLayer container has exited unexpectedly"
+            echo "=== Full EigenLayer logs ==="
+            docker compose logs eigenlayer
+            echo "=== Container exit code ==="
+            docker compose ps eigenlayer
+            exit 1
           fi
           
           echo "Waiting for EigenLayer setup... ($elapsed/$timeout seconds)"
@@ -159,8 +190,12 @@ jobs:
         
         if [ $elapsed -ge $timeout ]; then
           echo "Timeout waiting for EigenLayer setup"
-          echo "Eigenlayer logs:"
+          echo "=== Full Eigenlayer logs ==="
           docker compose logs eigenlayer
+          echo "=== Container status ==="
+          docker compose ps eigenlayer
+          echo "=== Files in .nodes directory ==="
+          ls -la .nodes/
           exit 1
         fi
         
