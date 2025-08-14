@@ -25,9 +25,9 @@ pub async fn create_listening_creator_with_server(
     let counter_address = deployment
         .counter_address()
         .map_err(|e| anyhow::anyhow!("Failed to get counter address: {}", e))?;
-    let contract_provider = CounterProvider::new(counter_address, provider.clone());
+    let state_provider = CounterProvider::new(counter_address, provider.clone());
     let queue = SimpleTaskQueue::new();
-    let creator = Arc::new(ListeningCreatorImpl::new(contract_provider, queue));
+    let creator = Arc::new(ListeningCreatorImpl::new(state_provider, queue));
     let server_creator = creator.clone();
     let queue = server_creator.queue.get_queue();
     tokio::spawn(async move {

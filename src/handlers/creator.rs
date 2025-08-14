@@ -25,6 +25,6 @@ pub async fn create_creator() -> anyhow::Result<DefaultCreator> {
         .counter_address()
         .map_err(|e| anyhow::anyhow!("Failed to get counter address: {}", e))?;
 
-    let contract_provider = CounterProvider::new(counter_address, provider.clone());
-    Ok(Creator::new(contract_provider))
+    let state_provider = CounterProvider::new(counter_address, provider.clone());
+    Ok(Creator::new(state_provider))
 }

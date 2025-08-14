@@ -1,14 +1,14 @@
-use crate::creator::base::{BaseCreator, ContractProviderTrait};
+use crate::creator::base::{BaseCreator, StateProviderTrait};
 use anyhow::Result;
 
-/// Mock contract provider for testing BaseCreator
+/// Mock state provider for testing BaseCreator
 #[derive(Debug)]
-struct MockContractProvider {
+struct MockStateProvider {
     state: u64,
     should_fail: bool,
 }
 
-impl MockContractProvider {
+impl MockStateProvider {
     fn new(state: u64) -> Self {
         Self {
             state,
@@ -25,7 +25,7 @@ impl MockContractProvider {
 }
 
 #[async_trait::async_trait]
-impl ContractProviderTrait for MockContractProvider {
+impl StateProviderTrait for MockStateProvider {
     type State = u64;
 
     async fn get_current_state(&self) -> Result<u64> {
@@ -36,14 +36,14 @@ impl ContractProviderTrait for MockContractProvider {
         }
     }
 
-    async fn encode_state_call(&self, state: &u64) -> Vec<u8> {
+    async fn encode_state(&self, state: &u64) -> Vec<u8> {
         state.to_le_bytes().to_vec()
     }
 }
 
 #[tokio::test]
 async fn test_base_creator_new() {
-    let provider = MockContractProvider::new(42);
+    let provider = MockStateProvider::new(42);
     let base_creator = BaseCreator::new(provider);
 
     // Test that the creator was created successfully
@@ -53,7 +53,7 @@ async fn test_base_creator_new() {
 #[tokio::test]
 async fn test_base_creator_get_current_state() {
     let expected_state = 123;
-    let provider = MockContractProvider::new(expected_state);
+    let provider = MockStateProvider::new(expected_state);
     let base_creator = BaseCreator::new(provider);
 
     let result = base_creator.get_current_state().await;
@@ -63,7 +63,7 @@ async fn test_base_creator_get_current_state() {
 
 #[tokio::test]
 async fn test_base_creator_get_current_state_failure() {
-    let provider = MockContractProvider::new_failing();
+    let provider = MockStateProvider::new_failing();
     let base_creator = BaseCreator::new(provider);
 
     let result = base_creator.get_current_state().await;
@@ -72,12 +72,12 @@ async fn test_base_creator_get_current_state_failure() {
 }
 
 #[tokio::test]
-async fn test_base_creator_encode_state_call() {
-    let provider = MockContractProvider::new(42);
+async fn test_base_creator_encode_state() {
+    let provider = MockStateProvider::new(42);
     let base_creator = BaseCreator::new(provider);
     let state = 456;
 
-    let encoded = base_creator.encode_state_call(&state).await;
+    let encoded = base_creator.encode_state(&state).await;
     let expected = state.to_le_bytes().to_vec();
 
     assert_eq!(encoded, expected);
@@ -85,7 +85,7 @@ async fn test_base_creator_encode_state_call() {
 
 #[tokio::test]
 async fn test_base_creator_get_task_data() {
-    let provider = MockContractProvider::new(42);
+    let provider = MockStateProvider::new(42);
     let base_creator = BaseCreator::new(provider);
 
     let result = base_creator.get_task_data().await;
@@ -99,7 +99,7 @@ async fn test_base_creator_get_task_data() {
 
 #[tokio::test]
 async fn test_base_creator_get_task_data_failure() {
-    let provider = MockContractProvider::new_failing();
+    let provider = MockStateProvider::new_failing();
     let base_creator = BaseCreator::new(provider);
 
     let result = base_creator.get_task_data().await;

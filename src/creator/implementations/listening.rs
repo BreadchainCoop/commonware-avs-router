@@ -5,20 +5,20 @@ use crate::creator::{
 };
 use crate::ingress::TaskRequest;
 
-use super::super::base::ContractProviderTrait;
+use super::super::base::StateProviderTrait;
 
 /// Listening creator implementation that uses a task queue.
 ///
-/// This creator is generic over the contract provider's state type and queue type,
-/// allowing it to work with any contract provider and queue implementation.
-pub struct ListeningCreator<P: ContractProviderTrait, Q: TaskQueue> {
+/// This creator is generic over the state provider's state type and queue type,
+/// allowing it to work with any state provider and queue implementation.
+pub struct ListeningCreator<P: StateProviderTrait, Q: TaskQueue> {
     base: BaseCreator<P>,
     pub queue: Q,
 }
 
-impl<P: ContractProviderTrait, Q: TaskQueue> ListeningCreator<P, Q> {
-    pub fn new(contract_provider: P, queue: Q) -> Self {
-        let base = BaseCreator::new(contract_provider);
+impl<P: StateProviderTrait, Q: TaskQueue> ListeningCreator<P, Q> {
+    pub fn new(state_provider: P, queue: Q) -> Self {
+        let base = BaseCreator::new(state_provider);
         Self { base, queue }
     }
 
@@ -38,7 +38,7 @@ impl<P: ContractProviderTrait, Q: TaskQueue> ListeningCreator<P, Q> {
             tokio::time::sleep(std::time::Duration::from_millis(100)).await;
         };
         let current_state = self.get_current_state().await?;
-        let encoded_state = self.base.encode_state_call(&current_state).await;
+        let encoded_state = self.base.encode_state(&current_state).await;
         let task_data = self.get_task_data(task).await?;
         let payload = task_data.encode_into_payload(encoded_state);
         Ok((payload, current_state))
@@ -50,7 +50,7 @@ impl<P: ContractProviderTrait, Q: TaskQueue> ListeningCreator<P, Q> {
         &self,
         state: P::State,
     ) -> anyhow::Result<(Vec<u8>, P::State)> {
-        let payload = self.base.encode_state_call(&state).await;
+        let payload = self.base.encode_state(&state).await;
         info!("Created payload for specific state: {:?}", state);
         Ok((payload, state))
     }
@@ -65,7 +65,7 @@ impl<P: ContractProviderTrait, Q: TaskQueue> ListeningCreator<P, Q> {
 }
 
 #[async_trait::async_trait]
-impl<P: ContractProviderTrait, Q: TaskQueue> TaskCreatorTrait<P::State> for ListeningCreator<P, Q> {
+impl<P: StateProviderTrait, Q: TaskQueue> TaskCreatorTrait<P::State> for ListeningCreator<P, Q> {
     async fn get_payload_and_state(&self) -> anyhow::Result<(Vec<u8>, P::State)> {
         self.get_payload_and_state()
             .await

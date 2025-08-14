@@ -1,13 +1,12 @@
+use crate::creator::{Creator, ListeningCreator};
 use crate::creator::{
-    base::ContractProviderTrait,
-    implementations::{default::Creator, listening::ListeningCreator, queue::SimpleTaskQueue},
-    interface::TaskCreatorTrait,
+    base::StateProviderTrait, implementations::queue::SimpleTaskQueue, interface::TaskCreatorTrait,
     types::TaskQueue,
 };
 use crate::ingress::TaskRequest;
 use anyhow::Result;
 
-/// Mock contract provider for testing creator implementations
+/// Mock state provider for testing creators
 #[derive(Debug)]
 struct MockProvider {
     state: u64,
@@ -31,7 +30,7 @@ impl MockProvider {
 }
 
 #[async_trait::async_trait]
-impl ContractProviderTrait for MockProvider {
+impl StateProviderTrait for MockProvider {
     type State = u64;
 
     async fn get_current_state(&self) -> Result<u64> {
@@ -42,7 +41,7 @@ impl ContractProviderTrait for MockProvider {
         }
     }
 
-    async fn encode_state_call(&self, state: &u64) -> Vec<u8> {
+    async fn encode_state(&self, state: &u64) -> Vec<u8> {
         state.to_le_bytes().to_vec()
     }
 }
@@ -91,7 +90,7 @@ async fn test_creator_get_payload_and_state() {
 
     // Verify payload contains the encoded state
     let expected_payload = expected_state.to_le_bytes().to_vec();
-    assert!(payload.len() > expected_payload.len()); // Should contain task data + state
+    assert!(payload.len() > expected_payload.len()); // Should include task data
 }
 
 #[tokio::test]
@@ -101,7 +100,10 @@ async fn test_creator_get_payload_and_state_failure() {
 
     let result = creator.get_payload_and_state().await;
     assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("Creator error"));
+    assert_eq!(
+        result.unwrap_err().to_string(),
+        "Creator error: Mock provider failure"
+    );
 }
 
 #[tokio::test]
@@ -116,7 +118,7 @@ async fn test_listening_creator_new() {
 
 #[tokio::test]
 async fn test_listening_creator_get_current_state() {
-    let expected_state = 123;
+    let expected_state = 789;
     let provider = MockProvider::new(expected_state);
     let queue = SimpleTaskQueue::new();
     let creator = ListeningCreator::new(provider, queue);
@@ -157,9 +159,9 @@ async fn test_listening_creator_get_next_task_with_task() {
     // Add a task to the queue
     let task_request = TaskRequest {
         body: crate::ingress::TaskRequestBody {
-            var1: "test1".to_string(),
-            var2: "test2".to_string(),
-            var3: "test3".to_string(),
+            var1: "task1".to_string(),
+            var2: "task2".to_string(),
+            var3: "task3".to_string(),
         },
     };
     creator.queue.push(task_request.clone());
@@ -167,7 +169,7 @@ async fn test_listening_creator_get_next_task_with_task() {
     // Should get the task from the queue
     let task = creator.get_next_task().await;
     assert!(task.is_some());
-    assert_eq!(task.unwrap().body.var1, "test1");
+    assert_eq!(task.unwrap().body.var1, "task1");
 }
 
 #[tokio::test]
@@ -185,12 +187,12 @@ async fn test_listening_creator_get_payload_for_state() {
 
     // Verify payload contains the encoded state
     let expected_payload = state.to_le_bytes().to_vec();
-    assert!(payload.len() >= expected_payload.len());
+    assert_eq!(payload, expected_payload);
 }
 
 #[tokio::test]
 async fn test_listening_creator_get_payload_and_state_with_task() {
-    let provider = MockProvider::new(456);
+    let provider = MockProvider::new(42);
     let queue = SimpleTaskQueue::new();
     let creator = ListeningCreator::new(provider, queue);
 
@@ -209,8 +211,11 @@ async fn test_listening_creator_get_payload_and_state_with_task() {
     assert!(result.is_ok());
 
     let (payload, state) = result.unwrap();
-    assert_eq!(state, 456);
-    assert!(!payload.is_empty());
+    assert_eq!(state, 42);
+
+    // Verify payload contains the encoded state plus task data
+    let expected_state_payload = 42u64.to_le_bytes().to_vec();
+    assert!(payload.len() > expected_state_payload.len());
 }
 
 #[tokio::test]

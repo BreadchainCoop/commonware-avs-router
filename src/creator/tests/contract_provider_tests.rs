@@ -1,7 +1,7 @@
-use crate::creator::base::ContractProviderTrait;
+use crate::creator::base::StateProviderTrait;
 use anyhow::Result;
 
-/// Mock contract provider with u64 state
+/// Mock state provider for u64 state type
 #[derive(Debug)]
 struct MockU64Provider {
     state: u64,
@@ -25,7 +25,7 @@ impl MockU64Provider {
 }
 
 #[async_trait::async_trait]
-impl ContractProviderTrait for MockU64Provider {
+impl StateProviderTrait for MockU64Provider {
     type State = u64;
 
     async fn get_current_state(&self) -> Result<u64> {
@@ -36,12 +36,12 @@ impl ContractProviderTrait for MockU64Provider {
         }
     }
 
-    async fn encode_state_call(&self, state: &u64) -> Vec<u8> {
+    async fn encode_state(&self, state: &u64) -> Vec<u8> {
         state.to_le_bytes().to_vec()
     }
 }
 
-/// Mock contract provider with String state
+/// Mock state provider for String state type
 #[derive(Debug)]
 struct MockStringProvider {
     state: String,
@@ -65,7 +65,7 @@ impl MockStringProvider {
 }
 
 #[async_trait::async_trait]
-impl ContractProviderTrait for MockStringProvider {
+impl StateProviderTrait for MockStringProvider {
     type State = String;
 
     async fn get_current_state(&self) -> Result<String> {
@@ -76,7 +76,7 @@ impl ContractProviderTrait for MockStringProvider {
         }
     }
 
-    async fn encode_state_call(&self, state: &String) -> Vec<u8> {
+    async fn encode_state(&self, state: &String) -> Vec<u8> {
         state.as_bytes().to_vec()
     }
 }
@@ -101,11 +101,11 @@ async fn test_u64_provider_get_current_state_failure() {
 }
 
 #[tokio::test]
-async fn test_u64_provider_encode_state_call() {
+async fn test_u64_provider_encode_state() {
     let provider = MockU64Provider::new(0);
     let state = 123;
 
-    let encoded = provider.encode_state_call(&state).await;
+    let encoded = provider.encode_state(&state).await;
     let expected = state.to_le_bytes().to_vec();
 
     assert_eq!(encoded, expected);
@@ -134,11 +134,11 @@ async fn test_string_provider_get_current_state_failure() {
 }
 
 #[tokio::test]
-async fn test_string_provider_encode_state_call() {
+async fn test_string_provider_encode_state() {
     let provider = MockStringProvider::new(String::new());
     let state = "test_string".to_string();
 
-    let encoded = provider.encode_state_call(&state).await;
+    let encoded = provider.encode_state(&state).await;
     let expected = state.as_bytes().to_vec();
 
     assert_eq!(encoded, expected);
@@ -148,7 +148,7 @@ async fn test_string_provider_encode_state_call() {
 async fn test_provider_trait_object_safety() {
     // Test that we can use trait objects (Send + Sync requirements)
     let provider = MockU64Provider::new(42);
-    let provider_ref: &dyn ContractProviderTrait<State = u64> = &provider;
+    let provider_ref: &dyn StateProviderTrait<State = u64> = &provider;
 
     // Test that we can call methods on the trait object
     let state = provider_ref.get_current_state().await;
