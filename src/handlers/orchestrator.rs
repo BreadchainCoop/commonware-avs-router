@@ -70,7 +70,7 @@ impl<E: Clock> Orchestrator<E> {
         let mut signatures = HashMap::new();
         // Check if INGRESS flag is set to determine which creator to use
         let use_ingress = std::env::var("INGRESS").unwrap_or_default().to_lowercase() == "true";
-        let task_creator: Arc<dyn TaskCreatorTrait> = if use_ingress {
+        let task_creator: Arc<dyn TaskCreatorTrait<u64>> = if use_ingress {
             info!("Using ListeningCreator with HTTP server on port 8080");
             create_listening_creator_with_server("0.0.0.0:8080".to_string())
                 .await
