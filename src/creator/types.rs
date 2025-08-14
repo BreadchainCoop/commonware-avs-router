@@ -8,6 +8,7 @@ pub trait TaskQueue: Send + Sync {
 }
 
 /// Task data structure for payload generation
+#[derive(Debug, Clone)]
 pub struct TaskData {
     pub var1: String,
     pub var2: String,
