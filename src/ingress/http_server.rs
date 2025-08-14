@@ -1,6 +1,5 @@
 use axum::{Json, Router, extract::State, http::StatusCode, routing::post};
-use std::sync::Arc;
-use tokio::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use tracing::info;
 
 use crate::ingress::types::{TaskRequest, TaskResponse};
@@ -21,8 +20,9 @@ pub async fn trigger_task_handler(
     // }
     // Add to queue
     {
-        let mut queue = state.lock().await;
-        queue.push(req.clone());
+        if let Ok(mut queue) = state.lock() {
+            queue.push(req.clone());
+        }
     }
     (
         StatusCode::OK,
