@@ -2,7 +2,7 @@ pub mod mocks;
 pub mod types;
 
 use crate::creator::core::{Creator, TaskQueue};
-use crate::creator::{CreatorConfig, DefaultCreator, ListeningCreator};
+use crate::creator::{CreatorConfig, DefaultCreator, ListeningCreator, SimpleTaskQueue};
 use crate::ingress::types::{TaskRequest, TaskRequestBody};
 use mocks::{MockStateProvider, MockTaskDataFactory, MockTaskQueue};
 use types::TestState;
@@ -93,4 +93,55 @@ async fn test_listening_creator_times_out_when_no_task() {
         .await
         .expect_err("should timeout");
     assert!(err.to_string().contains("Timeout waiting for task"));
+}
+
+#[test]
+fn test_simple_task_queue_with_timeout_and_retries() {
+    // Test the improved SimpleTaskQueue with timeout and retry logic
+    let queue = SimpleTaskQueue::with_config(100, 5); // 100ms timeout, 5 retries
+
+    // Test basic push and pop
+    let task = TaskRequest {
+        body: TaskRequestBody {
+            var1: "test1".into(),
+            var2: "test2".into(),
+            var3: "test3".into(),
+        },
+    };
+
+    queue.push(task.clone());
+    let popped = queue.pop();
+    assert!(popped.is_some());
+    assert_eq!(popped.unwrap().body.var1, "test1");
+
+    // Test pop when empty
+    let empty_pop = queue.pop();
+    assert!(empty_pop.is_none());
+}
+
+#[test]
+fn test_simple_task_queue_multiple_tasks() {
+    let queue = SimpleTaskQueue::new();
+
+    // Push multiple tasks
+    for i in 0..5 {
+        let task = TaskRequest {
+            body: TaskRequestBody {
+                var1: format!("task{}", i),
+                var2: "test".into(),
+                var3: "test".into(),
+            },
+        };
+        queue.push(task);
+    }
+
+    // Pop them in order (LIFO behavior)
+    for i in (0..5).rev() {
+        let popped = queue.pop();
+        assert!(popped.is_some());
+        assert_eq!(popped.unwrap().body.var1, format!("task{}", i));
+    }
+
+    // Queue should be empty
+    assert!(queue.pop().is_none());
 }

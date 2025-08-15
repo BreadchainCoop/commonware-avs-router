@@ -2,6 +2,8 @@ use anyhow::Result;
 use async_trait::async_trait;
 use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
+use tracing::{error, warn};
 
 /// Represents any type of state that can be retrieved and encoded
 pub trait State: Debug + Send + Sync + Clone {}
@@ -51,21 +53,74 @@ pub trait TaskQueue: Send + Sync {
     fn pop(&self) -> Option<TaskRequest>;
 }
 
-/// Simple in-memory task queue using Arc<Mutex>
+/// Simple in-memory task queue using Arc<Mutex> with proper error handling
 #[derive(Clone)]
 pub struct SimpleTaskQueue {
     queue: Arc<Mutex<Vec<TaskRequest>>>,
+    timeout_ms: u64,
+    max_retries: u32,
 }
 
 impl SimpleTaskQueue {
     pub fn new() -> Self {
         Self {
             queue: Arc::new(Mutex::new(Vec::new())),
+            timeout_ms: 1000, // 1 second default timeout
+            max_retries: 3,   // 3 retries by default
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn with_timeout(timeout_ms: u64) -> Self {
+        Self {
+            queue: Arc::new(Mutex::new(Vec::new())),
+            timeout_ms,
+            max_retries: 3,
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn with_config(timeout_ms: u64, max_retries: u32) -> Self {
+        Self {
+            queue: Arc::new(Mutex::new(Vec::new())),
+            timeout_ms,
+            max_retries,
         }
     }
 
     pub fn get_queue(&self) -> Arc<Mutex<Vec<TaskRequest>>> {
         self.queue.clone()
+    }
+
+    /// Try to acquire the lock with timeout and retries
+    fn try_lock_with_timeout(&self) -> Result<std::sync::MutexGuard<'_, Vec<TaskRequest>>, String> {
+        let start_time = Instant::now();
+        let timeout_duration = Duration::from_millis(self.timeout_ms);
+
+        for attempt in 0..self.max_retries {
+            // Try to acquire the lock
+            match self.queue.try_lock() {
+                Ok(guard) => return Ok(guard),
+                Err(_) => {
+                    // Check if we've exceeded the timeout
+                    if start_time.elapsed() >= timeout_duration {
+                        return Err(format!(
+                            "Failed to acquire lock after {}ms timeout ({} attempts)",
+                            self.timeout_ms,
+                            attempt + 1
+                        ));
+                    }
+
+                    // Small delay before retry to avoid busy waiting
+                    std::thread::sleep(Duration::from_millis(1));
+                }
+            }
+        }
+
+        Err(format!(
+            "Failed to acquire lock after {} retries",
+            self.max_retries
+        ))
     }
 }
 
@@ -77,16 +132,28 @@ impl Default for SimpleTaskQueue {
 
 impl TaskQueue for SimpleTaskQueue {
     fn push(&self, task: TaskRequest) {
-        if let Ok(mut queue) = self.queue.try_lock() {
-            queue.push(task);
+        match self.try_lock_with_timeout() {
+            Ok(mut queue) => {
+                queue.push(task);
+            }
+            Err(e) => {
+                error!("Failed to push task to queue: {}", e);
+                warn!("Task dropped due to lock timeout: {:?}", task);
+                // In a production system, you might want to:
+                // 1. Send to a dead letter queue
+                // 2. Retry with exponential backoff
+                // 3. Panic if this is critical
+            }
         }
     }
 
     fn pop(&self) -> Option<TaskRequest> {
-        if let Ok(mut queue) = self.queue.try_lock() {
-            queue.pop()
-        } else {
-            None
+        match self.try_lock_with_timeout() {
+            Ok(mut queue) => queue.pop(),
+            Err(e) => {
+                error!("Failed to pop task from queue: {}", e);
+                None
+            }
         }
     }
 }
