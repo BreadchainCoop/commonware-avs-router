@@ -1,11 +1,10 @@
-use crate::creator::Creator;
+use crate::creator::BoxedCreator;
 use crate::handlers::executor::create_executor;
 use crate::handlers::factories::{create_creator, create_listening_creator_with_server};
 use crate::usecases::counter::CounterValidator;
 use crate::usecases::counter::{CounterState, DefaultTaskData};
 use crate::validator::Validator;
 use crate::wire::{self, aggregation::Payload};
-use std::sync::Arc;
 
 use bn254::{Bn254, G1PublicKey, PublicKey, Signature as Bn254Signature};
 use bytes::Bytes;
@@ -70,16 +69,15 @@ impl<E: Clock> Orchestrator<E> {
         let mut signatures = HashMap::new();
         // Check if INGRESS flag is set to determine which creator to use
         let use_ingress = std::env::var("INGRESS").unwrap_or_default().to_lowercase() == "true";
-        let task_creator: Arc<dyn Creator<State = CounterState, TaskData = DefaultTaskData>> =
-            if use_ingress {
-                info!("Using ListeningCreator with HTTP server on port 8080");
-                create_listening_creator_with_server("0.0.0.0:8080".to_string())
-                    .await
-                    .unwrap()
-            } else {
-                info!("Using Creator without ingress");
-                Arc::new(create_creator().await.unwrap())
-            };
+        let task_creator: BoxedCreator<CounterState, DefaultTaskData> = if use_ingress {
+            info!("Using ListeningCreator with HTTP server on port 8080");
+            create_listening_creator_with_server("0.0.0.0:8080".to_string())
+                .await
+                .unwrap()
+        } else {
+            info!("Using Creator without ingress");
+            Box::new(create_creator().await.unwrap())
+        };
         let mut executor = create_executor().await.unwrap();
         let counter_validator = CounterValidator::new().await.unwrap();
         let validator = Validator::new(counter_validator);

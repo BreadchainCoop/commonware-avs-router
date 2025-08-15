@@ -1,12 +1,14 @@
+use crate::creator::{
+    BoxedCreator, CreatorConfig, DefaultCreator, ListeningCreator, SimpleTaskQueue,
+};
 use crate::ingress::start_http_server;
-use crate::usecases::counter::CounterProvider;
-use crate::usecases::{
-    CreatorConfig, DefaultCreator, DefaultTaskDataFactory, ListeningCreator, SimpleTaskQueue,
+use crate::usecases::counter::{
+    CounterProvider, CounterState, DefaultTaskData, DefaultTaskDataFactory,
 };
 use alloy_provider::ProviderBuilder;
 use alloy_signer_local::PrivateKeySigner;
 use commonware_eigenlayer::config::AvsDeployment;
-use std::{env, str::FromStr, sync::Arc};
+use std::{env, str::FromStr};
 
 /// Factory function to create a default creator
 pub async fn create_creator()
@@ -41,8 +43,7 @@ pub async fn create_creator()
 /// Factory function to create a listening creator with HTTP server
 pub async fn create_listening_creator_with_server(
     addr: String,
-) -> anyhow::Result<Arc<ListeningCreator<CounterProvider, DefaultTaskDataFactory, SimpleTaskQueue>>>
-{
+) -> anyhow::Result<BoxedCreator<CounterState, DefaultTaskData>> {
     let http_rpc = env::var("HTTP_RPC").expect("HTTP_RPC must be set");
     let private_key = env::var("PRIVATE_KEY").expect("PRIVATE_KEY must be set");
     let signer = PrivateKeySigner::from_str(&private_key)?;
@@ -59,13 +60,12 @@ pub async fn create_listening_creator_with_server(
     let task_data_factory = DefaultTaskDataFactory;
     let queue = SimpleTaskQueue::new();
     let config = CreatorConfig::default();
-    let creator = Arc::new(ListeningCreator::new(
+    let creator = Box::new(ListeningCreator::new(
         state_provider,
         task_data_factory,
         queue.clone(),
         config,
     ));
-    let _server_creator = creator.clone();
     let queue = queue.get_queue();
     tokio::spawn(async move {
         start_http_server(queue, &addr).await;

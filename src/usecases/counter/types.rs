@@ -21,7 +21,7 @@ pub struct DefaultTaskData {
 }
 
 impl TaskData for DefaultTaskData {
-    fn encode_into_payload(&self, mut payload: Vec<u8>) -> Vec<u8> {
+    fn encode_into_payload(self, mut payload: Vec<u8>) -> Vec<u8> {
         payload.extend_from_slice(self.var1.as_bytes());
         payload.push(0); // null terminator
         payload.extend_from_slice(self.var2.as_bytes());

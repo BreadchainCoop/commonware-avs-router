@@ -82,7 +82,7 @@ where
     }
 
     /// Encode task data into a payload
-    fn encode_task_data(&self, task_data: &F::TaskData, encoded_state: Vec<u8>) -> Vec<u8> {
+    fn encode_task_data(&self, task_data: F::TaskData, encoded_state: Vec<u8>) -> Vec<u8> {
         task_data.encode_into_payload(encoded_state)
     }
 }
@@ -115,7 +115,7 @@ where
             .await?;
 
         // Encode into final payload
-        let payload = self.encode_task_data(&task_data, encoded_state);
+        let payload = self.encode_task_data(task_data, encoded_state);
 
         debug!(
             "Created payload for state {:?} with task {:?}",
