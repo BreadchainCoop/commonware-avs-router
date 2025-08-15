@@ -1,12 +1,5 @@
-pub mod base;
-pub mod implementations;
-pub mod interface;
-pub mod types;
+// Core traits and types
+pub mod core;
 
-// Test module (only compiled in test mode)
-#[cfg(test)]
-pub mod tests;
-
-// Re-export main types and traits
-pub use implementations::{default::Creator, listening::ListeningCreator, queue::SimpleTaskQueue};
-pub use interface::TaskCreatorTrait;
+// Re-export main types for easy access
+pub use core::{Creator, CreatorConfig};

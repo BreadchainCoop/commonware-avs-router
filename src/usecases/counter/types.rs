@@ -1,26 +1,27 @@
-use crate::ingress::TaskRequest;
+use crate::creator::core::{State, TaskData};
 
-/// Trait for task queue operations
-#[allow(dead_code)]
-pub trait TaskQueue: Send + Sync {
-    fn push(&self, task: TaskRequest);
-    fn pop(&self) -> Option<TaskRequest>;
+/// Counter state (u64)
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CounterState(pub u64);
+
+impl State for CounterState {}
+
+impl std::fmt::Display for CounterState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
 }
 
-/// Task data structure for payload generation
-#[derive(Debug, Clone)]
-pub struct TaskData {
+/// Default task data for counter operations
+#[derive(Debug)]
+pub struct DefaultTaskData {
     pub var1: String,
     pub var2: String,
     pub var3: String,
 }
 
-impl TaskData {
-    pub fn new(var1: String, var2: String, var3: String) -> Self {
-        Self { var1, var2, var3 }
-    }
-
-    pub fn encode_into_payload(&self, mut payload: Vec<u8>) -> Vec<u8> {
+impl TaskData for DefaultTaskData {
+    fn encode_into_payload(&self, mut payload: Vec<u8>) -> Vec<u8> {
         payload.extend_from_slice(self.var1.as_bytes());
         payload.push(0); // null terminator
         payload.extend_from_slice(self.var2.as_bytes());
@@ -31,7 +32,7 @@ impl TaskData {
     }
 }
 
-impl Default for TaskData {
+impl Default for DefaultTaskData {
     fn default() -> Self {
         Self {
             var1: "default_var1".to_string(),
