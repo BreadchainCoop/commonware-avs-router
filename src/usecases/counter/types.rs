@@ -1,7 +1,7 @@
 use crate::creator::core::{State, TaskData};
 
 /// Counter state (u64)
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct CounterState(pub u64);
 
 impl State for CounterState {}

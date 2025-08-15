@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 use tracing::{error, warn};
 
 /// Represents any type of state that can be retrieved and encoded
-pub trait State: Debug + Send + Sync + Clone {}
+pub trait State: Debug + Send + Sync + Clone + Default {}
 
 /// Represents task data that can be encoded into a payload
 pub trait TaskData: Debug + Send + Sync {
@@ -139,10 +139,6 @@ impl TaskQueue for SimpleTaskQueue {
             Err(e) => {
                 error!("Failed to push task to queue: {}", e);
                 warn!("Task dropped due to lock timeout: {:?}", task);
-                // In a production system, you might want to:
-                // 1. Send to a dead letter queue
-                // 2. Retry with exponential backoff
-                // 3. Panic if this is critical
             }
         }
     }

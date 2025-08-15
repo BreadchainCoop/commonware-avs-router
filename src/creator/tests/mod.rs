@@ -1,7 +1,7 @@
 pub mod mocks;
 pub mod types;
 
-use crate::creator::core::{Creator, TaskQueue};
+use crate::creator::core::{Creator, StateProvider, TaskQueue};
 use crate::creator::{CreatorConfig, DefaultCreator, ListeningCreator, SimpleTaskQueue};
 use crate::ingress::types::{TaskRequest, TaskRequestBody};
 use mocks::{MockStateProvider, MockTaskDataFactory, MockTaskQueue};
@@ -144,4 +144,23 @@ fn test_simple_task_queue_multiple_tasks() {
 
     // Queue should be empty
     assert!(queue.pop().is_none());
+}
+
+#[tokio::test]
+async fn test_mock_state_provider_failing() {
+    // Test that the fixed MockStateProvider::new_failing() works correctly
+    let provider = MockStateProvider::<TestState>::new_failing();
+
+    // Should fail with an error
+    let result = provider.get_current_state().await;
+    assert!(result.is_err());
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("Mock provider failure")
+    );
+
+    // Should still have a valid default state (not undefined behavior)
+    assert_eq!(provider.get_state(), &TestState { value: 0 });
 }

@@ -24,9 +24,14 @@ impl<S: State> MockStateProvider<S> {
     #[allow(dead_code)]
     pub fn new_failing() -> Self {
         Self {
-            state: unsafe { std::mem::zeroed() }, // Safe for testing
+            state: S::default(),
             should_fail: true,
         }
+    }
+
+    #[allow(dead_code)]
+    pub fn get_state(&self) -> &S {
+        &self.state
     }
 }
 

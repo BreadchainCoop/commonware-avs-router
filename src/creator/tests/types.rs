@@ -1,7 +1,7 @@
 use crate::creator::core::{State, TaskData};
 
 /// Test-specific state type
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct TestState {
     pub value: u64,
 }
