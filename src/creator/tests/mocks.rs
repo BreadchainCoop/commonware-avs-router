@@ -2,8 +2,13 @@ use anyhow::Result;
 use async_trait::async_trait;
 use std::sync::Mutex;
 
-use super::types::{TestState, TestTaskData};
-use crate::creator::core::{State, StateProvider, TaskDataFactory, TaskQueue, TaskRequest};
+use super::types::TestTaskData;
+use crate::creator::core::{
+    DefaultState, State, StateProvider, TaskDataFactory, TaskQueue, TaskRequest,
+};
+
+// Use DefaultState directly instead of type alias
+type TestState = DefaultState<u64>;
 
 /// Mock state provider for testing
 #[allow(dead_code)]

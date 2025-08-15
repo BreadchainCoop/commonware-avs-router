@@ -1,10 +1,7 @@
-use crate::creator::core::{State, TaskData};
+use crate::creator::core::{DefaultState, TaskData};
 
-/// Counter state (u64)
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
-pub struct CounterState(pub u64);
-
-impl State for CounterState {}
+/// Counter state (u64) - using generic DefaultState
+pub type CounterState = DefaultState<u64>;
 
 impl std::fmt::Display for CounterState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

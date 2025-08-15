@@ -1,8 +1,11 @@
 use anyhow::Result;
 use async_trait::async_trait;
 
-use super::types::{CounterState, DefaultTaskData};
-use crate::creator::core::{TaskDataFactory, TaskRequest};
+use super::types::DefaultTaskData;
+use crate::creator::core::{DefaultState, TaskDataFactory, TaskRequest};
+
+// Use DefaultState directly instead of type alias
+type CounterState = DefaultState<u64>;
 
 /// Default task data factory for counter operations
 pub struct DefaultTaskDataFactory;

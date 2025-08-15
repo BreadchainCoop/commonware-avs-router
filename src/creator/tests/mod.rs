@@ -1,15 +1,17 @@
 pub mod mocks;
 pub mod types;
 
-use crate::creator::core::{Creator, StateProvider, TaskQueue};
+use crate::creator::core::{Creator, DefaultState, StateProvider, TaskQueue};
 use crate::creator::{CreatorConfig, DefaultCreator, ListeningCreator, SimpleTaskQueue};
 use crate::ingress::types::{TaskRequest, TaskRequestBody};
 use mocks::{MockStateProvider, MockTaskDataFactory, MockTaskQueue};
-use types::TestState;
+
+// Use DefaultState directly instead of type alias
+type TestState = DefaultState<u64>;
 
 #[tokio::test]
 async fn test_default_creator_create_payload_and_state_success() {
-    let provider = MockStateProvider::new(TestState { value: 7 });
+    let provider = MockStateProvider::new(DefaultState(7));
     let factory = MockTaskDataFactory;
     let creator = DefaultCreator::new(provider, factory, CreatorConfig::default());
 
@@ -19,7 +21,7 @@ async fn test_default_creator_create_payload_and_state_success() {
         .expect("should succeed");
 
     // State should match what provider returns
-    assert_eq!(state, TestState { value: 7 });
+    assert_eq!(state, DefaultState(7));
 
     // Encoded state prefix from MockStateProvider is [1,2,3,4]
     assert!(payload.starts_with(&[1, 2, 3, 4]));
@@ -31,18 +33,18 @@ async fn test_default_creator_create_payload_and_state_success() {
 
 #[tokio::test]
 async fn test_default_creator_get_current_state_delegates() {
-    let provider = MockStateProvider::new(TestState { value: 12345 });
+    let provider = MockStateProvider::new(DefaultState(12345));
     let factory = MockTaskDataFactory;
     let creator = DefaultCreator::new(provider, factory, CreatorConfig::default());
 
     let state = creator.get_current_state().await.expect("should succeed");
-    assert_eq!(state, TestState { value: 12345 });
+    assert_eq!(state, DefaultState(12345));
 }
 
 #[tokio::test]
 async fn test_listening_creator_processes_task_from_queue() {
     // Arrange
-    let provider = MockStateProvider::new(TestState { value: 5 });
+    let provider = MockStateProvider::new(DefaultState(5));
     let factory = MockTaskDataFactory;
     let queue = MockTaskQueue::new();
     let config = CreatorConfig {
@@ -69,7 +71,7 @@ async fn test_listening_creator_processes_task_from_queue() {
         .expect("should succeed");
 
     // Assert
-    assert_eq!(state, TestState { value: 5 });
+    assert_eq!(state, DefaultState(5));
     // The payload will start with mock encoded state [1,2,3,4] and then the request vars
     assert!(payload.starts_with(&[1, 2, 3, 4]));
     let expected_tail = b"a\0b\0c\0";
@@ -78,7 +80,7 @@ async fn test_listening_creator_processes_task_from_queue() {
 
 #[tokio::test]
 async fn test_listening_creator_times_out_when_no_task() {
-    let provider = MockStateProvider::new(TestState { value: 1 });
+    let provider = MockStateProvider::new(DefaultState(1));
     let factory = MockTaskDataFactory;
     let queue = MockTaskQueue::new();
     let config = CreatorConfig {
@@ -162,5 +164,5 @@ async fn test_mock_state_provider_failing() {
     );
 
     // Should still have a valid default state (not undefined behavior)
-    assert_eq!(provider.get_state(), &TestState { value: 0 });
+    assert_eq!(provider.get_state(), &DefaultState(0));
 }

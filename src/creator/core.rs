@@ -8,6 +8,13 @@ use tracing::{error, warn};
 /// Represents any type of state that can be retrieved and encoded
 pub trait State: Debug + Send + Sync + Clone + Default {}
 
+/// Generic default state implementation for primitive types
+/// This can be used by any state type that wraps a primitive with a default value
+#[derive(Debug, Clone, PartialEq, Eq, Default, Hash)]
+pub struct DefaultState<T: Default + Clone + Send + Sync + std::fmt::Debug>(pub T);
+
+impl<T: Default + Clone + Send + Sync + std::fmt::Debug> State for DefaultState<T> {}
+
 /// Represents task data that can be encoded into a payload
 pub trait TaskData: Debug + Send + Sync {
     /// Encode this task data into a payload

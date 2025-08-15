@@ -1,8 +1,12 @@
 use crate::creator::BoxedCreator;
+use crate::creator::core::DefaultState;
 use crate::handlers::executor::create_executor;
 use crate::handlers::factories::{create_creator, create_listening_creator_with_server};
 use crate::usecases::counter::CounterValidator;
-use crate::usecases::counter::{CounterState, DefaultTaskData};
+use crate::usecases::counter::DefaultTaskData;
+
+// Use DefaultState directly instead of type alias
+type CounterState = DefaultState<u64>;
 use crate::validator::Validator;
 use crate::wire::{self, aggregation::Payload};
 
@@ -135,7 +139,7 @@ impl<E: Clock> Orchestrator<E> {
                             info!("Failed to decode message from sender: {:?}", sender);
                             continue;
                         };
-                        let Some(round) = signatures.get_mut(&CounterState(msg.round)) else {
+                        let Some(round) = signatures.get_mut(&DefaultState(msg.round)) else {
                             info!("Received signature for unknown round: {} from contributor: {:?}", msg.round, contributor);
                             continue;
                         };

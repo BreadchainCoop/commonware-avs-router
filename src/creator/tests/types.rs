@@ -1,12 +1,4 @@
-use crate::creator::core::{State, TaskData};
-
-/// Test-specific state type
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct TestState {
-    pub value: u64,
-}
-
-impl State for TestState {}
+use crate::creator::core::TaskData;
 
 /// Test-specific task data type
 #[derive(Debug, Clone)]
@@ -17,8 +9,7 @@ pub struct TestTaskData {
 }
 
 impl TaskData for TestTaskData {
-    fn encode_into_payload(self, encoded_state: Vec<u8>) -> Vec<u8> {
-        let mut payload = encoded_state;
+    fn encode_into_payload(self, mut payload: Vec<u8>) -> Vec<u8> {
         payload.extend_from_slice(self.var1.as_bytes());
         payload.push(0); // null terminator
         payload.extend_from_slice(self.var2.as_bytes());
