@@ -13,6 +13,12 @@ impl MockContractHandler {
     }
 }
 
+impl Default for MockContractHandler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[async_trait]
 impl ContractHandler for MockContractHandler {
     async fn handle_verification(
@@ -27,6 +33,8 @@ impl ContractHandler for MockContractHandler {
             transaction_hash: "0x1234567890abcdef".to_string(),
             block_number: Some(12345),
             gas_used: Some(21000),
+            status: Some(true),
+            contract_address: None,
         })
     }
 }

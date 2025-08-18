@@ -9,6 +9,8 @@ pub struct ExecutionResult {
     pub transaction_hash: String,
     pub block_number: Option<u64>,
     pub gas_used: Option<u64>,
+    pub status: Option<bool>,
+    pub contract_address: Option<String>,
 }
 
 #[async_trait]
@@ -33,10 +35,12 @@ pub trait ContractHandler: Send + Sync {
     ) -> Result<ExecutionResult>;
 }
 
+#[allow(dead_code)]
 pub struct Executor<E: ExecutorTrait> {
     executor_impl: E,
 }
 
+#[allow(dead_code)]
 impl<E: ExecutorTrait> Executor<E> {
     pub fn new(executor_impl: E) -> Self {
         Self { executor_impl }

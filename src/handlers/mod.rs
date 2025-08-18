@@ -2,7 +2,6 @@
 pub mod factories;
 
 // Application logic
-pub mod executor;
 pub mod orchestrator;
 
 // Re-export main types for easy access

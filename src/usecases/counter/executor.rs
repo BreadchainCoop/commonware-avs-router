@@ -81,6 +81,8 @@ impl ContractHandler for CounterHandler {
             transaction_hash: format!("{:?}", receipt.transaction_hash),
             block_number: receipt.block_number,
             gas_used: Some(receipt.gas_used),
+            status: Some(receipt.status()),
+            contract_address: receipt.contract_address.map(|addr| format!("{:?}", addr)),
         })
     }
 }

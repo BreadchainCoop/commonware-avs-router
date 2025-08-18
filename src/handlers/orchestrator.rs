@@ -1,6 +1,7 @@
 use crate::creator::BoxedCreator;
 use crate::creator::core::DefaultState;
-use crate::handlers::executor::create_executor;
+use crate::executor::interface::ExecutorTrait;
+use crate::handlers::factories::create_counter_executor;
 use crate::handlers::factories::{create_creator, create_listening_creator_with_server};
 use crate::usecases::counter::CounterValidator;
 use crate::usecases::counter::DefaultTaskData;
@@ -82,7 +83,7 @@ impl<E: Clock> Orchestrator<E> {
             info!("Using Creator without ingress");
             Box::new(create_creator().await.unwrap())
         };
-        let mut executor = create_executor().await.unwrap();
+        let mut executor = create_counter_executor().await.unwrap();
         let counter_validator = CounterValidator::new().await.unwrap();
         let validator = Validator::new(counter_validator);
 
