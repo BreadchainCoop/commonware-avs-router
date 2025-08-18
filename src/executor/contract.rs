@@ -15,6 +15,7 @@ use bn254::{G1PublicKey, PublicKey, Signature};
 use commonware_utils::hex;
 use eigen_crypto_bls::convert_to_g1_point;
 use std::{collections::HashMap, str::FromStr};
+use tracing::debug;
 
 pub struct ContractExecutor<H: ContractHandler> {
     view_only_provider: ReadOnlyProvider,
@@ -138,7 +139,8 @@ impl<H: ContractHandler> ExecutorTrait for ContractExecutor<H> {
         let non_signer_return = getNonSignerStakesAndSignatureReturn { _0: ret };
 
         // Delegate the contract-specific execution to the handler
-        self.contract_handler
+        let result = self
+            .contract_handler
             .handle_verification(
                 msg_hash,
                 quorum_numbers,
@@ -147,6 +149,17 @@ impl<H: ContractHandler> ExecutorTrait for ContractExecutor<H> {
                     .map_err(|e| anyhow::anyhow!("Failed to convert block number: {}", e))?,
                 non_signer_return,
             )
-            .await
+            .await?;
+
+        debug!(
+            transaction_hash = %result.transaction_hash,
+            block_number = ?result.block_number,
+            gas_used = ?result.gas_used,
+            status = ?result.status,
+            contract_address = ?result.contract_address,
+            "Contract execution result"
+        );
+
+        Ok(result)
     }
 }

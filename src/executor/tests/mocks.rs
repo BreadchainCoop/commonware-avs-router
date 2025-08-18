@@ -5,6 +5,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 
 /// Mock implementation of ContractHandler for testing purposes.
+#[derive(Debug)]
 pub struct MockContractHandler;
 
 impl MockContractHandler {

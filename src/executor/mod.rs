@@ -3,12 +3,13 @@
 // Public modules
 pub mod contract;
 pub mod interface;
-pub mod mock;
+
+// Test module (only compiled in test mode)
+#[cfg(test)]
+pub mod tests;
 
 // Re-export the main types for easy access
 #[allow(unused_imports)]
 pub use contract::ContractExecutor;
 #[allow(unused_imports)]
 pub use interface::{ContractHandler, ExecutionResult, Executor, ExecutorTrait};
-#[allow(unused_imports)]
-pub use mock::MockContractHandler;
