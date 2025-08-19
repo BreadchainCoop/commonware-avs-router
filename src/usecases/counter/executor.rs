@@ -1,8 +1,8 @@
 use crate::bindings::WalletProvider;
 use crate::bindings::blssigcheckoperatorstateretriever::BLSSigCheckOperatorStateRetriever::getNonSignerStakesAndSignatureReturn;
 use crate::bindings::counter::{self, Counter};
-use crate::executor::convert_non_signer_data;
-use crate::executor::interface::{BlsSignatureVerificationHandler, ExecutionResult};
+use crate::executor::bls::{BlsSignatureVerificationHandler, convert_non_signer_data};
+use crate::executor::core::ExecutionResult;
 use alloy_primitives::{Bytes, FixedBytes};
 use anyhow::Result;
 use async_trait::async_trait;

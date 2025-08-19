@@ -1,5 +1,5 @@
 use crate::creator::BoxedCreator;
-use crate::executor::interface::ExecutorTrait;
+use crate::executor::core::{VerificationData, VerificationExecutor};
 use crate::handlers::factories::create_counter_executor;
 use crate::handlers::factories::{create_creator, create_listening_creator_with_server};
 use crate::usecases::counter::CounterValidator;
@@ -209,11 +209,20 @@ impl<E: Clock> Orchestrator<E> {
                         }
 
                         // Execute the increment with the aggregated signature
+                        // Create verification data with G1 public keys in context
+                        let mut context = Vec::new();
+                        for g1_pubkey in &participating_g1 {
+                            // Serialize G1 public key to context (simplified - in practice you'd use proper serialization)
+                            context.extend_from_slice(g1_pubkey.get_x().as_bytes());
+                            context.extend_from_slice(g1_pubkey.get_y().as_bytes());
+                        }
+
+                        let verification_data = VerificationData::new(signatures, participating)
+                            .with_context(context);
+
                         match executor.execute_verification(
                             &expected_digest,
-                            &participating_g1,
-                            &participating,
-                            &signatures,
+                            verification_data,
                         ).await {
                             Ok(result) => {
                                 info!(

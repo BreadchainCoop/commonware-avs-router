@@ -1,6 +1,6 @@
 use crate::bindings::blssigcheckoperatorstateretriever::BLSSigCheckOperatorStateRetriever::getNonSignerStakesAndSignatureReturn;
-use crate::executor::convert_non_signer_data;
-use crate::executor::interface::{BlsSignatureVerificationHandler, ExecutionResult};
+use crate::executor::bls::{BlsSignatureVerificationHandler, convert_non_signer_data};
+use crate::executor::core::ExecutionResult;
 use alloy_primitives::{Bytes, FixedBytes, U256};
 use anyhow::Result;
 use async_trait::async_trait;
@@ -76,10 +76,6 @@ impl BlsSignatureVerificationHandler for TestBlsSignatureVerificationHandler {
         }
     }
 }
-
-// ============================================================================
-// BLS Signature Verification Handler Tests
-// ============================================================================
 
 #[test]
 fn test_mock_verification_handler_creation() {
@@ -232,10 +228,6 @@ async fn test_verification_handler_trait_failure() {
     );
     assert_eq!(handler.call_count, 1);
 }
-
-// ============================================================================
-// BLS Data Conversion Tests
-// ============================================================================
 
 #[test]
 fn test_convert_non_signer_data_empty() {

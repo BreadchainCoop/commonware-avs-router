@@ -2,7 +2,7 @@ use crate::bindings::blsapkregistry::BLSApkRegistry;
 use crate::bindings::blssigcheckoperatorstateretriever::BLSSigCheckOperatorStateRetriever;
 use crate::bindings::counter::Counter;
 use crate::creator::BoxedCreator;
-use crate::executor::bls_eigenlayer_executor::BlsEigenlayerExecutor;
+use crate::executor::bls::BlsEigenlayerExecutor;
 use crate::ingress::start_http_server;
 use crate::usecases::counter::{
     CounterCreator, CounterHandler, CounterProvider, CreatorConfig, DefaultTaskDataFactory,

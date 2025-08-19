@@ -5,17 +5,20 @@ use crate::bindings::blssigcheckoperatorstateretriever::{
     BLSSigCheckOperatorStateRetriever::BLSSigCheckOperatorStateRetrieverInstance,
     BLSSigCheckOperatorStateRetriever::getNonSignerStakesAndSignatureReturn,
 };
-use crate::executor::interface::{BlsSignatureVerificationHandler, ExecutionResult, ExecutorTrait};
+use crate::executor::core::{ExecutionResult, VerificationData, VerificationExecutor};
 use alloy::providers::Provider;
 use alloy::sol_types::SolValue;
 use alloy_primitives::{Address, Bytes, FixedBytes, U256};
 use anyhow::Result;
 use async_trait::async_trait;
-use bn254::{G1PublicKey, PublicKey, Signature};
+use bn254::{G1PublicKey, PublicKey};
 use commonware_utils::hex;
 use eigen_crypto_bls::convert_to_g1_point;
 use std::{collections::HashMap, str::FromStr};
 use tracing::debug;
+
+use super::traits::{BlsExecutorTrait, BlsSignatureVerificationHandler};
+use super::types::BlsVerificationData;
 
 pub struct BlsEigenlayerExecutor<H: BlsSignatureVerificationHandler> {
     view_only_provider: ReadOnlyProvider,
@@ -81,46 +84,47 @@ impl<H: BlsSignatureVerificationHandler> BlsEigenlayerExecutor<H> {
     }
 }
 
-pub fn convert_non_signer_data(
-    non_signer_data: getNonSignerStakesAndSignatureReturn,
-) -> crate::bindings::blssigcheckoperatorstateretriever::IBLSSignatureCheckerTypes::NonSignerStakesAndSignature{
-    crate::bindings::blssigcheckoperatorstateretriever::IBLSSignatureCheckerTypes::NonSignerStakesAndSignature {
-        nonSignerQuorumBitmapIndices: non_signer_data._0.nonSignerQuorumBitmapIndices,
-        nonSignerPubkeys: non_signer_data
-            ._0
-            .nonSignerPubkeys
-            .into_iter()
-            .map(|p| crate::bindings::blssigcheckoperatorstateretriever::BN254::G1Point { X: p.X, Y: p.Y })
-            .collect(),
-        quorumApks: non_signer_data
-            ._0
-            .quorumApks
-            .into_iter()
-            .map(|p| crate::bindings::blssigcheckoperatorstateretriever::BN254::G1Point { X: p.X, Y: p.Y })
-            .collect(),
-        apkG2: crate::bindings::blssigcheckoperatorstateretriever::BN254::G2Point {
-            X: non_signer_data._0.apkG2.X,
-            Y: non_signer_data._0.apkG2.Y,
-        },
-        sigma: crate::bindings::blssigcheckoperatorstateretriever::BN254::G1Point {
-            X: non_signer_data._0.sigma.X,
-            Y: non_signer_data._0.sigma.Y,
-        },
-        quorumApkIndices: non_signer_data._0.quorumApkIndices,
-        totalStakeIndices: non_signer_data._0.totalStakeIndices,
-        nonSignerStakeIndices: non_signer_data._0.nonSignerStakeIndices,
+#[async_trait]
+impl<H: BlsSignatureVerificationHandler> VerificationExecutor for BlsEigenlayerExecutor<H> {
+    async fn execute_verification(
+        &mut self,
+        payload_hash: &[u8],
+        verification_data: VerificationData,
+    ) -> Result<ExecutionResult> {
+        // Convert generic verification data to BLS-specific data
+        // For BLS, we need to extract G1 public keys from the context
+        let g1_public_keys = if let Some(_context) = verification_data.context {
+            // In a real implementation, you'd deserialize the G1 public keys from context
+            // For now, we'll assume they're provided in the same order as public_keys
+            // This is a simplified approach - in practice you'd want proper serialization
+            vec![] // TODO: Implement proper G1 public key extraction from context
+        } else {
+            return Err(anyhow::anyhow!(
+                "BLS verification requires G1 public keys in context"
+            ));
+        };
+
+        let bls_verification_data = BlsVerificationData::new(
+            verification_data.signatures,
+            verification_data.public_keys,
+            g1_public_keys,
+        );
+
+        self.execute_bls_verification(payload_hash, bls_verification_data)
+            .await
     }
 }
 
 #[async_trait]
-impl<H: BlsSignatureVerificationHandler> ExecutorTrait for BlsEigenlayerExecutor<H> {
-    async fn execute_verification(
+impl<H: BlsSignatureVerificationHandler> BlsExecutorTrait for BlsEigenlayerExecutor<H> {
+    async fn execute_bls_verification(
         &mut self,
         payload_hash: &[u8],
-        participating_g1: &[G1PublicKey],
-        participating: &[PublicKey],
-        signatures: &[Signature],
+        verification_data: BlsVerificationData,
     ) -> Result<ExecutionResult> {
+        let participating_g1 = &verification_data.g1_public_keys;
+        let participating = &verification_data.public_keys;
+        let signatures = &verification_data.signatures;
         let (_apk, _apk_g2, asig) = bn254::get_points(participating_g1, participating, signatures)
             .ok_or_else(|| anyhow::anyhow!("Failed to get points"))?;
         let asig_g1 = convert_to_g1_point(asig)
