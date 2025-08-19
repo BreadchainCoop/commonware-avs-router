@@ -49,7 +49,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     println!("Initial counter value: {}", initial_count);
     
     let target_increments = 2;
-    let max_wait_time = Duration::from_secs(300); // 5 minutes max wait
+    let max_wait_time = Duration::from_secs(150); // 2.5 minutes max wait
     let check_interval = Duration::from_secs(10);  // Check every 10 seconds
     
     let start_time = std::time::Instant::now();
