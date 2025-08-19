@@ -1,13 +1,10 @@
 use crate::creator::BoxedCreator;
-use crate::creator::core::DefaultState;
 use crate::executor::interface::ExecutorTrait;
 use crate::handlers::factories::create_counter_executor;
 use crate::handlers::factories::{create_creator, create_listening_creator_with_server};
 use crate::usecases::counter::CounterValidator;
-use crate::usecases::counter::DefaultTaskData;
+// DefaultTaskData is now internal to counter usecase creators
 
-// Use DefaultState directly instead of type alias
-type CounterState = DefaultState<u64>;
 use crate::validator::Validator;
 use crate::wire::{self, aggregation::Payload};
 
@@ -74,32 +71,32 @@ impl<E: Clock> Orchestrator<E> {
         let mut signatures = HashMap::new();
         // Check if INGRESS flag is set to determine which creator to use
         let use_ingress = std::env::var("INGRESS").unwrap_or_default().to_lowercase() == "true";
-        let task_creator: BoxedCreator<CounterState, DefaultTaskData> = if use_ingress {
-            info!("Using ListeningCreator with HTTP server on port 8080");
+        let task_creator: BoxedCreator = if use_ingress {
+            info!("Using creator with HTTP server on port 8080");
             create_listening_creator_with_server("0.0.0.0:8080".to_string())
                 .await
                 .unwrap()
         } else {
             info!("Using Creator without ingress");
-            Box::new(create_creator().await.unwrap())
+            create_creator().await.unwrap()
         };
         let mut executor = create_counter_executor().await.unwrap();
         let counter_validator = CounterValidator::new().await.unwrap();
         let validator = Validator::new(counter_validator);
 
         loop {
-            let (payload, current_state) = task_creator.create_payload_and_state().await.unwrap();
+            let (payload, current_round) = task_creator.get_payload_and_round().await.unwrap();
             hasher.update(&payload);
             let payload = hasher.finalize();
             info!(
-                state = current_state.0.to_string(),
+                state = current_round.to_string(),
                 msg = hex(&payload),
                 "generated payload for state"
             );
 
             // Broadcast payload
             let message = wire::Aggregation {
-                round: current_state.0,
+                round: current_round,
                 var1: DEFAULT_VAR_1.to_string(),
                 var2: DEFAULT_VAR_2.to_string(),
                 var3: DEFAULT_VAR_3.to_string(),
@@ -111,10 +108,10 @@ impl<E: Clock> Orchestrator<E> {
                 .send(commonware_p2p::Recipients::All, Bytes::from(buf), true)
                 .await
                 .expect("failed to broadcast message");
-            signatures.insert(current_state.clone(), HashMap::new());
+            signatures.insert(current_round, HashMap::new());
             info!(
                 "Created signatures entry for state: {}, threshold is: {}",
-                current_state, self.t
+                current_round, self.t
             );
 
             // Listen for messages until the next broadcast
@@ -140,7 +137,7 @@ impl<E: Clock> Orchestrator<E> {
                             info!("Failed to decode message from sender: {:?}", sender);
                             continue;
                         };
-                        let Some(round) = signatures.get_mut(&DefaultState(msg.round)) else {
+                        let Some(round) = signatures.get_mut(&msg.round) else {
                             info!("Received signature for unknown round: {} from contributor: {:?}", msg.round, contributor);
                             continue;
                         };

@@ -1,14 +1,10 @@
 use crate::bindings::blsapkregistry::BLSApkRegistry;
 use crate::bindings::blssigcheckoperatorstateretriever::BLSSigCheckOperatorStateRetriever;
 use crate::bindings::counter::Counter;
-use crate::creator::{
-    BoxedCreator, CreatorConfig, DefaultCreator, ListeningCreator, SimpleTaskQueue,
-};
+use crate::creator::BoxedCreator;
 use crate::executor::contract::ContractExecutor;
 use crate::ingress::start_http_server;
-use crate::usecases::counter::{
-    CounterHandler, CounterProvider, CounterState, DefaultTaskData, DefaultTaskDataFactory,
-};
+use crate::usecases::counter::{CounterCreator, CounterProvider, SimpleTaskQueue};
 use alloy_provider::ProviderBuilder;
 use alloy_signer_local::PrivateKeySigner;
 use anyhow::Result;
@@ -16,8 +12,7 @@ use commonware_eigenlayer::config::AvsDeployment;
 use std::{env, str::FromStr};
 
 /// Factory function to create a default creator
-pub async fn create_creator()
--> anyhow::Result<DefaultCreator<CounterProvider, DefaultTaskDataFactory>> {
+pub async fn create_creator() -> anyhow::Result<BoxedCreator> {
     let http_rpc = env::var("HTTP_RPC").expect("HTTP_RPC must be set");
     let private_key = env::var("PRIVATE_KEY").expect("PRIVATE_KEY must be set");
     let signer = PrivateKeySigner::from_str(&private_key)
@@ -34,21 +29,14 @@ pub async fn create_creator()
         .counter_address()
         .map_err(|e| anyhow::anyhow!("Failed to get counter address: {}", e))?;
 
-    let state_provider = CounterProvider::new(counter_address, provider.clone());
-    let task_data_factory = DefaultTaskDataFactory;
-    let config = CreatorConfig::default();
-
-    Ok(DefaultCreator::new(
-        state_provider,
-        task_data_factory,
-        config,
-    ))
+    let provider = CounterProvider::new(counter_address, provider.clone());
+    let factory = DefaultTaskDataFactory;
+    let creator = CounterCreator::new(provider, factory);
+    Ok(Box::new(creator))
 }
 
 /// Factory function to create a listening creator with HTTP server
-pub async fn create_listening_creator_with_server(
-    addr: String,
-) -> anyhow::Result<BoxedCreator<CounterState, DefaultTaskData>> {
+pub async fn create_listening_creator_with_server(addr: String) -> anyhow::Result<BoxedCreator> {
     let http_rpc = env::var("HTTP_RPC").expect("HTTP_RPC must be set");
     let private_key = env::var("PRIVATE_KEY").expect("PRIVATE_KEY must be set");
     let signer = PrivateKeySigner::from_str(&private_key)?;
@@ -61,13 +49,13 @@ pub async fn create_listening_creator_with_server(
     let counter_address = deployment
         .counter_address()
         .map_err(|e| anyhow::anyhow!("Failed to get counter address: {}", e))?;
-    let state_provider = CounterProvider::new(counter_address, provider.clone());
-    let task_data_factory = DefaultTaskDataFactory;
+    let provider = CounterProvider::new(counter_address, provider.clone());
+    let factory = DefaultTaskDataFactory;
     let queue = SimpleTaskQueue::new();
     let config = CreatorConfig::default();
-    let creator = Box::new(ListeningCreator::new(
-        state_provider,
-        task_data_factory,
+    let creator = Box::new(ListeningCounterCreator::new(
+        provider,
+        factory,
         queue.clone(),
         config,
     ));

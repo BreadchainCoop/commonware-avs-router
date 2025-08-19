@@ -1,33 +1,15 @@
-use crate::creator::core::{DefaultState, TaskData};
-
-/// Counter state (u64) - using generic DefaultState
-pub type CounterState = DefaultState<u64>;
-
-impl std::fmt::Display for CounterState {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
 /// Default task data for counter operations
 #[derive(Debug)]
 pub struct DefaultTaskData {
+    #[allow(dead_code)]
     pub var1: String,
+    #[allow(dead_code)]
     pub var2: String,
+    #[allow(dead_code)]
     pub var3: String,
 }
 
-impl TaskData for DefaultTaskData {
-    fn encode_into_payload(self, mut payload: Vec<u8>) -> Vec<u8> {
-        payload.extend_from_slice(self.var1.as_bytes());
-        payload.push(0); // null terminator
-        payload.extend_from_slice(self.var2.as_bytes());
-        payload.push(0); // null terminator
-        payload.extend_from_slice(self.var3.as_bytes());
-        payload.push(0); // null terminator
-        payload
-    }
-}
+// No trait implementation required in the state-agnostic core.
 
 impl Default for DefaultTaskData {
     fn default() -> Self {

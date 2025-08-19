@@ -41,7 +41,7 @@ pub async fn start_http_server(queue: Arc<Mutex<Vec<TaskRequest>>>, addr: &str) 
     let listener = tokio::net::TcpListener::bind(addr)
         .await
         .expect("Failed to bind HTTP server");
-    info!("ListeningCreator HTTP server running on {}", addr);
+    info!("Creator HTTP server running on {}", addr);
     axum::serve(listener, app)
         .await
         .expect("HTTP server failed");

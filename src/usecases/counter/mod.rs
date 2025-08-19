@@ -7,6 +7,9 @@ pub mod providers;
 // Counter task data factories
 pub mod factories;
 
+// Counter creators
+pub mod creators;
+
 // Counter validators
 pub mod validators;
 
@@ -15,7 +18,7 @@ pub mod executor;
 
 // Re-export main types for easy access
 pub use executor::CounterHandler;
+pub use creators::{CounterCreator, ListeningCounterCreator, SimpleTaskQueue};
 pub use factories::DefaultTaskDataFactory;
 pub use providers::CounterProvider;
-pub use types::{CounterState, DefaultTaskData};
 pub use validators::CounterValidator;
