@@ -1,7 +1,7 @@
 pub mod mocks;
 
 #[cfg(test)]
-mod contract_executor_tests;
+mod bls_signature_verification_tests;
 #[cfg(test)]
 mod execution_result_tests;
 #[cfg(test)]

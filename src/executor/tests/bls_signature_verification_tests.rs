@@ -5,14 +5,14 @@ use alloy_primitives::{Bytes, FixedBytes};
 use anyhow::Result;
 use async_trait::async_trait;
 
-// Test contract handler that can be configured for different test scenarios
-struct TestContractHandler {
+// Test BLS signature verification handler that can be configured for different test scenarios
+struct TestBlsSignatureVerificationHandler {
     should_succeed: bool,
     expected_result: ExecutionResult,
     call_count: u32,
 }
 
-impl TestContractHandler {
+impl TestBlsSignatureVerificationHandler {
     fn new(should_succeed: bool, expected_result: ExecutionResult) -> Self {
         Self {
             should_succeed,
@@ -23,7 +23,7 @@ impl TestContractHandler {
 }
 
 #[async_trait]
-impl BlsSignatureVerificationHandler for TestContractHandler {
+impl BlsSignatureVerificationHandler for TestBlsSignatureVerificationHandler {
     async fn handle_verification(
         &mut self,
         _msg_hash: FixedBytes<32>,
@@ -104,7 +104,7 @@ async fn test_contract_handler_trait_success() {
         contract_address: Some("0xcontract456".to_string()),
     };
 
-    let mut handler = TestContractHandler::new(true, expected_result.clone());
+    let mut handler = TestBlsSignatureVerificationHandler::new(true, expected_result.clone());
 
     let msg_hash = FixedBytes::<32>::ZERO;
     let quorum_numbers = Bytes::from_static(b"test");
@@ -154,7 +154,7 @@ async fn test_contract_handler_trait_failure() {
         contract_address: None,
     };
 
-    let mut handler = TestContractHandler::new(false, expected_result);
+    let mut handler = TestBlsSignatureVerificationHandler::new(false, expected_result);
 
     let msg_hash = FixedBytes::<32>::ZERO;
     let quorum_numbers = Bytes::from_static(b"test");
