@@ -5,7 +5,7 @@ use crate::bindings::blssigcheckoperatorstateretriever::{
     BLSSigCheckOperatorStateRetriever::BLSSigCheckOperatorStateRetrieverInstance,
     BLSSigCheckOperatorStateRetriever::getNonSignerStakesAndSignatureReturn,
 };
-use crate::executor::interface::{ContractHandler, ExecutionResult, ExecutorTrait};
+use crate::executor::interface::{BlsSignatureVerificationHandler, ExecutionResult, ExecutorTrait};
 use alloy::providers::Provider;
 use alloy::sol_types::SolValue;
 use alloy_primitives::{Address, Bytes, FixedBytes, U256};
@@ -17,7 +17,7 @@ use eigen_crypto_bls::convert_to_g1_point;
 use std::{collections::HashMap, str::FromStr};
 use tracing::debug;
 
-pub struct ContractExecutor<H: ContractHandler> {
+pub struct BlsEigenlayerExecutor<H: BlsSignatureVerificationHandler> {
     view_only_provider: ReadOnlyProvider,
     bls_apk_registry: BLSApkRegistryInstance<(), ReadOnlyProvider>,
     bls_operator_state_retriever: BLSSigCheckOperatorStateRetrieverInstance<(), ReadOnlyProvider>,
@@ -26,7 +26,7 @@ pub struct ContractExecutor<H: ContractHandler> {
     g1_hash_map: HashMap<PublicKey, Address>,
 }
 
-impl<H: ContractHandler> ContractExecutor<H> {
+impl<H: BlsSignatureVerificationHandler> BlsEigenlayerExecutor<H> {
     pub fn new(
         view_only_provider: ReadOnlyProvider,
         bls_apk_registry: BLSApkRegistryInstance<(), ReadOnlyProvider>,
@@ -82,7 +82,7 @@ impl<H: ContractHandler> ContractExecutor<H> {
 }
 
 #[async_trait]
-impl<H: ContractHandler> ExecutorTrait for ContractExecutor<H> {
+impl<H: BlsSignatureVerificationHandler> ExecutorTrait for BlsEigenlayerExecutor<H> {
     async fn execute_verification(
         &mut self,
         payload_hash: &[u8],

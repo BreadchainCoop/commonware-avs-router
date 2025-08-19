@@ -1,27 +1,27 @@
 use crate::bindings::blssigcheckoperatorstateretriever::BLSSigCheckOperatorStateRetriever::getNonSignerStakesAndSignatureReturn;
-use crate::executor::interface::{ContractHandler, ExecutionResult};
+use crate::executor::interface::{BlsSignatureVerificationHandler, ExecutionResult};
 use alloy_primitives::{Bytes, FixedBytes};
 use anyhow::Result;
 use async_trait::async_trait;
 
-/// Mock implementation of ContractHandler for testing purposes.
+/// Mock implementation of BlsSignatureVerificationHandler for testing purposes.
 #[derive(Debug)]
-pub struct MockContractHandler;
+pub struct MockVerificationHandler;
 
-impl MockContractHandler {
+impl MockVerificationHandler {
     pub fn new() -> Self {
         Self
     }
 }
 
-impl Default for MockContractHandler {
+impl Default for MockVerificationHandler {
     fn default() -> Self {
         Self::new()
     }
 }
 
 #[async_trait]
-impl ContractHandler for MockContractHandler {
+impl BlsSignatureVerificationHandler for MockVerificationHandler {
     async fn handle_verification(
         &mut self,
         _msg_hash: FixedBytes<32>,

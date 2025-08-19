@@ -25,7 +25,7 @@ pub trait ExecutorTrait: Send + Sync {
 }
 
 #[async_trait]
-pub trait ContractHandler: Send + Sync {
+pub trait BlsSignatureVerificationHandler: Send + Sync {
     async fn handle_verification(
         &mut self,
         msg_hash: FixedBytes<32>,
@@ -33,28 +33,4 @@ pub trait ContractHandler: Send + Sync {
         current_block_number: u32,
         non_signer_data: getNonSignerStakesAndSignatureReturn,
     ) -> Result<ExecutionResult>;
-}
-
-#[allow(dead_code)]
-pub struct Executor<E: ExecutorTrait> {
-    executor_impl: E,
-}
-
-#[allow(dead_code)]
-impl<E: ExecutorTrait> Executor<E> {
-    pub fn new(executor_impl: E) -> Self {
-        Self { executor_impl }
-    }
-
-    pub async fn execute_verification(
-        &mut self,
-        payload_hash: &[u8],
-        participating_g1: &[G1PublicKey],
-        participating: &[PublicKey],
-        signatures: &[Signature],
-    ) -> Result<ExecutionResult> {
-        self.executor_impl
-            .execute_verification(payload_hash, participating_g1, participating, signatures)
-            .await
-    }
 }

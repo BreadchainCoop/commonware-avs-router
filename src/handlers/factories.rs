@@ -2,7 +2,7 @@ use crate::bindings::blsapkregistry::BLSApkRegistry;
 use crate::bindings::blssigcheckoperatorstateretriever::BLSSigCheckOperatorStateRetriever;
 use crate::bindings::counter::Counter;
 use crate::creator::BoxedCreator;
-use crate::executor::contract::ContractExecutor;
+use crate::executor::bls_eigenlayer_executor::BlsEigenlayerExecutor;
 use crate::ingress::start_http_server;
 use crate::usecases::counter::{
     CounterCreator, CounterHandler, CounterProvider, CreatorConfig, DefaultTaskDataFactory,
@@ -69,8 +69,8 @@ pub async fn create_listening_creator_with_server(addr: String) -> anyhow::Resul
     Ok(creator)
 }
 
-/// Creates a new ContractExecutor configured for Counter operations
-pub async fn create_counter_executor() -> Result<ContractExecutor<CounterHandler>> {
+/// Creates a new BlsEigenlayerExecutor configured for Counter operations
+pub async fn create_counter_executor() -> Result<BlsEigenlayerExecutor<CounterHandler>> {
     let http_rpc = env::var("HTTP_RPC").expect("HTTP_RPC must be set");
     let view_only_provider = ProviderBuilder::new().on_http(url::Url::parse(&http_rpc).unwrap());
 
@@ -113,7 +113,7 @@ pub async fn create_counter_executor() -> Result<ContractExecutor<CounterHandler
     let counter_handler = CounterHandler::new(counter);
 
     // Create and return the contract executor
-    Ok(ContractExecutor::new(
+    Ok(BlsEigenlayerExecutor::new(
         view_only_provider,
         bls_apk_registry,
         bls_operator_state_retriever,

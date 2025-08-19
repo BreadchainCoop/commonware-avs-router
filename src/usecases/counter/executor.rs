@@ -1,7 +1,7 @@
 use crate::bindings::WalletProvider;
 use crate::bindings::blssigcheckoperatorstateretriever::BLSSigCheckOperatorStateRetriever::getNonSignerStakesAndSignatureReturn;
 use crate::bindings::counter::{self, Counter};
-use crate::executor::interface::{ContractHandler, ExecutionResult};
+use crate::executor::interface::{BlsSignatureVerificationHandler, ExecutionResult};
 use alloy_primitives::{Bytes, FixedBytes};
 use anyhow::Result;
 use async_trait::async_trait;
@@ -48,7 +48,7 @@ impl CounterHandler {
 }
 
 #[async_trait]
-impl ContractHandler for CounterHandler {
+impl BlsSignatureVerificationHandler for CounterHandler {
     async fn handle_verification(
         &mut self,
         msg_hash: FixedBytes<32>,

@@ -1,6 +1,6 @@
 use crate::bindings::blssigcheckoperatorstateretriever::BLSSigCheckOperatorStateRetriever::getNonSignerStakesAndSignatureReturn;
-use crate::executor::interface::{ContractHandler, ExecutionResult};
-use crate::executor::tests::mocks::MockContractHandler;
+use crate::executor::interface::{BlsSignatureVerificationHandler, ExecutionResult};
+use crate::executor::tests::mocks::MockVerificationHandler;
 use alloy_primitives::{Bytes, FixedBytes};
 use anyhow::Result;
 use async_trait::async_trait;
@@ -23,7 +23,7 @@ impl TestContractHandler {
 }
 
 #[async_trait]
-impl ContractHandler for TestContractHandler {
+impl BlsSignatureVerificationHandler for TestContractHandler {
     async fn handle_verification(
         &mut self,
         _msg_hash: FixedBytes<32>,
@@ -43,19 +43,19 @@ impl ContractHandler for TestContractHandler {
 
 #[test]
 fn test_mock_contract_handler_creation() {
-    let handler = MockContractHandler::new();
-    assert_eq!(format!("{:?}", handler), "MockContractHandler");
+    let handler = MockVerificationHandler::new();
+    assert_eq!(format!("{:?}", handler), "MockVerificationHandler");
 }
 
 #[test]
 fn test_mock_contract_handler_default() {
-    let handler = MockContractHandler;
-    assert_eq!(format!("{:?}", handler), "MockContractHandler");
+    let handler = MockVerificationHandler;
+    assert_eq!(format!("{:?}", handler), "MockVerificationHandler");
 }
 
 #[tokio::test]
 async fn test_mock_contract_handler_success() {
-    let mut handler = MockContractHandler::new();
+    let mut handler = MockVerificationHandler::new();
 
     let msg_hash = FixedBytes::<32>::ZERO;
     let quorum_numbers = Bytes::from_static(b"test");
