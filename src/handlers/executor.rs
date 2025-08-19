@@ -4,7 +4,7 @@ use crate::bindings::blssigcheckoperatorstateretriever::BLSSigCheckOperatorState
 };
 use crate::bindings::blssigcheckoperatorstateretriever::BN254::G1Point;
 use crate::bindings::counter::{self, Counter};
-use crate::handlers::{CounterProvider, ViewOnlyProvider};
+use crate::bindings::{ReadOnlyProvider, WalletProvider};
 use alloy::providers::{Provider, ProviderBuilder};
 use alloy::sol_types::SolValue;
 use alloy_primitives::{Address, Bytes, FixedBytes, U256};
@@ -17,10 +17,10 @@ use eigen_crypto_bls::convert_to_g1_point;
 use std::{collections::HashMap, env, str::FromStr};
 
 pub struct Executor {
-    view_only_provider: ViewOnlyProvider,
-    bls_apk_registry: BLSApkRegistryInstance<(), ViewOnlyProvider>,
-    bls_operator_state_retriever: BLSSigCheckOperatorStateRetrieverInstance<(), ViewOnlyProvider>,
-    counter: Counter::CounterInstance<(), CounterProvider>,
+    view_only_provider: ReadOnlyProvider,
+    bls_apk_registry: BLSApkRegistryInstance<(), ReadOnlyProvider>,
+    bls_operator_state_retriever: BLSSigCheckOperatorStateRetrieverInstance<(), ReadOnlyProvider>,
+    counter: Counter::CounterInstance<(), WalletProvider>,
     registry_coordinator_address: Address,
     g1_hash_map: HashMap<PublicKey, Address>,
 }

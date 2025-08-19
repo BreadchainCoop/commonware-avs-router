@@ -1,10 +1,10 @@
-use crate::{bindings::counter::Counter, wire};
+use crate::{
+    bindings::{ReadOnlyProvider, counter::Counter},
+    wire,
+};
 use alloy::sol_types::SolValue;
 use alloy_primitives::U256;
-use alloy_provider::{
-    ProviderBuilder, RootProvider,
-    fillers::{BlobGasFiller, ChainIdFiller, FillProvider, GasFiller, JoinFill, NonceFiller},
-};
+use alloy_provider::ProviderBuilder;
 use anyhow::Result;
 use commonware_codec::{DecodeExt, ReadExt};
 use commonware_cryptography::sha256::Digest;
@@ -16,7 +16,7 @@ use crate::validator::interface::ValidatorTrait;
 
 /// Counter-specific validator implementation.
 pub struct CounterValidator {
-    counter: Counter::CounterInstance<(), CounterProvider>,
+    counter: Counter::CounterInstance<(), ReadOnlyProvider>,
 }
 
 impl CounterValidator {
@@ -72,12 +72,3 @@ impl ValidatorTrait for CounterValidator {
         Ok(payload_hash)
     }
 }
-
-/// Type alias to reduce complexity
-type CounterProvider = FillProvider<
-    JoinFill<
-        alloy_provider::Identity,
-        JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>,
-    >,
-    RootProvider,
->;
