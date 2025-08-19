@@ -1,6 +1,7 @@
 use crate::bindings::WalletProvider;
 use crate::bindings::blssigcheckoperatorstateretriever::BLSSigCheckOperatorStateRetriever::getNonSignerStakesAndSignatureReturn;
 use crate::bindings::counter::{self, Counter};
+use crate::executor::convert_non_signer_data;
 use crate::executor::interface::{BlsSignatureVerificationHandler, ExecutionResult};
 use alloy_primitives::{Bytes, FixedBytes};
 use anyhow::Result;
@@ -14,37 +15,6 @@ impl CounterHandler {
     pub fn new(counter: Counter::CounterInstance<(), WalletProvider>) -> Self {
         Self { counter }
     }
-
-    fn convert_non_signer_data(
-        non_signer_data: getNonSignerStakesAndSignatureReturn,
-    ) -> counter::IBLSSignatureCheckerTypes::NonSignerStakesAndSignature {
-        counter::IBLSSignatureCheckerTypes::NonSignerStakesAndSignature {
-            nonSignerQuorumBitmapIndices: non_signer_data._0.nonSignerQuorumBitmapIndices,
-            nonSignerPubkeys: non_signer_data
-                ._0
-                .nonSignerPubkeys
-                .into_iter()
-                .map(|p| counter::BN254::G1Point { X: p.X, Y: p.Y })
-                .collect(),
-            quorumApks: non_signer_data
-                ._0
-                .quorumApks
-                .into_iter()
-                .map(|p| counter::BN254::G1Point { X: p.X, Y: p.Y })
-                .collect(),
-            apkG2: counter::BN254::G2Point {
-                X: non_signer_data._0.apkG2.X,
-                Y: non_signer_data._0.apkG2.Y,
-            },
-            sigma: counter::BN254::G1Point {
-                X: non_signer_data._0.sigma.X,
-                Y: non_signer_data._0.sigma.Y,
-            },
-            quorumApkIndices: non_signer_data._0.quorumApkIndices,
-            totalStakeIndices: non_signer_data._0.totalStakeIndices,
-            nonSignerStakeIndices: non_signer_data._0.nonSignerStakeIndices,
-        }
-    }
 }
 
 #[async_trait]
@@ -56,8 +26,32 @@ impl BlsSignatureVerificationHandler for CounterHandler {
         current_block_number: u32,
         non_signer_data: getNonSignerStakesAndSignatureReturn,
     ) -> Result<ExecutionResult> {
-        // Convert to Counter-specific types
-        let non_signer_struct_data = Self::convert_non_signer_data(non_signer_data);
+        let converted_data = convert_non_signer_data(non_signer_data);
+        let non_signer_struct_data =
+            counter::IBLSSignatureCheckerTypes::NonSignerStakesAndSignature {
+                nonSignerQuorumBitmapIndices: converted_data.nonSignerQuorumBitmapIndices,
+                nonSignerPubkeys: converted_data
+                    .nonSignerPubkeys
+                    .into_iter()
+                    .map(|p| counter::BN254::G1Point { X: p.X, Y: p.Y })
+                    .collect(),
+                quorumApks: converted_data
+                    .quorumApks
+                    .into_iter()
+                    .map(|p| counter::BN254::G1Point { X: p.X, Y: p.Y })
+                    .collect(),
+                apkG2: counter::BN254::G2Point {
+                    X: converted_data.apkG2.X,
+                    Y: converted_data.apkG2.Y,
+                },
+                sigma: counter::BN254::G1Point {
+                    X: converted_data.sigma.X,
+                    Y: converted_data.sigma.Y,
+                },
+                quorumApkIndices: converted_data.quorumApkIndices,
+                totalStakeIndices: converted_data.totalStakeIndices,
+                nonSignerStakeIndices: converted_data.nonSignerStakeIndices,
+            };
 
         // Execute the counter increment
         let call_return = self

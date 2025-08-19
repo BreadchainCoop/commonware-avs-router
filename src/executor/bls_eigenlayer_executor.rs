@@ -81,6 +81,37 @@ impl<H: BlsSignatureVerificationHandler> BlsEigenlayerExecutor<H> {
     }
 }
 
+pub fn convert_non_signer_data(
+    non_signer_data: getNonSignerStakesAndSignatureReturn,
+) -> crate::bindings::blssigcheckoperatorstateretriever::IBLSSignatureCheckerTypes::NonSignerStakesAndSignature{
+    crate::bindings::blssigcheckoperatorstateretriever::IBLSSignatureCheckerTypes::NonSignerStakesAndSignature {
+        nonSignerQuorumBitmapIndices: non_signer_data._0.nonSignerQuorumBitmapIndices,
+        nonSignerPubkeys: non_signer_data
+            ._0
+            .nonSignerPubkeys
+            .into_iter()
+            .map(|p| crate::bindings::blssigcheckoperatorstateretriever::BN254::G1Point { X: p.X, Y: p.Y })
+            .collect(),
+        quorumApks: non_signer_data
+            ._0
+            .quorumApks
+            .into_iter()
+            .map(|p| crate::bindings::blssigcheckoperatorstateretriever::BN254::G1Point { X: p.X, Y: p.Y })
+            .collect(),
+        apkG2: crate::bindings::blssigcheckoperatorstateretriever::BN254::G2Point {
+            X: non_signer_data._0.apkG2.X,
+            Y: non_signer_data._0.apkG2.Y,
+        },
+        sigma: crate::bindings::blssigcheckoperatorstateretriever::BN254::G1Point {
+            X: non_signer_data._0.sigma.X,
+            Y: non_signer_data._0.sigma.Y,
+        },
+        quorumApkIndices: non_signer_data._0.quorumApkIndices,
+        totalStakeIndices: non_signer_data._0.totalStakeIndices,
+        nonSignerStakeIndices: non_signer_data._0.nonSignerStakeIndices,
+    }
+}
+
 #[async_trait]
 impl<H: BlsSignatureVerificationHandler> ExecutorTrait for BlsEigenlayerExecutor<H> {
     async fn execute_verification(
