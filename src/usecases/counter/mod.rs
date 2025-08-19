@@ -17,8 +17,8 @@ pub mod validators;
 pub mod executor;
 
 // Re-export main types for easy access
+pub use creators::{CounterCreator, CreatorConfig, ListeningCounterCreator, SimpleTaskQueue};
 pub use executor::CounterHandler;
-pub use creators::{CounterCreator, ListeningCounterCreator, SimpleTaskQueue};
 pub use factories::DefaultTaskDataFactory;
 pub use providers::CounterProvider;
 pub use validators::CounterValidator;
