@@ -3,7 +3,6 @@ name: Rust CI
 on:
   push:
   pull_request:
-
 jobs:
   check:
     name: Format, Clippy, Check (${{ matrix.crate_dir }})
@@ -40,5 +39,91 @@ jobs:
 
       - name: cargo check (all targets)
         run: cargo check --all-targets --all-features
+
+  test:
+    name: Unit Tests (${{ matrix.crate_dir }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        crate_dir: [".", "commonware-avs-node"]
+    defaults:
+      run:
+        working-directory: ${{ matrix.crate_dir }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo builds
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            commonware-avs-node
+
+      - name: Run unit tests
+        run: cargo test --all-targets --all-features
+
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo builds
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            commonware-avs-node
+
+      - name: Install cargo-tarpaulin
+        uses: taiki-e/install-action@cargo-tarpaulin
+
+      - name: Generate code coverage (root crate)
+        run: |
+          cargo tarpaulin --verbose --all-features --workspace --timeout 120 \
+            --exclude-files 'src/bindings/*' \
+            --exclude-files 'commonware-avs-node/src/bindings/*' \
+            --out xml --out html --output-dir coverage
+
+      - name: Generate code coverage (commonware-avs-node)
+        run: |
+          cd commonware-avs-node
+          cargo tarpaulin --verbose --all-features --timeout 120 \
+            --exclude-files 'src/bindings/*' \
+            --out xml --out html --output-dir ../coverage-node
+
+      - name: Generate coverage summary
+        run: |
+          echo "## Code Coverage Report" > coverage-summary.md
+          echo "" >> coverage-summary.md
+          if [ -f coverage/cobertura.xml ]; then
+            echo "### Root Crate Coverage" >> coverage-summary.md
+            echo "Coverage report generated for commonware-avs-router" >> coverage-summary.md
+            echo "" >> coverage-summary.md
+          fi
+          if [ -f coverage-node/cobertura.xml ]; then
+            echo "### Node Crate Coverage" >> coverage-summary.md
+            echo "Coverage report generated for commonware-avs-node" >> coverage-summary.md
+            echo "" >> coverage-summary.md
+          fi
+          echo "Coverage reports are available in the artifacts below." >> coverage-summary.md
+
+      - name: Archive coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-report
+          path: |
+            coverage/
+            coverage-node/
+            coverage-summary.md
 
 
