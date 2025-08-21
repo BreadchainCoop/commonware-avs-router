@@ -284,3 +284,29 @@ where
         }
     }
 }
+
+impl<TC, E, V, C> Orchestrator<TC, E, V, C>
+where
+    TC: Creator,
+    E: VerificationExecutor,
+    V: ValidatorTrait,
+    C: Clock,
+{
+    /// Get a reference to the task creator
+    #[allow(dead_code)]
+    pub fn task_creator(&self) -> &TC {
+        &self.task_creator
+    }
+
+    /// Get a reference to the executor
+    #[allow(dead_code)]
+    pub fn executor(&self) -> &E {
+        &self.executor
+    }
+
+    /// Get a reference to the validator
+    #[allow(dead_code)]
+    pub fn validator(&self) -> &V {
+        &self.validator
+    }
+}

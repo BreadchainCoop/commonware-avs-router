@@ -9,7 +9,7 @@ pub mod builder;
 pub mod generic;
 pub mod interface;
 
-// Test module (only compiled in test mode)
+// Test module
 #[cfg(test)]
 pub mod tests;
 

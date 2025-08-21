@@ -3,8 +3,9 @@ use alloy_primitives::U256;
 use anyhow::Result;
 use commonware_cryptography::sha256::Digest;
 use commonware_cryptography::{Hasher, Sha256};
+use std::sync::{Arc, Mutex};
 
-use super::interface::ValidatorTrait;
+use crate::validator::interface::ValidatorTrait;
 
 /// Mock validator implementation for testing purposes.
 ///
@@ -19,6 +20,8 @@ pub struct MockValidator {
     should_succeed: bool,
     /// Custom error message to return on failure
     error_message: Option<String>,
+    /// Counter for tracking validation attempts
+    validation_count: Arc<Mutex<u64>>,
 }
 
 #[allow(dead_code)]
@@ -38,6 +41,7 @@ impl MockValidator {
             expected_round,
             should_succeed: true,
             error_message: None,
+            validation_count: Arc::new(Mutex::new(0)),
         }
     }
 
@@ -56,6 +60,7 @@ impl MockValidator {
             expected_round: 0,
             should_succeed: false,
             error_message: Some(error_message),
+            validation_count: Arc::new(Mutex::new(0)),
         }
     }
 
@@ -79,6 +84,7 @@ impl MockValidator {
             expected_round,
             should_succeed,
             error_message,
+            validation_count: Arc::new(Mutex::new(0)),
         }
     }
 
@@ -114,11 +120,36 @@ impl MockValidator {
     pub fn set_error_message(&mut self, error_message: Option<String>) {
         self.error_message = error_message;
     }
+
+    /// Gets the current validation count.
+    ///
+    /// This method is useful for testing to verify how many times
+    /// validation was attempted.
+    ///
+    /// # Returns
+    /// * `u64` - The current validation count
+    pub fn get_validation_count(&self) -> u64 {
+        *self.validation_count.lock().unwrap()
+    }
+
+    /// Resets the validation count to zero.
+    ///
+    /// This method is useful for testing to reset the counter
+    /// between test scenarios.
+    pub fn reset_validation_count(&mut self) {
+        let mut count = self.validation_count.lock().unwrap();
+        *count = 0;
+    }
 }
 
 #[async_trait::async_trait]
 impl ValidatorTrait for MockValidator {
     async fn validate_and_return_expected_hash(&self, msg: &[u8]) -> Result<Digest> {
+        {
+            let mut count = self.validation_count.lock().unwrap();
+            *count += 1;
+        }
+
         if !self.should_succeed {
             let error_msg = self
                 .error_message
