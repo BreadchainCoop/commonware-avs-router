@@ -13,8 +13,12 @@ pub mod creators;
 // Counter validators
 pub mod validators;
 
+// Counter executor implementation
+pub mod executor;
+
 // Re-export main types for easy access
 pub use creators::{CounterCreator, CreatorConfig, ListeningCounterCreator, SimpleTaskQueue};
+pub use executor::CounterHandler;
 pub use factories::DefaultTaskDataFactory;
 pub use providers::CounterProvider;
 pub use validators::CounterValidator;
