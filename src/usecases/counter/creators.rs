@@ -1,10 +1,10 @@
 use anyhow::Result;
 use async_trait::async_trait;
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tracing::{error, warn};
 
-use super::factories::DefaultTaskDataFactory;
 use super::providers::CounterProvider;
 
 use crate::creator::core::Creator;
@@ -140,14 +140,12 @@ impl Default for CreatorConfig {
 /// Creator for the counter usecase without ingress.
 pub struct CounterCreator {
     provider: Arc<CounterProvider>,
-    factory: Arc<DefaultTaskDataFactory>,
 }
 
 impl CounterCreator {
-    pub fn new(provider: CounterProvider, factory: DefaultTaskDataFactory) -> Self {
+    pub fn new(provider: CounterProvider) -> Self {
         Self {
             provider: Arc::new(provider),
-            factory: Arc::new(factory),
         }
     }
 }
@@ -156,33 +154,37 @@ impl CounterCreator {
 impl Creator for CounterCreator {
     async fn get_payload_and_round(&self) -> Result<(Vec<u8>, u64)> {
         let round = self.provider.get_current_round().await?;
-        let _task = self.factory.create_task_data().await?;
+        // Task data is now handled directly via get_task_metadata()
         // Domain decision: payload is ABI-encoded round
         let payload = self.provider.encode_round(round);
         Ok((payload, round))
+    }
+
+    fn get_task_metadata(&self) -> HashMap<String, String> {
+        // Use the default task data values for consistency
+        let mut metadata = HashMap::new();
+        metadata.insert("var1".to_string(), "default_var1".to_string());
+        metadata.insert("var2".to_string(), "default_var2".to_string());
+        metadata.insert("var3".to_string(), "default_var3".to_string());
+        metadata
     }
 }
 
 /// Creator for the counter usecase that listens for external requests.
 pub struct ListeningCounterCreator<Q: TaskQueue + Send + Sync + 'static> {
     provider: Arc<CounterProvider>,
-    factory: Arc<DefaultTaskDataFactory>,
     queue: Arc<Q>,
     config: CreatorConfig,
+    current_task: std::sync::Mutex<Option<TaskRequest>>,
 }
 
 impl<Q: TaskQueue + Send + Sync + 'static> ListeningCounterCreator<Q> {
-    pub fn new(
-        provider: CounterProvider,
-        factory: DefaultTaskDataFactory,
-        queue: Q,
-        config: CreatorConfig,
-    ) -> Self {
+    pub fn new(provider: CounterProvider, queue: Q, config: CreatorConfig) -> Self {
         Self {
             provider: Arc::new(provider),
-            factory: Arc::new(factory),
             queue: Arc::new(queue),
             config,
+            current_task: std::sync::Mutex::new(None),
         }
     }
 
@@ -192,6 +194,10 @@ impl<Q: TaskQueue + Send + Sync + 'static> ListeningCounterCreator<Q> {
         let max_attempts = self.config.timeout_ms / self.config.polling_interval_ms;
         loop {
             if let Some(task) = self.queue.pop() {
+                // Store the task for metadata access
+                if let Ok(mut current_task) = self.current_task.lock() {
+                    *current_task = Some(task.clone());
+                }
                 return Ok(task);
             }
             attempts += 1;
@@ -212,8 +218,44 @@ impl<Q: TaskQueue + Send + Sync + 'static> Creator for ListeningCounterCreator<Q
     async fn get_payload_and_round(&self) -> Result<(Vec<u8>, u64)> {
         let _task = self.wait_for_task().await?;
         let round = self.provider.get_current_round().await?;
-        let _task_data = self.factory.create_task_data_from_request(&_task).await?;
+        // Task data is now handled directly via get_task_metadata() from the request
         let payload = self.provider.encode_round(round);
         Ok((payload, round))
+    }
+
+    fn get_task_metadata(&self) -> HashMap<String, String> {
+        // Use the default task data values for consistency
+        let mut metadata = HashMap::new();
+        metadata.insert("var1".to_string(), "default_var1".to_string());
+        metadata.insert("var2".to_string(), "default_var2".to_string());
+        metadata.insert("var3".to_string(), "default_var3".to_string());
+        metadata
+    }
+}
+
+/// This enum allows us to use concrete types at compile time while still
+/// supporting different creator implementations. This enables the generic
+/// orchestrator to work without runtime polymorphism.
+pub enum CounterCreatorType {
+    /// Basic counter creator without ingress
+    Basic(CounterCreator),
+    /// Listening counter creator with HTTP ingress
+    Listening(ListeningCounterCreator<SimpleTaskQueue>),
+}
+
+#[async_trait]
+impl Creator for CounterCreatorType {
+    async fn get_payload_and_round(&self) -> Result<(Vec<u8>, u64)> {
+        match self {
+            CounterCreatorType::Basic(creator) => creator.get_payload_and_round().await,
+            CounterCreatorType::Listening(creator) => creator.get_payload_and_round().await,
+        }
+    }
+
+    fn get_task_metadata(&self) -> HashMap<String, String> {
+        match self {
+            CounterCreatorType::Basic(creator) => creator.get_task_metadata(),
+            CounterCreatorType::Listening(creator) => creator.get_task_metadata(),
+        }
     }
 }

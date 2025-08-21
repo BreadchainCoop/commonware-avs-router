@@ -1,13 +1,3 @@
-use crate::creator::BoxedCreator;
-use crate::executor::core::{VerificationData, VerificationExecutor};
-use crate::handlers::factories::create_counter_executor;
-use crate::handlers::factories::{create_creator, create_listening_creator_with_server};
-use crate::usecases::counter::CounterValidator;
-// DefaultTaskData is now internal to counter usecase creators
-
-use crate::validator::Validator;
-use crate::wire::{self, aggregation::Payload};
-
 use bn254::{Bn254, G1PublicKey, PublicKey, Signature as Bn254Signature};
 use bytes::Bytes;
 use commonware_codec::{EncodeSize, ReadExt, Write};
@@ -16,15 +6,44 @@ use commonware_macros::select;
 use commonware_p2p::{Receiver, Sender};
 use commonware_runtime::Clock;
 use commonware_utils::hex;
-use dotenv::dotenv;
 use std::{collections::HashMap, time::Duration};
 use tracing::info;
-const DEFAULT_VAR_1: &str = "default_var1";
-const DEFAULT_VAR_2: &str = "default_var2";
-const DEFAULT_VAR_3: &str = "default_var3";
 
-pub struct Orchestrator<E: Clock> {
-    runtime: E,
+use crate::creator::core::Creator;
+use crate::executor::core::{VerificationData, VerificationExecutor};
+use crate::orchestrator::interface::OrchestratorTrait;
+use crate::validator::interface::ValidatorTrait;
+use crate::wire::{self, aggregation::Payload};
+
+/// Configuration for the generic orchestrator
+#[derive(Debug, Clone)]
+pub struct OrchestratorConfig {
+    pub aggregation_frequency: Duration,
+    pub contributors: Vec<PublicKey>,
+    pub g1_map: HashMap<PublicKey, G1PublicKey>,
+    pub threshold: usize,
+}
+
+/// Generic orchestrator that accepts trait-based dependencies.
+///
+/// This struct provides a flexible implementation of the orchestration process
+/// that can work with any implementation of the required traits. It follows
+/// the Dependency Inversion Principle by depending on abstractions rather
+/// than concrete implementations.
+///
+/// # Type Parameters
+/// * `TC` - Task creator implementation that implements `Creator`
+/// * `E` - Executor implementation that implements `VerificationExecutor`
+/// * `V` - Validator implementation that implements `ValidatorTrait`
+/// * `C` - Clock implementation that implements `Clock`
+pub struct Orchestrator<TC, E, V, C>
+where
+    TC: Creator,
+    E: VerificationExecutor,
+    V: ValidatorTrait,
+    C: Clock,
+{
+    runtime: C,
     #[allow(dead_code)]
     signer: Bn254,
     aggregation_frequency: Duration,
@@ -32,19 +51,42 @@ pub struct Orchestrator<E: Clock> {
     g1_map: HashMap<PublicKey, G1PublicKey>, // g2 (PublicKey) -> g1 (PublicKey)
     ordered_contributors: HashMap<PublicKey, usize>,
     t: usize,
+    task_creator: TC,
+    executor: E,
+    validator: V,
 }
 
-impl<E: Clock> Orchestrator<E> {
-    pub async fn new(
-        runtime: E,
+impl<TC, E, V, C> Orchestrator<TC, E, V, C>
+where
+    TC: Creator,
+    E: VerificationExecutor,
+    V: ValidatorTrait,
+    C: Clock,
+{
+    /// Creates a new Orchestrator instance with the given dependencies.
+    ///
+    /// This constructor takes ownership of all the required components
+    /// and initializes the orchestrator with the provided configuration.
+    ///
+    /// # Arguments
+    /// * `runtime` - The clock implementation for timing operations
+    /// * `signer` - The BLS signer for cryptographic operations
+    /// * `config` - The orchestrator configuration
+    /// * `task_creator` - The task creator implementation
+    /// * `executor` - The executor implementation
+    /// * `validator` - The validator implementation
+    ///
+    /// # Returns
+    /// * `Self` - The new Orchestrator instance
+    pub fn new(
+        runtime: C,
         signer: Bn254,
-        aggregation_frequency: Duration,
-        mut contributors: Vec<PublicKey>,
-        g1_map: HashMap<PublicKey, G1PublicKey>,
-        t: usize,
+        config: OrchestratorConfig,
+        task_creator: TC,
+        executor: E,
+        validator: V,
     ) -> Self {
-        dotenv().ok();
-
+        let mut contributors = config.contributors.clone();
         contributors.sort();
         let mut ordered_contributors = HashMap::new();
         for (idx, contributor) in contributors.iter().enumerate() {
@@ -54,38 +96,36 @@ impl<E: Clock> Orchestrator<E> {
         Self {
             runtime,
             signer,
-            aggregation_frequency,
+            aggregation_frequency: config.aggregation_frequency,
             contributors,
-            g1_map,
+            g1_map: config.g1_map,
             ordered_contributors,
-            t,
+            t: config.threshold,
+            task_creator,
+            executor,
+            validator,
         }
     }
+}
 
-    pub async fn run(
-        self,
+#[async_trait::async_trait]
+impl<TC, E, V, C> OrchestratorTrait for Orchestrator<TC, E, V, C>
+where
+    TC: Creator + Send + Sync,
+    E: VerificationExecutor + Send + Sync,
+    V: ValidatorTrait + Send + Sync,
+    C: Clock + Send + Sync,
+{
+    async fn run(
+        mut self,
         mut sender: impl Sender,
         mut receiver: impl Receiver<PublicKey = PublicKey>,
     ) {
         let mut hasher = Sha256::new();
         let mut signatures = HashMap::new();
-        // Check if INGRESS flag is set to determine which creator to use
-        let use_ingress = std::env::var("INGRESS").unwrap_or_default().to_lowercase() == "true";
-        let task_creator: BoxedCreator = if use_ingress {
-            info!("Using creator with HTTP server on port 8080");
-            create_listening_creator_with_server("0.0.0.0:8080".to_string())
-                .await
-                .unwrap()
-        } else {
-            info!("Using Creator without ingress");
-            create_creator().await.unwrap()
-        };
-        let mut executor = create_counter_executor().await.unwrap();
-        let counter_validator = CounterValidator::new().await.unwrap();
-        let validator = Validator::new(counter_validator);
 
         loop {
-            let (payload, current_round) = task_creator.get_payload_and_round().await.unwrap();
+            let (payload, current_round) = self.task_creator.get_payload_and_round().await.unwrap();
             hasher.update(&payload);
             let payload = hasher.finalize();
             info!(
@@ -95,11 +135,10 @@ impl<E: Clock> Orchestrator<E> {
             );
 
             // Broadcast payload
+            let metadata = self.task_creator.get_task_metadata();
             let message = wire::Aggregation {
                 round: current_round,
-                var1: DEFAULT_VAR_1.to_string(),
-                var2: DEFAULT_VAR_2.to_string(),
-                var3: DEFAULT_VAR_3.to_string(),
+                metadata,
                 payload: Some(Payload::Start),
             };
             let mut buf = Vec::with_capacity(message.encode_size());
@@ -166,7 +205,7 @@ impl<E: Clock> Orchestrator<E> {
 
                         let mut buf = Vec::with_capacity(msg.encode_size());
                         msg.write(&mut buf);
-                        let expected_digest = validator.validate_and_return_expected_hash(&buf).await.unwrap();
+                        let expected_digest = self.validator.validate_and_return_expected_hash(&buf).await.unwrap();
                         info!("Verifying signature for round: {} from contributor: {:?}, expected digest: {}",
                               msg.round, contributor, hex(&expected_digest));
 
@@ -208,7 +247,7 @@ impl<E: Clock> Orchestrator<E> {
                             panic!("failed to verify aggregated signature");
                         }
 
-                        // Execute the increment with the aggregated signature
+                        // Execute verification with the aggregated signature
                         // Create verification data with G1 public keys in context
                         let mut context = Vec::new();
                         for g1_pubkey in &participating_g1 {
@@ -220,21 +259,21 @@ impl<E: Clock> Orchestrator<E> {
                         let verification_data = VerificationData::new(signatures, participating)
                             .with_context(context);
 
-                        match executor.execute_verification(
+                        match self.executor.execute_verification(
                             &expected_digest,
                             verification_data,
                         ).await {
                             Ok(result) => {
                                 info!(
                                     round = msg.round,
-                                    "Successfully executed increment with aggregated signature. Result: {:?}",
+                                    "Successfully executed verification with aggregated signature. Result: {:?}",
                                     result
                                 );
                             },
                             Err(e) => {
                                 info!(
                                     round = msg.round,
-                                    "Failed to execute increment with aggregated signature: {:?}",
+                                    "Failed to execute verification with aggregated signature: {:?}",
                                     e
                                 );
                             }

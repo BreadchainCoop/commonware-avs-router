@@ -1,31 +1,34 @@
 use bytes::{Buf, BufMut};
 use commonware_codec::{EncodeSize, Error, Read, ReadExt, Write};
+use std::collections::HashMap;
 
 const SIGNATURE_BYTES: usize = 32;
 
 /// Represents a top-level message for the Aggregation protocol,
 /// typically sent over a dedicated aggregation communication channel.
 ///
-/// It encapsulates a specific round number, task variables, and a payload containing the actual
+/// It encapsulates a specific round number, flexible metadata, and a payload containing the actual
 /// aggregation protocol message content.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Aggregation {
     pub round: u64,
-    pub var1: String,
-    pub var2: String,
-    pub var3: String,
+    pub metadata: HashMap<String, String>,
     pub payload: Option<aggregation::Payload>,
 }
 
 impl Write for Aggregation {
     fn write(&self, buf: &mut impl BufMut) {
         self.round.write(buf);
-        (self.var1.len() as u32).write(buf);
-        buf.put_slice(self.var1.as_bytes());
-        (self.var2.len() as u32).write(buf);
-        buf.put_slice(self.var2.as_bytes());
-        (self.var3.len() as u32).write(buf);
-        buf.put_slice(self.var3.as_bytes());
+
+        // Write metadata as length-prefixed key-value pairs
+        (self.metadata.len() as u32).write(buf);
+        for (key, value) in &self.metadata {
+            (key.len() as u32).write(buf);
+            buf.put_slice(key.as_bytes());
+            (value.len() as u32).write(buf);
+            buf.put_slice(value.as_bytes());
+        }
+
         self.payload.write(buf);
     }
 }
@@ -36,39 +39,38 @@ impl Read for Aggregation {
     fn read_cfg(buf: &mut impl Buf, _: &()) -> Result<Self, Error> {
         let round = u64::read(buf)?;
 
-        let var1_len = u32::read(buf)? as usize;
-        if buf.remaining() < var1_len {
-            return Err(Error::EndOfBuffer);
-        }
-        let mut var1_bytes = vec![0u8; var1_len];
-        buf.copy_to_slice(&mut var1_bytes);
-        let var1 = String::from_utf8(var1_bytes)
-            .map_err(|_| Error::Invalid("var1", "decoding from utf8 failed"))?;
+        // Read metadata as length-prefixed key-value pairs
+        let metadata_count = u32::read(buf)? as usize;
+        let mut metadata = HashMap::new();
 
-        let var2_len = u32::read(buf)? as usize;
-        if buf.remaining() < var2_len {
-            return Err(Error::EndOfBuffer);
-        }
-        let mut var2_bytes = vec![0u8; var2_len];
-        buf.copy_to_slice(&mut var2_bytes);
-        let var2 = String::from_utf8(var2_bytes)
-            .map_err(|_| Error::Invalid("var2", "decoding from utf8 failed"))?;
+        for _ in 0..metadata_count {
+            // Read key
+            let key_len = u32::read(buf)? as usize;
+            if buf.remaining() < key_len {
+                return Err(Error::EndOfBuffer);
+            }
+            let mut key_bytes = vec![0u8; key_len];
+            buf.copy_to_slice(&mut key_bytes);
+            let key = String::from_utf8(key_bytes)
+                .map_err(|_| Error::Invalid("metadata_key", "decoding from utf8 failed"))?;
 
-        let var3_len = u32::read(buf)? as usize;
-        if buf.remaining() < var3_len {
-            return Err(Error::EndOfBuffer);
+            // Read value
+            let value_len = u32::read(buf)? as usize;
+            if buf.remaining() < value_len {
+                return Err(Error::EndOfBuffer);
+            }
+            let mut value_bytes = vec![0u8; value_len];
+            buf.copy_to_slice(&mut value_bytes);
+            let value = String::from_utf8(value_bytes)
+                .map_err(|_| Error::Invalid("metadata_value", "decoding from utf8 failed"))?;
+
+            metadata.insert(key, value);
         }
-        let mut var3_bytes = vec![0u8; var3_len];
-        buf.copy_to_slice(&mut var3_bytes);
-        let var3 = String::from_utf8(var3_bytes)
-            .map_err(|_| Error::Invalid("var3", "decoding from utf8 failed"))?;
 
         let payload = Option::<aggregation::Payload>::read(buf)?;
         Ok(Self {
             round,
-            var1,
-            var2,
-            var3,
+            metadata,
             payload,
         })
     }
@@ -76,14 +78,14 @@ impl Read for Aggregation {
 
 impl EncodeSize for Aggregation {
     fn encode_size(&self) -> usize {
-        self.round.encode_size()
-            + 4
-            + self.var1.len()
-            + 4
-            + self.var2.len()
-            + 4
-            + self.var3.len()
-            + self.payload.encode_size()
+        let mut size = self.round.encode_size() + 4; // round + metadata_count
+
+        // Add size for each key-value pair (key_len + key + value_len + value)
+        for (key, value) in &self.metadata {
+            size += 4 + key.len() + 4 + value.len();
+        }
+
+        size + self.payload.encode_size()
     }
 }
 
@@ -151,11 +153,14 @@ mod tests {
 
     #[test]
     fn test_aggregation_start_codec() {
+        let mut metadata = HashMap::new();
+        metadata.insert("var1".to_string(), "test1".to_string());
+        metadata.insert("var2".to_string(), "test2".to_string());
+        metadata.insert("var3".to_string(), "test3".to_string());
+
         let original = Aggregation {
             round: 1,
-            var1: "test1".to_string(),
-            var2: "test2".to_string(),
-            var3: "test3".to_string(),
+            metadata,
             payload: Some(aggregation::Payload::Start),
         };
         let mut buf = Vec::with_capacity(original.encode_size());
@@ -166,11 +171,14 @@ mod tests {
 
     #[test]
     fn test_aggregation_signature_codec() {
+        let mut metadata = HashMap::new();
+        metadata.insert("var1".to_string(), "test1".to_string());
+        metadata.insert("var2".to_string(), "test2".to_string());
+        metadata.insert("var3".to_string(), "test3".to_string());
+
         let original = Aggregation {
             round: 1,
-            var1: "test1".to_string(),
-            var2: "test2".to_string(),
-            var3: "test3".to_string(),
+            metadata,
             payload: Some(aggregation::Payload::Signature(
                 hex::decode(SAMPLE_SIGNATURE_HEX).expect("hex decode failed"),
             )),

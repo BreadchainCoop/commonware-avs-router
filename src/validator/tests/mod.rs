@@ -4,16 +4,20 @@ use alloy_primitives::U256;
 use commonware_codec::Encode;
 use commonware_cryptography::sha256::Digest;
 use commonware_cryptography::{Hasher, Sha256};
+use std::collections::HashMap;
 
 use super::{generic::Validator, mock::MockValidator};
 
 /// Test helper for creating test messages
 fn create_test_message(round: u64) -> Vec<u8> {
+    let mut metadata = HashMap::new();
+    metadata.insert("var1".to_string(), "test_var1".to_string());
+    metadata.insert("var2".to_string(), "test_var2".to_string());
+    metadata.insert("var3".to_string(), "test_var3".to_string());
+
     let aggregation = wire::Aggregation {
         round,
-        var1: "test_var1".to_string(),
-        var2: "test_var2".to_string(),
-        var3: "test_var3".to_string(),
+        metadata,
         payload: None,
     };
     aggregation.encode().to_vec()

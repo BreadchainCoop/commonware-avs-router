@@ -27,6 +27,7 @@ impl<T: ValidatorTrait> Validator<T> {
     ///
     /// # Returns
     /// * `Self` - The new Validator instance
+    #[allow(dead_code)]
     pub fn new(validator_impl: T) -> Self {
         Self { validator_impl }
     }
@@ -41,6 +42,7 @@ impl<T: ValidatorTrait> Validator<T> {
     ///
     /// # Returns
     /// * `Result<Digest>` - The expected hash if validation succeeds, or an error
+    #[allow(dead_code)]
     pub async fn validate_and_return_expected_hash(&self, msg: &[u8]) -> Result<Digest> {
         self.validator_impl
             .validate_and_return_expected_hash(msg)
