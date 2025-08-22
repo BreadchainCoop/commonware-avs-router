@@ -83,7 +83,7 @@ Contract addresses are automatically loaded from the deployment JSON file.
 
 Pull the latest image:
 ```bash
-docker pull ghcr.io/breadchaincoop/commonware-avs-router-2:latest
+docker pull ghcr.io/breadchaincoop/commonware-avs-router:latest
 ```
 
 Run with Docker Compose:
@@ -91,7 +91,7 @@ Run with Docker Compose:
 version: '3.8'
 services:
   orchestrator:
-    image: ghcr.io/breadchaincoop/commonware-avs-router-2:latest
+    image: ghcr.io/breadchaincoop/commonware-avs-router:latest
     volumes:
       - ./config:/app/config
       - ./keys:/app/keys
