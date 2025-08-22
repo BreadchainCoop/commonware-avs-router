@@ -137,3 +137,16 @@ curl -X POST http://localhost:8080/trigger \
 cargo fmt --all -- --check
 cargo clippy --all-targets --all-features -- -D warnings
 ```
+
+### Testing
+
+Run unit tests:
+```bash
+cargo test --lib
+```
+
+Run end-to-end tests:
+```bash
+chmod +x scripts/router_e2e_local.sh
+scripts/router_e2e_local.sh
+```
