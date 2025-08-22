@@ -209,7 +209,9 @@ where
                         info!("Verifying signature for round: {} from contributor: {:?}, expected digest: {}",
                               msg.round, contributor, hex(&expected_digest));
 
-                        if !sender.verify(None, &expected_digest, &signature) {
+                        // Get the contributor's public key for verification
+                        let contributor_pubkey = &self.contributors[*contributor];
+                        if !contributor_pubkey.verify(None, &expected_digest, &signature) {
                             info!("Signature verification failed for contributor: {:?}", contributor);
                             continue;
                         }
