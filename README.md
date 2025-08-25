@@ -3,11 +3,11 @@
 [![Rust](https://img.shields.io/badge/rust-stable-brightgreen.svg)](https://www.rust-lang.org)
 [![Docker](https://img.shields.io/badge/docker-ghcr.io/breadchaincoop/commonware--avs--router-blue.svg)](https://github.com/BreadchainCoop/commonware-avs-router/pkgs/container/commonware-avs-router)
 
-A BLS signature aggregation protocol with on-chain execution for EigenLayer AVS operators.
+A BLS signature aggregation protocol with onchain execution for EigenLayer AVS operators.
 
 ## Overview
 
-The router coordinates multiple operators to sign messages, aggregates their signatures when a threshold is reached, and executes the result on-chain.
+The router coordinates multiple operators to sign messages, aggregates their signatures when a threshold is reached, and executes the result onchain.
 
 ## Quick Start
 
@@ -62,9 +62,18 @@ The system consists of:
 
 - **Orchestrator**: Coordinates the aggregation process
 - **Creator**: Generates payloads and manages rounds  
-- **Executor**: Handles on-chain execution
+- **Executor**: Handles onchain execution
 - **Validator**: Validates messages and signatures
 - **Contributors**: Operator nodes that sign messages (implemented in [`commonware-avs-node`](https://github.com/BreadchainCoop/commonware-avs-node) submodule)
+
+### Usecases
+
+The router supports multiple usecases for different onchain operations:
+
+- **[Counter Usecase](src/usecases/counter/README.md)**: Simple counter increment with BLS signature aggregation
+- More usecases can be added by implementing the `Creator` and `Executor` traits
+
+See individual usecase READMEs for detailed architecture diagrams and implementation details.
 
 ## Configuration
 
