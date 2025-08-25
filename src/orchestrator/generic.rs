@@ -253,11 +253,8 @@ where
                         // Create verification data with G1 public keys in context
                         let mut context = Vec::new();
                         for g1_pubkey in &participating_g1 {
-                            // Serialize G1 public key coordinates to context with space separation
-                            context.extend_from_slice(g1_pubkey.get_x().as_bytes());
-                            context.push(b' '); // Add space separator
-                            context.extend_from_slice(g1_pubkey.get_y().as_bytes());
-                            context.push(b' '); // Add space separator
+                            // Serialize G1 public key using its raw compressed format (32 bytes)
+                            context.extend_from_slice(g1_pubkey);
                         }
 
                         let verification_data = VerificationData::new(signatures, participating)
