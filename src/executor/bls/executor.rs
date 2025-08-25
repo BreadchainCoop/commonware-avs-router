@@ -1,10 +1,7 @@
 use crate::bindings::ReadOnlyProvider;
 use crate::bindings::blsapkregistry::BLSApkRegistry::BLSApkRegistryInstance;
+use crate::bindings::blssigcheckoperatorstateretriever::BLSSigCheckOperatorStateRetriever::BLSSigCheckOperatorStateRetrieverInstance;
 use crate::bindings::blssigcheckoperatorstateretriever::BN254::G1Point;
-use crate::bindings::blssigcheckoperatorstateretriever::{
-    BLSSigCheckOperatorStateRetriever::BLSSigCheckOperatorStateRetrieverInstance,
-    BLSSigCheckOperatorStateRetriever::getNonSignerStakesAndSignatureReturn,
-};
 use crate::executor::core::{ExecutionResult, VerificationData, VerificationExecutor};
 use alloy::providers::Provider;
 use alloy::sol_types::SolValue;
@@ -79,6 +76,7 @@ impl<H: BlsSignatureVerificationHandler> BlsEigenlayerExecutor<H> {
             .await
             .map_err(|e| anyhow::anyhow!("Failed to get operator from pubkey hash: {}", e))?
             .operator;
+
         self.g1_hash_map.insert(contributor.clone(), address);
         Ok(address)
     }
@@ -91,13 +89,41 @@ impl<H: BlsSignatureVerificationHandler> VerificationExecutor for BlsEigenlayerE
         payload_hash: &[u8],
         verification_data: VerificationData,
     ) -> Result<ExecutionResult> {
-        // Convert generic verification data to BLS-specific data
         // For BLS, we need to extract G1 public keys from the context
-        let g1_public_keys = if let Some(_context) = verification_data.context {
-            // In a real implementation, you'd deserialize the G1 public keys from context
-            // For now, we'll assume they're provided in the same order as public_keys
-            // This is a simplified approach - in practice you'd want proper serialization
-            vec![] // TODO: Implement proper G1 public key extraction from context
+        // The context should contain the G1 public keys that were passed from the orchestrator
+        let g1_public_keys = if let Some(context) = verification_data.context {
+            // The context contains the G1 public keys that were passed from the orchestrator
+            // We need to deserialize them properly
+            let context_str = std::str::from_utf8(&context)
+                .map_err(|e| anyhow::anyhow!("Failed to parse context as UTF-8: {}", e))?;
+
+            // The context should contain G1 public key coordinates separated by spaces
+            // Format: "x1 y1 x2 y2 x3 y3 ..."
+            let mut g1_keys = Vec::new();
+            let parts: Vec<&str> = context_str.split_whitespace().collect();
+
+            if parts.len() % 2 != 0 {
+                return Err(anyhow::anyhow!(
+                    "Invalid context format: odd number of coordinates"
+                ));
+            }
+
+            for i in (0..parts.len()).step_by(2) {
+                let x_str = parts[i];
+                let y_str = parts[i + 1];
+
+                let g1_pubkey =
+                    G1PublicKey::create_from_g1_coordinates(x_str, y_str).ok_or_else(|| {
+                        anyhow::anyhow!(
+                            "Failed to create G1 public key from coordinates: x={}, y={}",
+                            x_str,
+                            y_str
+                        )
+                    })?;
+                g1_keys.push(g1_pubkey);
+            }
+
+            g1_keys
         } else {
             return Err(anyhow::anyhow!(
                 "BLS verification requires G1 public keys in context"
@@ -154,24 +180,20 @@ impl<H: BlsSignatureVerificationHandler> BlsExecutorTrait for BlsEigenlayerExecu
             .map_err(|e| anyhow::anyhow!("Failed to get block number: {}", e))?;
         let quorum_numbers = Bytes::from_str("0x00")
             .map_err(|e| anyhow::anyhow!("Failed to parse quorum numbers: {}", e))?;
-        let ret = self
+
+        // Call the BLS operator state retriever to get the non-signer data
+        let non_signer_return = self
             .bls_operator_state_retriever
             .getNonSignerStakesAndSignature(
                 self.registry_coordinator_address,
                 quorum_numbers.clone(),
                 sigma_struct,
                 operators,
-                current_block_number
-                    .try_into()
-                    .map_err(|e| anyhow::anyhow!("Failed to convert block number: {}", e))?,
+                current_block_number as u32,
             )
             .call()
             .await
-            .map_err(|e| anyhow::anyhow!("Failed to get non-signer stakes and signature: {}", e))?
-            ._0;
-
-        // Pass the non-signer data directly to the contract handler
-        let non_signer_return = getNonSignerStakesAndSignatureReturn { _0: ret };
+            .map_err(|e| anyhow::anyhow!("Failed to get non-signer stakes and signature: {}", e))?;
 
         // Delegate the contract-specific execution to the handler
         let result = self

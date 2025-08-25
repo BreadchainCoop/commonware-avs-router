@@ -212,9 +212,11 @@ impl<E: Clock> Orchestrator<E> {
                         // Create verification data with G1 public keys in context
                         let mut context = Vec::new();
                         for g1_pubkey in &participating_g1 {
-                            // Serialize G1 public key to context (simplified - in practice you'd use proper serialization)
+                            // Serialize G1 public key coordinates to context with space separation
                             context.extend_from_slice(g1_pubkey.get_x().as_bytes());
+                            context.push(b' '); // Add space separator
                             context.extend_from_slice(g1_pubkey.get_y().as_bytes());
+                            context.push(b' '); // Add space separator
                         }
 
                         let verification_data = VerificationData::new(signatures, participating)
