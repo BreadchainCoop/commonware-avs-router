@@ -1,5 +1,6 @@
 use crate::{
     bindings::{ReadOnlyProvider, counter::Counter},
+    usecases::counter::creators::CounterTaskData,
     wire,
 };
 use alloy::sol_types::SolValue;
@@ -37,7 +38,8 @@ impl CounterValidator {
 
     /// Verifies that the message round number matches the current onchain state.
     async fn verify_message_round(&self, msg: &[u8]) -> Result<()> {
-        let aggregation = wire::Aggregation::read(&mut Cursor::new(msg))?;
+        let aggregation: wire::Aggregation<CounterTaskData> =
+            wire::Aggregation::read(&mut Cursor::new(msg))?;
         let current_number = self.counter.number().call().await?;
         let current_number = current_number._0.to::<u64>();
 
@@ -61,7 +63,7 @@ impl ValidatorTrait for CounterValidator {
     }
 
     async fn get_payload_from_message(&self, msg: &[u8]) -> Result<Digest> {
-        let aggregation = wire::Aggregation::decode(msg)?;
+        let aggregation: wire::Aggregation<CounterTaskData> = wire::Aggregation::decode(msg)?;
         let payload = U256::from(aggregation.round).abi_encode();
 
         // Hash the payload

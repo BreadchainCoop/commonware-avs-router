@@ -135,12 +135,12 @@ where
             );
 
             // Broadcast payload
-            let metadata = self.task_creator.get_task_metadata();
-            let message = wire::Aggregation {
-                round: current_round,
-                metadata,
-                payload: Some(Payload::Start),
-            };
+            let task_data = self.task_creator.get_task_metadata();
+            let message = wire::Aggregation::<TC::TaskData>::new(
+                current_round,
+                task_data,
+                Some(Payload::Start),
+            );
             let mut buf = Vec::with_capacity(message.encode_size());
             message.write(&mut buf);
             sender
@@ -172,7 +172,7 @@ where
                         };
 
                         // Check if round exists
-                        let Ok(msg) = wire::Aggregation::read(&mut std::io::Cursor::new(msg)) else {
+                        let Ok(msg): Result<wire::Aggregation<TC::TaskData>, _> = wire::Aggregation::read(&mut std::io::Cursor::new(msg)) else {
                             info!("Failed to decode message from sender: {:?}", sender);
                             continue;
                         };

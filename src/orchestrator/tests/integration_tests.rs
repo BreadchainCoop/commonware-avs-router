@@ -2,8 +2,8 @@ use crate::creator::MockCreator;
 use crate::creator::core::Creator;
 use crate::executor::MockExecutor;
 use crate::orchestrator::builder::OrchestratorBuilder;
+use crate::usecases::counter::creators::CounterTaskData;
 use crate::validator::MockValidator;
-use std::collections::HashMap;
 use std::time::Duration;
 
 use super::helpers::{contributor, signer};
@@ -23,7 +23,7 @@ async fn test_orchestrator_builder_integration() {
         .with_aggregation_frequency(Duration::from_millis(100))
         .with_ingress("127.0.0.1:8080".to_string());
 
-    let task_creator = MockCreator::new();
+    let task_creator = MockCreator::<CounterTaskData>::new();
     let executor = MockExecutor::new();
     let validator = MockValidator::new_success(1);
 
@@ -33,7 +33,9 @@ async fn test_orchestrator_builder_integration() {
 
     // Verify the orchestrator was built correctly by testing public methods
     let metadata = orchestrator.task_creator().get_task_metadata();
-    assert!(metadata.contains_key("test_key"));
+    assert!(!metadata.var1.is_empty());
+    assert!(!metadata.var2.is_empty());
+    assert!(!metadata.var3.is_empty());
 
     let executor_count = orchestrator.executor().get_execution_count();
     assert_eq!(executor_count, 0);
@@ -48,19 +50,18 @@ async fn test_orchestrator_metadata_integration() {
     let signer = signer::create_test_signer();
     let (contributors, g1_map) = contributor::create_test_contributors();
 
-    let mut custom_metadata = HashMap::new();
-    custom_metadata.insert("integration_test".to_string(), "true".to_string());
-    custom_metadata.insert(
-        "test_phase".to_string(),
-        "metadata_verification".to_string(),
-    );
+    let custom_metadata = CounterTaskData {
+        var1: "integration_test".to_string(),
+        var2: "true".to_string(),
+        var3: "metadata_verification".to_string(),
+    };
 
     let builder = OrchestratorBuilder::new(clock.clone(), signer)
         .with_contributors(contributors)
         .with_g1_map(g1_map)
         .with_threshold(2);
 
-    let task_creator = MockCreator::new().with_metadata(custom_metadata.clone());
+    let task_creator = MockCreator::<CounterTaskData>::new().with_metadata(custom_metadata.clone());
     let executor = MockExecutor::new();
     let validator = MockValidator::new_success(1);
 
@@ -71,11 +72,9 @@ async fn test_orchestrator_metadata_integration() {
     // Verify metadata is accessible through the orchestrator
     let metadata = orchestrator.task_creator().get_task_metadata();
     assert_eq!(metadata, custom_metadata);
-    assert_eq!(metadata.get("integration_test"), Some(&"true".to_string()));
-    assert_eq!(
-        metadata.get("test_phase"),
-        Some(&"metadata_verification".to_string())
-    );
+    assert_eq!(metadata.var1, "integration_test");
+    assert_eq!(metadata.var2, "true");
+    assert_eq!(metadata.var3, "metadata_verification");
 }
 
 #[tokio::test]
@@ -89,7 +88,7 @@ async fn test_orchestrator_component_access_integration() {
         .with_g1_map(g1_map)
         .with_threshold(2);
 
-    let task_creator = MockCreator::new();
+    let task_creator = MockCreator::<CounterTaskData>::new();
     let executor = MockExecutor::new();
     let validator = MockValidator::new_success(1);
 
@@ -99,7 +98,9 @@ async fn test_orchestrator_component_access_integration() {
 
     // Test access to all components
     let creator_metadata = orchestrator.task_creator().get_task_metadata();
-    assert!(!creator_metadata.is_empty());
+    assert!(!creator_metadata.var1.is_empty());
+    assert!(!creator_metadata.var2.is_empty());
+    assert!(!creator_metadata.var3.is_empty());
 
     let executor_count = orchestrator.executor().get_execution_count();
     assert_eq!(executor_count, 0);
@@ -122,7 +123,7 @@ async fn test_orchestrator_config_integration() {
         .with_aggregation_frequency(Duration::from_secs(60))
         .with_ingress("0.0.0.0:9090".to_string());
 
-    let task_creator = MockCreator::new();
+    let task_creator = MockCreator::<CounterTaskData>::new();
     let executor = MockExecutor::new();
     let validator = MockValidator::new_success(1);
 
@@ -132,7 +133,9 @@ async fn test_orchestrator_config_integration() {
 
     // Verify all configuration is properly applied by testing component behavior
     let metadata = orchestrator.task_creator().get_task_metadata();
-    assert!(metadata.contains_key("test_key"));
+    assert!(!metadata.var1.is_empty());
+    assert!(!metadata.var2.is_empty());
+    assert!(!metadata.var3.is_empty());
 
     let executor_count = orchestrator.executor().get_execution_count();
     assert_eq!(executor_count, 0);
@@ -154,7 +157,7 @@ async fn test_orchestrator_validation_integration() {
             .with_g1_map(g1_map.clone())
             .with_threshold(threshold);
 
-        let task_creator = MockCreator::new();
+        let task_creator = MockCreator::<CounterTaskData>::new();
         let executor = MockExecutor::new();
         let validator = MockValidator::new_success(1);
 
@@ -164,7 +167,9 @@ async fn test_orchestrator_validation_integration() {
 
         // Verify the orchestrator was built successfully
         let metadata = orchestrator.task_creator().get_task_metadata();
-        assert!(metadata.contains_key("test_key"));
+        assert!(!metadata.var1.is_empty());
+        assert!(!metadata.var2.is_empty());
+        assert!(!metadata.var3.is_empty());
 
         let executor_count = orchestrator.executor().get_execution_count();
         assert_eq!(executor_count, 0);
@@ -190,7 +195,7 @@ async fn test_orchestrator_environment_integration() {
         .with_g1_map(g1_map)
         .load_from_env();
 
-    let task_creator = MockCreator::new();
+    let task_creator = MockCreator::<CounterTaskData>::new();
     let executor = MockExecutor::new();
     let validator = MockValidator::new_success(1);
 
@@ -200,7 +205,9 @@ async fn test_orchestrator_environment_integration() {
 
     // Verify environment variables were applied by testing component behavior
     let metadata = orchestrator.task_creator().get_task_metadata();
-    assert!(metadata.contains_key("test_key"));
+    assert!(!metadata.var1.is_empty());
+    assert!(!metadata.var2.is_empty());
+    assert!(!metadata.var3.is_empty());
 
     let executor_count = orchestrator.executor().get_execution_count();
     assert_eq!(executor_count, 0);
@@ -225,7 +232,7 @@ async fn test_orchestrator_component_interaction() {
         .with_g1_map(g1_map)
         .with_threshold(2);
 
-    let task_creator = MockCreator::new();
+    let task_creator = MockCreator::<CounterTaskData>::new();
     let executor = MockExecutor::new().with_success(true);
     let validator = MockValidator::new_success(1);
 
@@ -244,7 +251,9 @@ async fn test_orchestrator_component_interaction() {
     assert_eq!(payload, round.to_le_bytes().to_vec());
 
     let metadata = orchestrator.task_creator().get_task_metadata();
-    assert!(!metadata.is_empty());
+    assert!(!metadata.var1.is_empty());
+    assert!(!metadata.var2.is_empty());
+    assert!(!metadata.var3.is_empty());
 
     // Test executor interaction
     let executor_ref = orchestrator.executor();
