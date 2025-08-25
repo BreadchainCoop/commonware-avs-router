@@ -92,10 +92,9 @@ You can also run the verification script separately:
 
 ```bash
 # Start the system manually (follow README steps)
-# Then run verification
-cd scripts
-source ../.env
-cargo run --bin verify_increments
+# Then run verification from the project root
+source .env
+cargo run -p avs-scripts --bin verify_increments
 ```
 
 ## Configuration
