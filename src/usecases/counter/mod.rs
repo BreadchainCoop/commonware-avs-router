@@ -1,14 +1,14 @@
-// Counter state providers
-pub mod providers;
+// Counter state provider
+pub mod provider;
 
 // Counter task data factories
 pub mod factories;
 
-// Counter creators
-pub mod creators;
+// Counter creator
+pub mod creator;
 
-// Counter validators
-pub mod validators;
+// Counter validator
+pub mod validator;
 
 // Counter executor implementation
 pub mod executor;
@@ -21,10 +21,10 @@ pub mod orchestrator;
 
 // Re-export main types for easy access
 pub use builder::CounterOrchestratorBuilder;
-pub use creators::{
+pub use creator::{
     CounterCreator, CounterCreatorType, CreatorConfig, ListeningCounterCreator, SimpleTaskQueue,
 };
 pub use executor::CounterHandler;
 pub use orchestrator::CounterOrchestrator;
-pub use providers::CounterProvider;
-pub use validators::CounterValidator;
+pub use provider::CounterProvider;
+pub use validator::CounterValidator;
