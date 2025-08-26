@@ -28,12 +28,7 @@ cp config/config.example.json config/config.json
 # Edit "config/config.json" if you need different operator socket addresses
 ```
 
-2. **Create operator keys directory:**
-```bash
-mkdir -p .nodes/operator_keys
-```
-
-3. **Start services:**
+2. **Start services:**
 ```bash
 docker compose up
 
