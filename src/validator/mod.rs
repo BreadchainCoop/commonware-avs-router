@@ -3,9 +3,8 @@
 // Public modules
 pub mod generic;
 pub mod interface;
-pub mod mock;
 
-// Test module (only compiled in test mode)
+// Test module
 #[cfg(test)]
 pub mod tests;
 
@@ -14,5 +13,8 @@ pub mod tests;
 pub use generic::Validator;
 #[allow(unused_imports)]
 pub use interface::ValidatorTrait;
+
+// Re-export test utilities
+#[cfg(test)]
 #[allow(unused_imports)]
-pub use mock::MockValidator;
+pub use tests::mock::MockValidator;
