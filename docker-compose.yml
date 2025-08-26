@@ -1,0 +1,168 @@
+services:
+  # EigenLayer blockchain and infrastructure services
+  ethereum:
+    platform: linux/amd64
+    image: ghcr.io/breadchaincoop/ethereum:dev
+    container_name: avs-ethereum
+    ports:
+      - "8545:8545"
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-LOCAL}
+      - RPC_URL=${RPC_URL:-http://ethereum:8545}
+      - FORK_URL=${FORK_URL:-https://ethereum-holesky.publicnode.com}
+    env_file:
+      - ./config/eigenlayer/.env
+    networks:
+      - avsnet
+
+  eigenlayer:
+    platform: linux/amd64
+    image: ghcr.io/breadchaincoop/eigenlayer:dev
+    container_name: avs-eigenlayer
+    depends_on:
+      - ethereum
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-LOCAL}
+      - RPC_URL=http://ethereum:8545
+      - PRIVATE_KEY=${PRIVATE_KEY}
+      - FUNDED_KEY=${FUNDED_KEY:-${PRIVATE_KEY}}
+      - TEST_ACCOUNTS=${TEST_ACCOUNTS:-3}
+      - DELEGATION_MANAGER_ADDRESS=${DELEGATION_MANAGER_ADDRESS:-0xA44151489861Fe9e3055d95adC98FbD462B948e7}
+      - STRATEGY_MANAGER_ADDRESS=${STRATEGY_MANAGER_ADDRESS:-0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6}
+      - LST_CONTRACT_ADDRESS=${LST_CONTRACT_ADDRESS:-0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034}
+      - LST_STRATEGY_ADDRESS=${LST_STRATEGY_ADDRESS:-0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3}
+      - BLS_SIGNATURE_CHECKER_ADDRESS=${BLS_SIGNATURE_CHECKER_ADDRESS:-0xca249215e082e17c12bb3c4881839a3f883e5c6b}
+      - OPERATOR_STATE_RETRIEVER_ADDRESS=${OPERATOR_STATE_RETRIEVER_ADDRESS:-0xB4baAfee917fb4449f5ec64804217bccE9f46C67}
+      - ALLOCATION_MANAGER_ADDRESS=${ALLOCATION_MANAGER_ADDRESS:-0x78469728304326CBc65f8f95FA756B0B73164462}
+    env_file:
+      - ./config/eigenlayer/.env
+    volumes:
+      - ./config/avs-keys:/root/.nodes
+      - ./config/eigenlayer/config.json:/bls-middleware/contracts/docker/eigenlayer/config.json
+    networks:
+      - avsnet
+
+  signer:
+    image: ghcr.io/layr-labs/cerberus:0.0.2
+    platform: linux/amd64
+    container_name: avs-signer
+    ports:
+      - "${CERBERUS_METRICS_PORT:-9081}:${CERBERUS_METRICS_PORT:-9081}"
+      - "${CERBERUS_GRPC_PORT:-50051}:${CERBERUS_GRPC_PORT:-50051}"
+    environment:
+      - METRICS_PORT=${CERBERUS_METRICS_PORT:-9081}
+      - CERBERUS_GRPC_PORT=${CERBERUS_GRPC_PORT:-50051}
+      - CERBERUS_METRICS_PORT=${CERBERUS_METRICS_PORT:-9081}
+      - SIGNER_ENDPOINT=http://signer:${CERBERUS_GRPC_PORT:-50051}
+      - PRIVATE_KEY=${PRIVATE_KEY}
+    env_file:
+      - ./config/eigenlayer/.env
+    restart: unless-stopped
+    networks:
+      - avsnet
+
+  # AVS Router (Orchestrator)
+  avs-router:
+    image: ghcr.io/breadchaincoop/commonware-avs-router:latest
+    container_name: avs-router-orchestrator
+    ports:
+      - "3000:3000"
+    environment:
+      - HTTP_RPC=http://ethereum:8545
+      - WS_RPC=ws://ethereum:8545
+      - AVS_DEPLOYMENT_PATH=/app/config/avs_deploy.json
+      - PRIVATE_KEY=${PRIVATE_KEY}
+      - ROUTER_ENV=development
+    volumes:
+      - ./config/router:/app/config
+      - ./config/avs-keys:/app/keys
+      - ./config/orchestrator.json:/app/config/orchestrator.json
+    depends_on:
+      - ethereum
+      - eigenlayer
+      - signer
+    networks:
+      - avsnet
+    restart: unless-stopped
+    command: ["--key-file", "/app/config/orchestrator.json", "--port", "3000"]
+
+  # AVS Node Contributors
+  avs-node-contributor-1:
+    image: ghcr.io/breadchaincoop/commonware-avs-node:latest
+    container_name: avs-node-contributor-1
+    ports:
+      - "3001:3001"
+    environment:
+      - HTTP_RPC=http://ethereum:8545
+      - WS_RPC=ws://ethereum:8545
+      - AVS_DEPLOYMENT_PATH=/app/config/avs_deploy.json
+      - PRIVATE_KEY=${PRIVATE_KEY}
+      - CONTRIBUTOR_1_KEYFILE=/app/keys/operator_keys/testacc1.private.bls.key.json
+      - NODE_ENV=development
+    volumes:
+      - ./config/node:/app/config
+      - ./config/avs-keys:/app/keys
+      - ./config/orchestrator.json:/app/config/orchestrator.json
+    depends_on:
+      - avs-router
+    networks:
+      - avsnet
+    restart: unless-stopped
+    command: ["--key-file", "/app/keys/operator_keys/testacc1.private.bls.key.json", "--port", "3001", "--orchestrator", "/app/config/orchestrator.json"]
+
+  avs-node-contributor-2:
+    image: ghcr.io/breadchaincoop/commonware-avs-node:latest
+    container_name: avs-node-contributor-2
+    ports:
+      - "3002:3002"
+    environment:
+      - HTTP_RPC=http://ethereum:8545
+      - WS_RPC=ws://ethereum:8545
+      - AVS_DEPLOYMENT_PATH=/app/config/avs_deploy.json
+      - PRIVATE_KEY=${PRIVATE_KEY}
+      - CONTRIBUTOR_2_KEYFILE=/app/keys/operator_keys/testacc2.private.bls.key.json
+      - NODE_ENV=development
+    volumes:
+      - ./config/node:/app/config
+      - ./config/avs-keys:/app/keys
+      - ./config/orchestrator.json:/app/config/orchestrator.json
+    depends_on:
+      - avs-router
+    networks:
+      - avsnet
+    restart: unless-stopped
+    command: ["--key-file", "/app/keys/operator_keys/testacc2.private.bls.key.json", "--port", "3002", "--orchestrator", "/app/config/orchestrator.json"]
+
+  avs-node-contributor-3:
+    image: ghcr.io/breadchaincoop/commonware-avs-node:latest
+    container_name: avs-node-contributor-3
+    ports:
+      - "3003:3003"
+    environment:
+      - HTTP_RPC=http://ethereum:8545
+      - WS_RPC=ws://ethereum:8545
+      - AVS_DEPLOYMENT_PATH=/app/config/avs_deploy.json
+      - PRIVATE_KEY=${PRIVATE_KEY}
+      - CONTRIBUTOR_3_KEYFILE=/app/keys/operator_keys/testacc3.private.bls.key.json
+      - NODE_ENV=development
+    volumes:
+      - ./config/node:/app/config
+      - ./config/avs-keys:/app/keys
+      - ./config/orchestrator.json:/app/config/orchestrator.json
+    depends_on:
+      - avs-router
+    networks:
+      - avsnet
+    restart: unless-stopped
+    command: ["--key-file", "/app/keys/operator_keys/testacc3.private.bls.key.json", "--port", "3003", "--orchestrator", "/app/config/orchestrator.json"]
+
+networks:
+  avsnet:
+    driver: bridge
+    name: avsnet
+
+volumes:
+  avs-keys:
+    driver: local
+  ethereum-data:
+    driver: local

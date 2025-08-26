@@ -9,3 +9,7 @@ test_processes.pids
 
 # Script build artifacts
 scripts/target
+
+# Docker Compose runtime files
+config/avs-keys/*.json
+config/avs-keys/operator_keys/*.json

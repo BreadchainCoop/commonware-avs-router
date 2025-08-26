@@ -229,6 +229,261 @@ The contract addresses are automatically read from the `avs_deploy.json` file. Y
 cargo run --release -- --key-file config/orchestrator.json --port 3000
 ```
 
+# Docker Compose Environment
+
+For easier local development and integration testing, you can use Docker Compose to run the entire AVS environment.
+
+## Quick Start
+
+1. **Set up environment variables:**
+   ```bash
+   cp .env.example .env
+   # Edit .env and set your PRIVATE_KEY (must be funded on Holesky testnet)
+   ```
+
+2. **Start all services:**
+   ```bash
+   docker compose up -d
+   ```
+
+3. **Wait for initialization** (2-3 minutes for blockchain setup and contract deployment)
+
+4. **View logs:**
+   ```bash
+   # View all services
+   docker compose logs -f
+   
+   # View specific service
+   docker compose logs -f avs-router
+   docker compose logs -f avs-node-contributor-1
+   ```
+
+5. **Stop all services:**
+   ```bash
+   docker compose down
+   ```
+
+## Services Overview
+
+The Docker Compose environment includes:
+
+| Service | Container Name | Port | Description |
+|---------|---------------|------|-------------|
+| `ethereum` | avs-ethereum | 8545 | Local Ethereum blockchain (Holesky fork) |
+| `eigenlayer` | avs-eigenlayer | - | EigenLayer contract deployment |
+| `signer` | avs-signer | 50051, 9081 | BLS signature service (Cerberus) |
+| `avs-router` | avs-router-orchestrator | 3000 | AVS Router orchestrator |
+| `avs-node-contributor-1` | avs-node-contributor-1 | 3001 | First contributor node |
+| `avs-node-contributor-2` | avs-node-contributor-2 | 3002 | Second contributor node |
+| `avs-node-contributor-3` | avs-node-contributor-3 | 3003 | Third contributor node |
+
+## Configuration
+
+### Environment Variables
+
+Copy `.env.example` to `.env` and configure:
+
+```bash
+# Required: Your private key (must be funded on Holesky testnet)
+PRIVATE_KEY=0xYourPrivateKeyHere
+
+# Optional: Override default settings
+ENVIRONMENT=LOCAL
+TEST_ACCOUNTS=3
+CERBERUS_GRPC_PORT=50051
+CERBERUS_METRICS_PORT=9081
+```
+
+### Volume Mounts
+
+The compose file mounts the following directories:
+
+- `./config/router:/app/config` - Router configuration
+- `./config/node:/app/config` - Node configuration  
+- `./config/avs-keys:/app/keys` - Shared BLS keys and deployment files
+- `./config/eigenlayer/.env` - EigenLayer service configuration
+
+## Development Workflow
+
+### Starting the Environment
+
+```bash
+# Start in background
+docker compose up -d
+
+# Start with logs visible
+docker compose up
+
+# Start specific services
+docker compose up ethereum eigenlayer signer
+```
+
+### Monitoring
+
+```bash
+# View logs from all services
+docker compose logs -f
+
+# View logs from specific service
+docker compose logs -f avs-router
+
+# View recent logs
+docker compose logs --tail=50 avs-node-contributor-1
+
+# Check service status
+docker compose ps
+```
+
+### Debugging
+
+```bash
+# Access container shell
+docker compose exec avs-router sh
+docker compose exec avs-node-contributor-1 sh
+
+# View container configuration
+docker compose config
+
+# Restart specific service
+docker compose restart avs-router
+```
+
+## Advanced Usage
+
+### Custom Configuration
+
+To use custom configurations:
+
+1. **Edit configuration files** in the `config/` directory
+2. **Restart affected services:**
+   ```bash
+   docker compose restart avs-router avs-node-contributor-1
+   ```
+
+### Building Custom Images
+
+If you want to build images locally instead of using published ones:
+
+```bash
+# Build router image
+docker build -t commonware-avs-router:local .
+
+# Build node image  
+docker build -t commonware-avs-node:local ./commonware-avs-node
+
+# Update docker-compose.yml to use local images
+# Change: image: ghcr.io/breadchaincoop/commonware-avs-router:latest
+# To:     image: commonware-avs-router:local
+```
+
+### Environment-Specific Overrides
+
+Create additional compose files for different environments:
+
+```bash
+# docker-compose.override.yml (automatically loaded)
+version: "3.8"
+services:
+  avs-router:
+    environment:
+      - RUST_LOG=debug
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Port conflicts:**
+   ```bash
+   # Check which process is using port 8545
+   lsof -i :8545
+   
+   # Kill conflicting process or change port in .env
+   ```
+
+2. **Missing images:**
+   ```bash
+   # Pull latest images
+   docker compose pull
+   
+   # Or build locally if Dockerfiles exist
+   docker compose build
+   ```
+
+3. **Container startup failures:**
+   ```bash
+   # Check logs for errors
+   docker compose logs eigenlayer
+   
+   # Restart with fresh state
+   docker compose down -v
+   docker compose up
+   ```
+
+4. **Blockchain not ready:**
+   ```bash
+   # Wait for ethereum service
+   docker compose logs ethereum
+   
+   # Should see: "HTTP server started"
+   ```
+
+5. **Contract deployment timeout:**
+   ```bash
+   # Check eigenlayer logs
+   docker compose logs eigenlayer
+   
+   # Look for: "Script execution finished"
+   ```
+
+6. **Contributors not connecting:**
+   ```bash
+   # Verify BLS keys exist
+   docker compose exec avs-node-contributor-1 ls -la /app/keys/operator_keys/
+   
+   # Check orchestrator connectivity
+   docker compose logs avs-router
+   ```
+
+### Debug Mode
+
+Enable verbose logging:
+
+```bash
+# Add to .env
+RUST_LOG=debug
+RUST_BACKTRACE=full
+
+# Restart services
+docker compose restart
+```
+
+### Clean Reset
+
+To start completely fresh:
+
+```bash
+# Stop and remove all containers, networks, and volumes
+docker compose down -v
+
+# Remove any cached data
+docker system prune -f
+
+# Start fresh
+docker compose up -d
+```
+
+## Network Architecture
+
+All services run on the `avsnet` bridge network, allowing them to communicate using service names:
+
+- `ethereum:8545` - Blockchain RPC
+- `signer:50051` - BLS signer gRPC
+- `avs-router:3000` - Router orchestrator
+- `avs-node-contributor-X:300X` - Contributor nodes
+
+External access is available on the host machine through exposed ports.
+
 # Local Mode Setup 
 
 Local mode allows you to run the entire environment on a local blockchain for development and testing. This is faster and doesn't require testnet gas.

@@ -1,0 +1,12 @@
+{
+  "contract_configs": {
+    "deployment_configs": [
+      {
+        "chain": "holesky",
+        "gas_price": 10000000000,
+        "key_file": "operator_keys/key.json",
+        "max_gas": 10000000
+      }
+    ]
+  }
+}
