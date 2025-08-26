@@ -47,7 +47,7 @@ done
 # Check if required config files exist
 echo "✅ Checking required config files..."
 required_files=(
-    "config/eigenlayer/.env"
+    "config/eigenlayer/eigenlayer.env"
     "config/eigenlayer/config.json"
     "config/router/orchestrator.json"
 )

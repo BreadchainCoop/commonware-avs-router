@@ -11,7 +11,7 @@ services:
       - RPC_URL=${RPC_URL:-http://ethereum:8545}
       - FORK_URL=${FORK_URL:-https://ethereum-holesky.publicnode.com}
     env_file:
-      - ./config/eigenlayer/.env
+      - ./config/eigenlayer/eigenlayer.env
     networks:
       - avsnet
 
@@ -35,7 +35,7 @@ services:
       - OPERATOR_STATE_RETRIEVER_ADDRESS=${OPERATOR_STATE_RETRIEVER_ADDRESS:-0xB4baAfee917fb4449f5ec64804217bccE9f46C67}
       - ALLOCATION_MANAGER_ADDRESS=${ALLOCATION_MANAGER_ADDRESS:-0x78469728304326CBc65f8f95FA756B0B73164462}
     env_file:
-      - ./config/eigenlayer/.env
+      - ./config/eigenlayer/eigenlayer.env
     volumes:
       - ./config/avs-keys:/root/.nodes
       - ./config/eigenlayer/config.json:/bls-middleware/contracts/docker/eigenlayer/config.json
@@ -56,7 +56,7 @@ services:
       - SIGNER_ENDPOINT=http://signer:${CERBERUS_GRPC_PORT:-50051}
       - PRIVATE_KEY=${PRIVATE_KEY}
     env_file:
-      - ./config/eigenlayer/.env
+      - ./config/eigenlayer/eigenlayer.env
     restart: unless-stopped
     networks:
       - avsnet
