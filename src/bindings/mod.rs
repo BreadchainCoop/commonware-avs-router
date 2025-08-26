@@ -28,3 +28,30 @@ pub mod blssigcheckoperatorstateretriever;
     dead_code
 )]
 pub mod counter;
+
+use alloy::{network::EthereumWallet, providers::fillers::FillProvider};
+use alloy_provider::{
+    RootProvider,
+    fillers::{BlobGasFiller, ChainIdFiller, GasFiller, JoinFill, NonceFiller, WalletFiller},
+};
+
+// Type alias for provider with wallet capabilities (for transactions)
+pub type WalletProvider = FillProvider<
+    JoinFill<
+        JoinFill<
+            alloy_provider::Identity,
+            JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>,
+        >,
+        WalletFiller<EthereumWallet>,
+    >,
+    RootProvider,
+>;
+
+// Type alias for read-only provider (without wallet, for queries)
+pub type ReadOnlyProvider = FillProvider<
+    JoinFill<
+        alloy_provider::Identity,
+        JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>,
+    >,
+    RootProvider,
+>;
