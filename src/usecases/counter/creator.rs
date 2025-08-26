@@ -1,14 +1,93 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use std::collections::HashMap;
+use bytes::{Buf, BufMut};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tracing::{error, warn};
 
-use super::providers::CounterProvider;
+use super::provider::CounterProvider;
 
 use crate::creator::core::Creator;
 use crate::ingress::types::TaskRequest;
+use commonware_codec::{EncodeSize, Read, ReadExt, Write};
+
+/// Task data specific to the counter use case
+#[derive(Debug, Clone, PartialEq)]
+pub struct CounterTaskData {
+    pub var1: String,
+    pub var2: String,
+    pub var3: String,
+}
+
+impl Default for CounterTaskData {
+    fn default() -> Self {
+        Self {
+            var1: "default_var1".to_string(),
+            var2: "default_var2".to_string(),
+            var3: "default_var3".to_string(),
+        }
+    }
+}
+
+impl Write for CounterTaskData {
+    fn write(&self, buf: &mut impl BufMut) {
+        // Write each field as length-prefixed string
+        (self.var1.len() as u32).write(buf);
+        buf.put_slice(self.var1.as_bytes());
+        (self.var2.len() as u32).write(buf);
+        buf.put_slice(self.var2.as_bytes());
+        (self.var3.len() as u32).write(buf);
+        buf.put_slice(self.var3.as_bytes());
+    }
+}
+
+impl Read for CounterTaskData {
+    type Cfg = ();
+
+    fn read_cfg(buf: &mut impl Buf, _: &()) -> Result<Self, commonware_codec::Error> {
+        // Read each field as length-prefixed string
+        let var1_len = u32::read(buf)? as usize;
+        if buf.remaining() < var1_len {
+            return Err(commonware_codec::Error::EndOfBuffer);
+        }
+        let mut var1_bytes = vec![0u8; var1_len];
+        buf.copy_to_slice(&mut var1_bytes);
+        let var1 = String::from_utf8(var1_bytes)
+            .map_err(|_| commonware_codec::Error::Invalid("var1", "decoding from utf8 failed"))?;
+
+        let var2_len = u32::read(buf)? as usize;
+        if buf.remaining() < var2_len {
+            return Err(commonware_codec::Error::EndOfBuffer);
+        }
+        let mut var2_bytes = vec![0u8; var2_len];
+        buf.copy_to_slice(&mut var2_bytes);
+        let var2 = String::from_utf8(var2_bytes)
+            .map_err(|_| commonware_codec::Error::Invalid("var2", "decoding from utf8 failed"))?;
+
+        let var3_len = u32::read(buf)? as usize;
+        if buf.remaining() < var3_len {
+            return Err(commonware_codec::Error::EndOfBuffer);
+        }
+        let mut var3_bytes = vec![0u8; var3_len];
+        buf.copy_to_slice(&mut var3_bytes);
+        let var3 = String::from_utf8(var3_bytes)
+            .map_err(|_| commonware_codec::Error::Invalid("var3", "decoding from utf8 failed"))?;
+
+        Ok(Self { var1, var2, var3 })
+    }
+}
+
+impl EncodeSize for CounterTaskData {
+    fn encode_size(&self) -> usize {
+        const LENGTH_PREFIX_SIZE: usize = std::mem::size_of::<u32>();
+        LENGTH_PREFIX_SIZE
+            + self.var1.len()
+            + LENGTH_PREFIX_SIZE
+            + self.var2.len()
+            + LENGTH_PREFIX_SIZE
+            + self.var3.len()
+    }
+}
 
 /// A queue that can hold and provide task requests
 pub trait TaskQueue: Send + Sync {
@@ -152,21 +231,17 @@ impl CounterCreator {
 
 #[async_trait]
 impl Creator for CounterCreator {
+    type TaskData = CounterTaskData;
+
     async fn get_payload_and_round(&self) -> Result<(Vec<u8>, u64)> {
         let round = self.provider.get_current_round().await?;
-        // Task data is now handled directly via get_task_metadata()
         // Domain decision: payload is ABI-encoded round
         let payload = self.provider.encode_round(round);
         Ok((payload, round))
     }
 
-    fn get_task_metadata(&self) -> HashMap<String, String> {
-        // Use the default task data values for consistency
-        let mut metadata = HashMap::new();
-        metadata.insert("var1".to_string(), "default_var1".to_string());
-        metadata.insert("var2".to_string(), "default_var2".to_string());
-        metadata.insert("var3".to_string(), "default_var3".to_string());
-        metadata
+    fn get_task_metadata(&self) -> Self::TaskData {
+        CounterTaskData::default()
     }
 }
 
@@ -197,6 +272,10 @@ impl<Q: TaskQueue + Send + Sync + 'static> ListeningCounterCreator<Q> {
                 // Store the task for metadata access
                 if let Ok(mut current_task) = self.current_task.lock() {
                     *current_task = Some(task.clone());
+                } else {
+                    error!(
+                        "Failed to acquire lock on current_task mutex when storing task metadata"
+                    );
                 }
                 return Ok(task);
             }
@@ -215,21 +294,45 @@ impl<Q: TaskQueue + Send + Sync + 'static> ListeningCounterCreator<Q> {
 
 #[async_trait]
 impl<Q: TaskQueue + Send + Sync + 'static> Creator for ListeningCounterCreator<Q> {
+    type TaskData = CounterTaskData;
+
     async fn get_payload_and_round(&self) -> Result<(Vec<u8>, u64)> {
         let _task = self.wait_for_task().await?;
         let round = self.provider.get_current_round().await?;
-        // Task data is now handled directly via get_task_metadata() from the request
         let payload = self.provider.encode_round(round);
         Ok((payload, round))
     }
 
-    fn get_task_metadata(&self) -> HashMap<String, String> {
-        // Use the default task data values for consistency
-        let mut metadata = HashMap::new();
-        metadata.insert("var1".to_string(), "default_var1".to_string());
-        metadata.insert("var2".to_string(), "default_var2".to_string());
-        metadata.insert("var3".to_string(), "default_var3".to_string());
-        metadata
+    fn get_task_metadata(&self) -> Self::TaskData {
+        // Try to get metadata from the current task, fall back to defaults if not available
+        if let Ok(current_task) = self.current_task.lock()
+            && let Some(ref task) = *current_task
+        {
+            // Extract metadata from the task request body
+            let var1 = task
+                .body
+                .metadata
+                .get("var1")
+                .cloned()
+                .unwrap_or_else(|| "default_var1".to_string());
+            let var2 = task
+                .body
+                .metadata
+                .get("var2")
+                .cloned()
+                .unwrap_or_else(|| "default_var2".to_string());
+            let var3 = task
+                .body
+                .metadata
+                .get("var3")
+                .cloned()
+                .unwrap_or_else(|| "default_var3".to_string());
+
+            return CounterTaskData { var1, var2, var3 };
+        }
+
+        // Fall back to default metadata if no task data is available
+        CounterTaskData::default()
     }
 }
 
@@ -245,6 +348,8 @@ pub enum CounterCreatorType {
 
 #[async_trait]
 impl Creator for CounterCreatorType {
+    type TaskData = CounterTaskData;
+
     async fn get_payload_and_round(&self) -> Result<(Vec<u8>, u64)> {
         match self {
             CounterCreatorType::Basic(creator) => creator.get_payload_and_round().await,
@@ -252,7 +357,7 @@ impl Creator for CounterCreatorType {
         }
     }
 
-    fn get_task_metadata(&self) -> HashMap<String, String> {
+    fn get_task_metadata(&self) -> Self::TaskData {
         match self {
             CounterCreatorType::Basic(creator) => creator.get_task_metadata(),
             CounterCreatorType::Listening(creator) => creator.get_task_metadata(),

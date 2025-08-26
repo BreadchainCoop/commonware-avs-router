@@ -1,6 +1,5 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use crate::creator::core::Creator;
@@ -11,11 +10,11 @@ use crate::creator::core::Creator;
 /// for unit testing without requiring real task creation logic. It allows
 /// for predictable behavior and easy test scenario setup.
 #[allow(dead_code)]
-pub struct MockCreator {
+pub struct MockCreator<T> {
     /// Counter for generating sequential round numbers
     round_counter: Arc<Mutex<u64>>,
     /// Configurable metadata to return
-    metadata: HashMap<String, String>,
+    metadata: T,
     /// Whether task creation should succeed or fail
     should_succeed: bool,
     /// Custom error message to return on failure
@@ -23,7 +22,10 @@ pub struct MockCreator {
 }
 
 #[allow(dead_code)]
-impl MockCreator {
+impl<T> MockCreator<T>
+where
+    T: Clone + Default,
+{
     /// Creates a new MockCreator that always succeeds.
     ///
     /// This constructor creates a mock creator that will generate
@@ -32,13 +34,9 @@ impl MockCreator {
     /// # Returns
     /// * `Self` - The new MockCreator instance
     pub fn new() -> Self {
-        let mut metadata = HashMap::new();
-        metadata.insert("test_key".to_string(), "test_value".to_string());
-        metadata.insert("round_type".to_string(), "mock".to_string());
-
         Self {
             round_counter: Arc::new(Mutex::new(0)),
-            metadata,
+            metadata: T::default(),
             should_succeed: true,
             error_message: None,
         }
@@ -53,7 +51,7 @@ impl MockCreator {
     ///
     /// # Returns
     /// * `Self` - The new MockCreator instance
-    pub fn with_metadata(mut self, metadata: HashMap<String, String>) -> Self {
+    pub fn with_metadata(mut self, metadata: T) -> Self {
         self.metadata = metadata;
         self
     }
@@ -71,7 +69,7 @@ impl MockCreator {
     pub fn new_failure(error_message: String) -> Self {
         Self {
             round_counter: Arc::new(Mutex::new(0)),
-            metadata: HashMap::new(),
+            metadata: T::default(),
             should_succeed: false,
             error_message: Some(error_message),
         }
@@ -88,11 +86,7 @@ impl MockCreator {
     ///
     /// # Returns
     /// * `Self` - The new MockCreator instance
-    pub fn new_custom(
-        metadata: HashMap<String, String>,
-        should_succeed: bool,
-        error_message: Option<String>,
-    ) -> Self {
+    pub fn new_custom(metadata: T, should_succeed: bool, error_message: Option<String>) -> Self {
         Self {
             round_counter: Arc::new(Mutex::new(0)),
             metadata,
@@ -107,7 +101,7 @@ impl MockCreator {
     ///
     /// # Arguments
     /// * `metadata` - The new metadata
-    pub fn set_metadata(&mut self, metadata: HashMap<String, String>) {
+    pub fn set_metadata(&mut self, metadata: T) {
         self.metadata = metadata;
     }
 
@@ -145,7 +139,18 @@ impl MockCreator {
 }
 
 #[async_trait]
-impl Creator for MockCreator {
+impl<T> Creator for MockCreator<T>
+where
+    T: Clone
+        + Default
+        + Send
+        + Sync
+        + commonware_codec::Write
+        + commonware_codec::Read<Cfg = ()>
+        + commonware_codec::EncodeSize,
+{
+    type TaskData = T;
+
     async fn get_payload_and_round(&self) -> Result<(Vec<u8>, u64)> {
         if !self.should_succeed {
             let error_msg = self
@@ -164,12 +169,15 @@ impl Creator for MockCreator {
         Ok((payload, round))
     }
 
-    fn get_task_metadata(&self) -> HashMap<String, String> {
+    fn get_task_metadata(&self) -> Self::TaskData {
         self.metadata.clone()
     }
 }
 
-impl Default for MockCreator {
+impl<T> Default for MockCreator<T>
+where
+    T: Clone + Default,
+{
     fn default() -> Self {
         Self::new()
     }

@@ -89,37 +89,28 @@ impl<H: BlsSignatureVerificationHandler> VerificationExecutor for BlsEigenlayerE
         payload_hash: &[u8],
         verification_data: VerificationData,
     ) -> Result<ExecutionResult> {
-        // For BLS, we need to extract G1 public keys from the context
-        // The context should contain the G1 public keys that were passed from the orchestrator
         let g1_public_keys = if let Some(context) = verification_data.context {
-            // The context contains the G1 public keys that were passed from the orchestrator
-            // We need to deserialize them properly
-            let context_str = std::str::from_utf8(&context)
-                .map_err(|e| anyhow::anyhow!("Failed to parse context as UTF-8: {}", e))?;
+            // Each G1 public key is stored in compressed format (32 bytes)
+            const G1_COMPRESSED_SIZE: usize = 32;
+            let num_public_keys = verification_data.public_keys.len();
+            if num_public_keys == 0 {
+                return Err(anyhow::anyhow!("No public keys provided"));
+            }
 
-            // The context should contain G1 public key coordinates separated by spaces
-            // Format: "x1 y1 x2 y2 x3 y3 ..."
-            let mut g1_keys = Vec::new();
-            let parts: Vec<&str> = context_str.split_whitespace().collect();
-
-            if parts.len() % 2 != 0 {
+            if context.len() != num_public_keys * G1_COMPRESSED_SIZE {
                 return Err(anyhow::anyhow!(
-                    "Invalid context format: odd number of coordinates"
+                    "Invalid context length: {} does not match expected size for {} public keys ({} bytes each)",
+                    context.len(),
+                    num_public_keys,
+                    G1_COMPRESSED_SIZE
                 ));
             }
 
-            for i in (0..parts.len()).step_by(2) {
-                let x_str = parts[i];
-                let y_str = parts[i + 1];
-
-                let g1_pubkey =
-                    G1PublicKey::create_from_g1_coordinates(x_str, y_str).ok_or_else(|| {
-                        anyhow::anyhow!(
-                            "Failed to create G1 public key from coordinates: x={}, y={}",
-                            x_str,
-                            y_str
-                        )
-                    })?;
+            let mut g1_keys = Vec::new();
+            for chunk in context.chunks(G1_COMPRESSED_SIZE) {
+                // Deserialize the compressed G1 public key directly
+                let g1_pubkey = G1PublicKey::try_from(chunk)
+                    .map_err(|e| anyhow::anyhow!("Failed to deserialize G1 public key: {:?}", e))?;
                 g1_keys.push(g1_pubkey);
             }
 
