@@ -1,6 +1,6 @@
 use crate::{
     bindings::{ReadOnlyProvider, counter::Counter},
-    usecases::counter::creators::CounterTaskData,
+    usecases::counter::creator::CounterTaskData,
     wire,
 };
 use alloy::sol_types::SolValue;

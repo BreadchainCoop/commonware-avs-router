@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tracing::{error, warn};
 
-use super::providers::CounterProvider;
+use super::provider::CounterProvider;
 
 use crate::creator::core::Creator;
 use crate::ingress::types::TaskRequest;

@@ -127,7 +127,7 @@ pub mod aggregation {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::usecases::counter::creators::CounterTaskData;
+    use crate::usecases::counter::creator::CounterTaskData;
     use alloy::hex;
 
     const SAMPLE_SIGNATURE_HEX: &str =
