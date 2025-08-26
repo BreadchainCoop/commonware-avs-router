@@ -1,5 +1,6 @@
 use anyhow::Result;
 use async_trait::async_trait;
+use bytes::{Buf, BufMut};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tracing::{error, warn};
@@ -29,7 +30,7 @@ impl Default for CounterTaskData {
 }
 
 impl Write for CounterTaskData {
-    fn write(&self, buf: &mut impl bytes::BufMut) {
+    fn write(&self, buf: &mut impl BufMut) {
         // Write each field as length-prefixed string
         (self.var1.len() as u32).write(buf);
         buf.put_slice(self.var1.as_bytes());
@@ -43,7 +44,7 @@ impl Write for CounterTaskData {
 impl Read for CounterTaskData {
     type Cfg = ();
 
-    fn read_cfg(buf: &mut impl bytes::Buf, _: &()) -> Result<Self, commonware_codec::Error> {
+    fn read_cfg(buf: &mut impl Buf, _: &()) -> Result<Self, commonware_codec::Error> {
         // Read each field as length-prefixed string
         let var1_len = u32::read(buf)? as usize;
         if buf.remaining() < var1_len {
