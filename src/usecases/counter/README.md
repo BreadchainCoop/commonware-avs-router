@@ -112,4 +112,4 @@ The counter usecase requires:
 - G1 public key mapping for BLS operations
 - Counter contract deployment information
 
-See the main project [README](../../README.md) for detailed configuration instructions.
+See the main project [README](../../../README.md) for detailed configuration instructions.

@@ -2,7 +2,7 @@ use crate::creator::MockCreator;
 use crate::creator::core::Creator;
 use crate::executor::MockExecutor;
 use crate::orchestrator::generic::{Orchestrator, OrchestratorConfig};
-use crate::usecases::counter::creators::CounterTaskData;
+use crate::usecases::counter::creator::CounterTaskData;
 use crate::validator::MockValidator;
 use std::time::Duration;
 
