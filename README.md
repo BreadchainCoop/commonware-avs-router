@@ -17,43 +17,80 @@ The router coordinates multiple operators to sign messages, aggregates their sig
 - Git
 
 ### Local Development
-
-1. **Start local blockchain environment:**
+1. **Configure environment:**
 ```bash
-git submodule update --init --recursive
-cd eigenlayer-bls-local
-docker compose up
-```
-Wait for deployment completion (you'll see operator weights displayed).
-
-2. **Configure environment:**
-```bash
-cd ../
 cp example.env .env
-# Edit .env with your private key and local RPC URLs
+
+# Edit .env to set your configuration
+
+cp config/config.example.json config/config.json
+
+# Edit "config/config.json" if you need different operator socket addresses
 ```
 
-3. **Start contributors (3 terminals):**
+2. **Start services:**
+```bash
+docker compose up
+
+# Add -d flag to run in background
+```
+
+### Manual Node Setup
+If you need to run nodes outside of Docker, you can use the following process.
+
+1. **Configure environment:**
 ```bash
 cd commonware-avs-node
-cargo build
-cp example.env .env
-# Edit .env for local mode
 
-# Terminal 1
+cp example.env .env
+
+# Edit .env to set your configuration
+```
+
+2. **Build binaries:**
+```bash
+cargo build --release
+```
+
+3. **Run nodes (one per terminal):**
+```bash
+# Node 1
 cargo run --release -- --key-file $CONTRIBUTOR_1_KEYFILE --port 3001 --orchestrator orchestrator.json
 
-# Terminal 2  
+# Node 2
 cargo run --release -- --key-file $CONTRIBUTOR_2_KEYFILE --port 3002 --orchestrator orchestrator.json
 
-# Terminal 3
+# Node 3
 cargo run --release -- --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestrator orchestrator.json
 ```
 
-4. **Start orchestrator:**
+### Manual Router Setup
+
+If you need to run a router outside of Docker, you can use the following process.
+
+1. **Configure environment:**
 ```bash
-cd ../
+cp example.env .env
+
+# Edit .env to set your configuration
+
+cp config/config.example.json config/config.json
+
+# Edit "config/config.json" if you need different operator socket addresses
+```
+
+2. **Build binaries:**
+```bash
+cargo build --release
+```
+
+3. **Start router:**
+```bash
+# Orchestrator mode
 cargo run --release -- --key-file config/orchestrator.json --port 3000
+
+# Or with ingress enabled
+cargo run --release -- --ingress
 ```
 
 ## Architecture
@@ -83,8 +120,8 @@ Required environment variables:
 - `HTTP_RPC`: HTTP RPC endpoint
 - `WS_RPC`: WebSocket RPC endpoint
 - `AVS_DEPLOYMENT_PATH`: Path to deployment JSON file
-- `PRIVATE_KEY`: Private key for transactions
 - `CONTRIBUTOR_X_KEYFILE`: BLS key files for contributors
+- `PRIVATE_KEY`: Private key for transactions. **NOTE:** Address must be funded on Holesky testnet
 
 Contract addresses are automatically loaded from the deployment JSON file.
 

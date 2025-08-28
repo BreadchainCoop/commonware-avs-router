@@ -1,6 +1,8 @@
 .DS_Store
 /target
 .env
+.nodes/
+config/config.json
 
 # Test artifacts
 /logs
