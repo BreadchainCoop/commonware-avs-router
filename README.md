@@ -157,5 +157,5 @@ cargo test --lib
 Run end-to-end tests:
 ```bash
 chmod +x scripts/router_e2e_local.sh
-scripts/router_e2e_local.sh
+./scripts/router_e2e_local.sh
 ```
