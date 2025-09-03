@@ -8,10 +8,10 @@ name = "verify_increments"
 path = "verify_increments.rs"
 
 [dependencies]
-alloy = { version = "0.12.6" }
-tokio = { version = "1.0", features = ["full"] }
-commonware-eigenlayer = { git = "https://github.com/BreadchainCoop/commonware-avs-network-lookup" }
-url = "2.5.4"
-dotenv = "0.15"
-serde = { version = "1.0", features = ["derive"] }
-commonware-avs-router = { path = ".." } 
+alloy = { workspace = true }
+tokio = { workspace = true }
+commonware-eigenlayer = { workspace = true }
+url = { workspace = true }
+dotenv = { workspace = true }
+serde = { workspace = true }
+commonware-avs-router = { path = ".." }

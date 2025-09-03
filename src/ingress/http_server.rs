@@ -1,6 +1,5 @@
 use axum::{Json, Router, extract::State, http::StatusCode, routing::post};
-use std::sync::Arc;
-use tokio::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use tracing::info;
 
 use crate::ingress::types::{TaskRequest, TaskResponse};
@@ -21,8 +20,9 @@ pub async fn trigger_task_handler(
     // }
     // Add to queue
     {
-        let mut queue = state.lock().await;
-        queue.push(req.clone());
+        if let Ok(mut queue) = state.lock() {
+            queue.push(req.clone());
+        }
     }
     (
         StatusCode::OK,
@@ -41,7 +41,7 @@ pub async fn start_http_server(queue: Arc<Mutex<Vec<TaskRequest>>>, addr: &str) 
     let listener = tokio::net::TcpListener::bind(addr)
         .await
         .expect("Failed to bind HTTP server");
-    info!("ListeningCreator HTTP server running on {}", addr);
+    info!("Creator HTTP server running on {}", addr);
     axum::serve(listener, app)
         .await
         .expect("HTTP server failed");
