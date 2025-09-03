@@ -11,8 +11,13 @@ RUN mkdir src && echo 'fn main(){}' > src/main.rs
 RUN cargo build --release || true
 RUN rm -rf src
 
-# Now copy real source and do the actual build
+# Now copy real source
 COPY src ./src
+
+# Copy scripts
+COPY scripts ./scripts
+
+# Do the actual build
 RUN cargo build --release
 
 # Runtime stage
