@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TaskRequestBody {
-    pub var1: String,
-    pub var2: String,
-    pub var3: String,
+    #[serde(default)]
+    pub metadata: HashMap<String, String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

@@ -2,9 +2,17 @@ name: Integration Test
 
 on:
   push:
-    branches: [ dev ]
+    branches:
+      - main
+      - dev
+      - staging
+      - test-ci
   pull_request:
-    branches: [ dev ]
+    branches:
+      - main
+      - dev
+      - staging
+      - test-ci
 
 env:
   CARGO_TERM_COLOR: always
@@ -12,304 +20,372 @@ env:
 jobs:
   integration-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    environment: PRIVATE_KEY
-
-    services:
-      docker:
-        image: docker:20.10.17
-        options: --privileged
+    timeout-minutes: 30
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 1
-        submodules: recursive
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+      - name: Checkout commonware-avs-node
+        uses: actions/checkout@v3
+        with:
+          repository: BreadchainCoop/commonware-avs-node
+          path: commonware-avs-node
+          ref: dev
 
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        override: true
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-    - name: Cache Rust dependencies
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          ~/.cache/sccache
-          target
-          commonware-avs-node/target
-          scripts/target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
 
-    - name: Install required system packages
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y jq curl sccache
+      - name: Cache Rust dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+            scripts/target
+            commonware-avs-node/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-    - name: Configure Rust to use sccache
-      run: echo "RUSTC_WRAPPER=$(which sccache)" >> $GITHUB_ENV
+      - name: Build projects
+        run: |
+          echo "Building router..."
+          cargo build --release
+          echo "Building AVS node..."
+          cd commonware-avs-node
+          cargo build --release
+          cd ..
+          echo "Building verification script..."
+          cd scripts
+          cargo build --release --bin verify_increments
+          cd ..
 
-    - name: Build all Rust crates (release)
-      run: |
-        cargo build --release
-        cargo build --release --manifest-path commonware-avs-node/Cargo.toml
-        cargo build --release --manifest-path scripts/Cargo.toml
+      - name: Set up environment
+        run: |
+          # Debug: Check what files are present
+          echo "=== Current directory contents ==="
+          ls -la
 
-    - name: Set up environment files
-      env:
-        PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-      run: |
-        # Copy example env files
-        cp example.env .env
-        cp commonware-avs-node/example.env commonware-avs-node/.env
-        
-        # Update main .env file for local mode
-        sed -i 's|^HTTP_RPC=.*|HTTP_RPC=http://localhost:8545|' .env
-        sed -i 's|^WS_RPC=.*|WS_RPC=ws://localhost:8545|' .env
-        sed -i "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$PRIVATE_KEY|" .env
-        
-        # Update commonware-avs-node .env file for local mode
-        sed -i 's|^HTTP_RPC=.*|HTTP_RPC=http://localhost:8545|' commonware-avs-node/.env
-        sed -i 's|^WS_RPC=.*|WS_RPC=ws://localhost:8545|' commonware-avs-node/.env
-        sed -i 's|^AVS_DEPLOYMENT_PATH=.*|AVS_DEPLOYMENT_PATH="../eigenlayer-bls-local/.nodes/avs_deploy.json"|' commonware-avs-node/.env
-        sed -i "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$PRIVATE_KEY|" commonware-avs-node/.env
-
-    - name: Start local blockchain environment
-      env:
-        PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-      run: |
-        cd eigenlayer-bls-local
-        
-        # Copy and configure eigenlayer-bls-local .env properly
-        cp example.env .env
-        
-        # Set required environment variables for LOCAL mode
-        sed -i 's|^ENVIRONMENT=.*|ENVIRONMENT=LOCAL|' .env
-        sed -i 's|^RPC_URL=.*|RPC_URL=http://ethereum:8545|' .env
-        sed -i 's|^FORK_URL=.*|FORK_URL=https://ethereum-holesky.publicnode.com|' .env
-        
-        # Uncomment Holesky contract addresses for LOCAL mode
-        sed -i 's|^#DELEGATION_MANAGER_ADDRESS=0xA44151489861Fe9e3055d95adC98FbD462B948e7|DELEGATION_MANAGER_ADDRESS=0xA44151489861Fe9e3055d95adC98FbD462B948e7|' .env
-        sed -i 's|^#STRATEGY_MANAGER_ADDRESS=0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6|STRATEGY_MANAGER_ADDRESS=0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6|' .env
-        sed -i 's|^#LST_CONTRACT_ADDRESS=0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034|LST_CONTRACT_ADDRESS=0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034|' .env
-        sed -i 's|^#LST_STRATEGY_ADDRESS=0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3|LST_STRATEGY_ADDRESS=0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3|' .env
-        sed -i 's|^#BLS_SIGNATURE_CHECKER_ADDRESS=0xca249215e082e17c12bb3c4881839a3f883e5c6b|BLS_SIGNATURE_CHECKER_ADDRESS=0xca249215e082e17c12bb3c4881839a3f883e5c6b|' .env
-        sed -i 's|^#OPERATOR_STATE_RETRIEVER_ADDRESS=0xB4baAfee917fb4449f5ec64804217bccE9f46C67|OPERATOR_STATE_RETRIEVER_ADDRESS=0xB4baAfee917fb4449f5ec64804217bccE9f46C67|' .env
-        sed -i 's|^#ALLOCATION_MANAGER_ADDRESS=0x78469728304326CBc65f8f95FA756B0B73164462|ALLOCATION_MANAGER_ADDRESS=0x78469728304326CBc65f8f95FA756B0B73164462|' .env
-        
-        # Ensure required service configuration variables are set
-        if ! grep -q "^CERBERUS_GRPC_PORT=" .env; then
-            echo "CERBERUS_GRPC_PORT=50051" >> .env
-        else
-            sed -i 's|^CERBERUS_GRPC_PORT=.*|CERBERUS_GRPC_PORT=50051|' .env
-        fi
-        
-        if ! grep -q "^CERBERUS_METRICS_PORT=" .env; then
-            echo "CERBERUS_METRICS_PORT=9081" >> .env
-        else
-            sed -i 's|^CERBERUS_METRICS_PORT=.*|CERBERUS_METRICS_PORT=9081|' .env
-        fi
-        
-        if ! grep -q "^SIGNER_ENDPOINT=" .env; then
-            echo "SIGNER_ENDPOINT=http://signer:50051" >> .env
-        else
-            sed -i 's|^SIGNER_ENDPOINT=.*|SIGNER_ENDPOINT=http://signer:50051|' .env
-        fi
-        
-        if ! grep -q "^TEST_ACCOUNTS=" .env; then
-            echo "TEST_ACCOUNTS=3" >> .env
-        else
-            sed -i 's|^TEST_ACCOUNTS=.*|TEST_ACCOUNTS=3|' .env
-        fi
-        
-        # Set the private key and funded key for eigenlayer-bls-local
-        sed -i "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$PRIVATE_KEY|" .env
-        sed -i "s|^FUNDED_KEY=.*|FUNDED_KEY=$PRIVATE_KEY|" .env
-        
-        echo "Final eigenlayer-bls-local .env configuration:"
-        cat .env
-        
-        # Start the Docker containers
-        echo "Starting Docker containers..."
-        docker compose up -d
-        
-        # Wait for ethereum service to be ready
-        echo "Waiting for ethereum service to be ready..."
-        sleep 10
-        
-        # Wait for the eigenlayer service to complete its setup
-        echo "Waiting for eigenlayer setup to complete..."
-        timeout=600
-        elapsed=0
-        while [ $elapsed -lt $timeout ]; do
-          # Check if deployment has completed by looking for completion message in logs
-          if docker compose logs eigenlayer 2>/dev/null | grep -q "Script execution finished. Keeping container open..." && [ -f .nodes/avs_deploy.json ] && [ -s .nodes/avs_deploy.json ]; then
-            echo "EigenLayer setup has completed successfully"
-            break
+          echo "=== Checking for example.env ==="
+          if [ -f example.env ]; then
+            echo "example.env found"
+            cp example.env .env
+          else
+            echo "ERROR: example.env not found"
+            exit 1
           fi
-          
-          # Check for any error indicators
-          error_check=$(docker compose logs eigenlayer 2>/dev/null | grep -i "error\|failed" | tail -1 || echo "")
-          if [ -n "$error_check" ]; then
-            echo "Detected potential error: $error_check"
+
+          echo "=== Checking commonware-avs-node ==="
+          if [ -d commonware-avs-node ]; then
+            echo "commonware-avs-node directory found"
+            ls -la commonware-avs-node/
+            if [ -f commonware-avs-node/example.env ]; then
+              cp commonware-avs-node/example.env commonware-avs-node/.env
+            else
+              echo "No example.env in commonware-avs-node, creating from main .env"
+              cp .env commonware-avs-node/.env
+            fi
+          else
+            echo "ERROR: commonware-avs-node directory not found"
+            exit 1
           fi
-          
-          echo "Waiting for eigenlayer setup to complete... ($elapsed/$timeout seconds)"
+
+          # Create required directories
+          mkdir -p .nodes/operator_keys
+
+          # Copy config template
+          cp config/config.example.json config/config.json
+
+          # Update .env for local mode
+          sed -i 's|^HTTP_RPC=.*|HTTP_RPC=http://localhost:8545|' .env
+          sed -i 's|^WS_RPC=.*|WS_RPC=ws://localhost:8545|' .env
+          sed -i 's|^RPC_URL=.*|RPC_URL=http://ethereum:8545|' .env
+          sed -i 's|^ENVIRONMENT=.*|ENVIRONMENT=LOCAL|' .env
+
+          # Ensure TEST_ACCOUNTS is set
+          sed -i 's|^TEST_ACCOUNTS=.*|TEST_ACCOUNTS=3|' .env
+
+          # For LOCAL mode forking from Holesky, use Holesky contract addresses
+          # These are required by the eigenlayer container's main.sh script
+          # Uncomment the Holesky testnet addresses (they contain the specific Holesky addresses)
+          sed -i 's|^#DELEGATION_MANAGER_ADDRESS=0xA44151489861Fe9e3055d95adC98FbD462B948e7|DELEGATION_MANAGER_ADDRESS=0xA44151489861Fe9e3055d95adC98FbD462B948e7|' .env
+          sed -i 's|^#STRATEGY_MANAGER_ADDRESS=0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6|STRATEGY_MANAGER_ADDRESS=0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6|' .env
+          sed -i 's|^#LST_CONTRACT_ADDRESS=0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034|LST_CONTRACT_ADDRESS=0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034|' .env
+          sed -i 's|^#LST_STRATEGY_ADDRESS=0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3|LST_STRATEGY_ADDRESS=0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3|' .env
+          sed -i 's|^#BLS_SIGNATURE_CHECKER_ADDRESS=0xca249215e082e17c12bb3c4881839a3f883e5c6b|BLS_SIGNATURE_CHECKER_ADDRESS=0xca249215e082e17c12bb3c4881839a3f883e5c6b|' .env
+          sed -i 's|^#OPERATOR_STATE_RETRIEVER_ADDRESS=0xB4baAfee917fb4449f5ec64804217bccE9f46C67|OPERATOR_STATE_RETRIEVER_ADDRESS=0xB4baAfee917fb4449f5ec64804217bccE9f46C67|' .env
+          sed -i 's|^#ALLOCATION_MANAGER_ADDRESS=0x78469728304326CBc65f8f95FA756B0B73164462|ALLOCATION_MANAGER_ADDRESS=0x78469728304326CBc65f8f95FA756B0B73164462|' .env
+
+          # Set FORK_URL for local forking
+          sed -i 's|^# FORK_URL=.*|FORK_URL=https://ethereum-holesky.publicnode.com|' .env
+
+          # Use default Anvil private key for testing
+          DEFAULT_PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+          sed -i "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$DEFAULT_PRIVATE_KEY|" .env
+          sed -i "s|^FUNDED_KEY=.*|FUNDED_KEY=$DEFAULT_PRIVATE_KEY|" .env
+
+          # For LOCAL mode, keep contract addresses commented out so they can be auto-deployed
+          # The eigenlayer container will deploy these contracts and save addresses to avs_deploy.json
+
+          # Update commonware-avs-node .env file
+          sed -i 's|^HTTP_RPC=.*|HTTP_RPC=http://localhost:8545|' commonware-avs-node/.env
+          sed -i 's|^WS_RPC=.*|WS_RPC=ws://localhost:8545|' commonware-avs-node/.env
+          sed -i 's|^AVS_DEPLOYMENT_PATH=.*|AVS_DEPLOYMENT_PATH="../.nodes/avs_deploy.json"|' commonware-avs-node/.env
+          sed -i "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$DEFAULT_PRIVATE_KEY|" commonware-avs-node/.env
+
+          echo "Environment configuration:"
+          grep -E "^(ENVIRONMENT|HTTP_RPC|PRIVATE_KEY)" .env
+
+          echo "EigenLayer contract addresses:"
+          grep -E "^(DELEGATION_MANAGER_ADDRESS|STRATEGY_MANAGER_ADDRESS)" .env || echo "Contract addresses not found in .env"
+
+      - name: Pull Docker images
+        run: docker compose pull
+
+      - name: Start infrastructure services
+        run: |
+          docker compose up -d
+
+          # Show running containers
+          docker compose ps
+
+          # Give containers a moment to start
+          sleep 5
+
+          # Check if eigenlayer container started successfully
+          if ! docker compose ps | grep -q "eigenlayer.*Up"; then
+            echo "Warning: eigenlayer container may not have started properly"
+            echo "Container logs:"
+            docker compose logs eigenlayer
+          fi
+
+      - name: Wait for EigenLayer setup
+        run: |
+          echo "Waiting for EigenLayer setup to complete..."
+          timeout=300
+          elapsed=0
+
+          # Show initial eigenlayer logs to see if it's starting correctly
+          echo "=== Initial EigenLayer container logs ==="
+          docker compose logs eigenlayer --tail=50
+
+          while [ $elapsed -lt $timeout ]; do
+            # Check if eigenlayer container has completed setup
+            if docker compose logs eigenlayer 2>/dev/null | grep -q "Operator 3 weight in quorum" && [ -f .nodes/avs_deploy.json ]; then
+              echo "EigenLayer setup completed successfully"
+              
+              # Check what files were created
+              echo "=== Files created by eigenlayer container ==="
+              echo "Contents of .nodes directory:"
+              ls -la .nodes/
+              echo "Contents of .nodes/operator_keys directory:"
+              ls -la .nodes/operator_keys/
+              
+              # Show the end of eigenlayer logs to see completion
+              echo "=== Final EigenLayer logs ==="
+              docker compose logs eigenlayer --tail=20
+              break
+            fi
+            
+            # Check if container exited with error
+            container_id=$(docker compose ps -q eigenlayer)
+            if [ -n "$container_id" ] && [ "$(docker inspect -f '{{.State.Status}}' $container_id 2>/dev/null)" = "exited" ]; then
+              echo "EigenLayer container has exited unexpectedly"
+              echo "=== Full EigenLayer logs ==="
+              docker compose logs eigenlayer
+              echo "=== Container exit code ==="
+              docker compose ps eigenlayer
+              exit 1
+            fi
+            
+            echo "Waiting for EigenLayer setup... ($elapsed/$timeout seconds)"
+            sleep 10
+            elapsed=$((elapsed + 10))
+          done
+
+          if [ $elapsed -ge $timeout ]; then
+            echo "Timeout waiting for EigenLayer setup"
+            echo "=== Full Eigenlayer logs ==="
+            docker compose logs eigenlayer
+            echo "=== Container status ==="
+            docker compose ps eigenlayer
+            echo "=== Files in .nodes directory ==="
+            ls -la .nodes/
+            exit 1
+          fi
+
+          # Give extra time for services to stabilize
+          sleep 10
+
+      - name: Start AVS nodes
+        run: |
+          # The commonware-avs-node already has the correct orchestrator.json with G2 public key
+          # No need to copy from config/ (which has wrong format)
+
+          cd commonware-avs-node
+          source .env
+
+          # Create logs directory
+          mkdir -p ../logs
+
+          # Debug: List available keyfiles
+          echo "Available keyfiles in .nodes/operator_keys:"
+          ls -la ../.nodes/operator_keys/ || echo "operator_keys directory not found"
+
+          # Set CONTRIBUTOR_KEYFILE paths relative to current directory
+          export CONTRIBUTOR_1_KEYFILE="../.nodes/operator_keys/testacc1.private.bls.key.json"
+          export CONTRIBUTOR_2_KEYFILE="../.nodes/operator_keys/testacc2.private.bls.key.json"
+          export CONTRIBUTOR_3_KEYFILE="../.nodes/operator_keys/testacc3.private.bls.key.json"
+
+          # Verify keyfiles exist
+          for keyfile in "$CONTRIBUTOR_1_KEYFILE" "$CONTRIBUTOR_2_KEYFILE" "$CONTRIBUTOR_3_KEYFILE"; do
+            if [ -f "$keyfile" ]; then
+              echo "✓ Found keyfile: $keyfile"
+            else
+              echo "✗ Missing keyfile: $keyfile"
+            fi
+          done
+
+          # Start node 1
+          ./target/release/commonware-avs-node --key-file $CONTRIBUTOR_1_KEYFILE --port 3001 --orchestrator orchestrator.json > ../logs/node1.log 2>&1 &
+          echo $! > ../node1.pid
+          echo "Node 1 started with PID: $(cat ../node1.pid)"
+
+          sleep 2
+
+          # Start node 2
+          ./target/release/commonware-avs-node --key-file $CONTRIBUTOR_2_KEYFILE --port 3002 --orchestrator orchestrator.json > ../logs/node2.log 2>&1 &
+          echo $! > ../node2.pid
+          echo "Node 2 started with PID: $(cat ../node2.pid)"
+
+          sleep 2
+
+          # Start node 3  
+          ./target/release/commonware-avs-node --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestrator orchestrator.json > ../logs/node3.log 2>&1 &
+          echo $! > ../node3.pid
+          echo "Node 3 started with PID: $(cat ../node3.pid)"
+
+          # Wait for nodes to initialize
+          echo "Waiting for nodes to initialize..."
           sleep 15
-          elapsed=$((elapsed + 15))
-        done
-        
-        if [ $elapsed -ge $timeout ]; then
-          echo "Timeout waiting for eigenlayer setup to complete"
-          echo "Checking container logs..."
-          docker compose logs eigenlayer
-          exit 1
-        fi
-        
-        # Wait a bit more for file system writes to complete
-        sleep 10
-        
-        # Verify deployment file was created
-        if [ ! -f .nodes/avs_deploy.json ]; then
-          echo "Deployment file .nodes/avs_deploy.json was not created"
-          echo "Checking eigenlayer logs:"
-          docker compose logs eigenlayer
-          echo "Checking ethereum logs:"
-          docker compose logs ethereum
-          exit 1
-        fi
-        
-        echo "Deployment file created successfully"
-        cat .nodes/avs_deploy.json
 
-    - name: Start contributors
-      run: |
-        cd commonware-avs-node
-        
-        # Create logs directory
-        mkdir -p ../logs
-        
-        # Start contributor 1 in background
-        source .env
-        cargo run --release -- --key-file $CONTRIBUTOR_1_KEYFILE --port 3001 --orchestrator orchestrator.json > ../logs/contributor1.log 2>&1 &
-        echo $! > contributor1.pid
-        echo "Contributor 1 started with PID: $!"
-        
-        # Wait a bit before starting next contributor
-        sleep 1
-        
-        # Start contributor 2 in background
-        cargo run --release -- --key-file $CONTRIBUTOR_2_KEYFILE --port 3002 --orchestrator orchestrator.json > ../logs/contributor2.log 2>&1 &
-        echo $! > contributor2.pid
-        echo "Contributor 2 started with PID: $!"
-        
-        # Wait a bit before starting next contributor
-        sleep 1
-        
-        # Start contributor 3 in background
-        cargo run --release -- --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestrator orchestrator.json > ../logs/contributor3.log 2>&1 &
-        echo $! > contributor3.pid
-        echo "Contributor 3 started with PID: $!"
-        
-        # Wait for contributors to initialize
-        echo "Waiting for contributors to initialize..."
-        sleep 15
+      - name: Start router
+        run: |
+          source .env
 
-    - name: Start orchestrator
-      run: |
-        source .env
-        
-        # Start orchestrator in background
-        cargo run --release -- --key-file config/orchestrator.json --port 3000 > logs/orchestrator.log 2>&1 &
-        echo $! > orchestrator.pid
-        echo "Orchestrator started with PID: $!"
-        
-        # Wait for orchestrator to initialize
-        echo "Waiting for orchestrator to initialize..."
-        sleep 15
+          # Start router in orchestrator mode
+          ./target/release/commonware-avs-router --key-file config/orchestrator.json --port 3000 > logs/router.log 2>&1 &
+          echo $! > router.pid
+          echo "Router started with PID: $(cat router.pid)"
 
-    - name: Wait for increment operations and verify
-      run: |
-        # Wait for at least 2 aggregation cycles (30 seconds each + buffer)
-        echo "Waiting for signature aggregation cycles to complete..."
-        echo "This will take approximately 2-3 minutes..."
-        
-        # Build and run verification script
-        cd scripts
-        cargo build --release --bin verify_increments
-        source ../.env
-        
-        # Set the deployment path relative to the scripts directory
-        export AVS_DEPLOYMENT_PATH="../eigenlayer-bls-local/.nodes/avs_deploy.json"
-        echo "AVS_DEPLOYMENT_PATH set to: $AVS_DEPLOYMENT_PATH"
-        echo "File exists check:"
-        ls -la "$AVS_DEPLOYMENT_PATH" || echo "File not found at $AVS_DEPLOYMENT_PATH"
-        
-        cargo run --release --bin verify_increments
+          # Wait for router to initialize
+          echo "Waiting for router to initialize..."
+          sleep 15
 
-    - name: Collect logs on failure
-      if: failure()
-      run: |
-        echo "=== Recent orchestrator logs ==="
-        tail -n 20 logs/orchestrator.log || echo "No orchestrator logs found"
-        
-        echo "=== Recent contributor logs ==="
-        tail -n 10 logs/contributor1.log || echo "No contributor1 logs found"
-        tail -n 10 logs/contributor2.log || echo "No contributor2 logs found"
-        tail -n 10 logs/contributor3.log || echo "No contributor3 logs found"
-        
-        echo "=== Recent eigenlayer setup logs ==="
-        cd eigenlayer-bls-local
-        docker compose logs --tail=50 eigenlayer || echo "No eigenlayer logs found"
+      - name: Wait for aggregation cycles
+        run: |
+          echo "Waiting for signature aggregation cycles..."
+          echo "This will take approximately 2-3 minutes..."
+          sleep 120
 
-    - name: Cleanup processes
-      if: always()
-      run: |
-        echo "Cleaning up processes..."
-        
-        # Kill all background processes
-        if [ -f orchestrator.pid ]; then
-          pid=$(cat orchestrator.pid)
-          if kill -0 "$pid" 2>/dev/null; then
-            echo "Killing orchestrator (PID: $pid)"
-            kill "$pid" || true
+      - name: Verify counter increments
+        run: |
+          cd scripts
+          source ../.env
+          export AVS_DEPLOYMENT_PATH="../.nodes/avs_deploy.json"
+
+          if [ ! -f "$AVS_DEPLOYMENT_PATH" ]; then
+            echo "Deployment file not found at $AVS_DEPLOYMENT_PATH"
+            ls -la ../.nodes/
+            exit 1
           fi
-        fi
-        
-        if [ -f commonware-avs-node/contributor1.pid ]; then
-          pid=$(cat commonware-avs-node/contributor1.pid)
-          if kill -0 "$pid" 2>/dev/null; then
-            echo "Killing contributor1 (PID: $pid)"
-            kill "$pid" || true
+
+          echo "Running verification..."
+          cargo run --release --bin verify_increments
+
+      - name: Collect logs on failure
+        if: failure()
+        run: |
+          echo "=== Working directory ==="
+          pwd
+          ls -la
+
+          echo "=== Docker Compose status ==="
+          if [ -f .env ]; then
+            docker compose ps || true
+          else
+            echo ".env file not found, checking Docker containers directly"
+            docker ps -a || true
           fi
-        fi
-        
-        if [ -f commonware-avs-node/contributor2.pid ]; then
-          pid=$(cat commonware-avs-node/contributor2.pid)
-          if kill -0 "$pid" 2>/dev/null; then
-            echo "Killing contributor2 (PID: $pid)"
-            kill "$pid" || true
+
+          echo "=== Router logs ==="
+          if [ -f logs/router.log ]; then
+            tail -50 logs/router.log || true
+          else
+            echo "No router log found"
           fi
-        fi
-        
-        if [ -f commonware-avs-node/contributor3.pid ]; then
-          pid=$(cat commonware-avs-node/contributor3.pid)
-          if kill -0 "$pid" 2>/dev/null; then
-            echo "Killing contributor3 (PID: $pid)"
-            kill "$pid" || true
+
+          echo "=== Node logs ==="
+          if [ -f logs/node1.log ]; then
+            tail -50 logs/node1.log || true
+          else
+            echo "No node1 log found"
           fi
-        fi
-        
-        # Stop Docker containers
-        echo "Stopping Docker containers..."
-        cd eigenlayer-bls-local
-        docker compose down || true
-        
-        echo "Cleanup completed" 
+
+          if [ -f logs/node2.log ]; then
+            tail -50 logs/node2.log || true
+          else
+            echo "No node2 log found"
+          fi
+
+          if [ -f logs/node3.log ]; then
+            tail -50 logs/node3.log || true
+          else
+            echo "No node3 log found"
+          fi
+
+          echo "=== EigenLayer logs ==="
+          if [ -f .env ]; then
+            docker compose logs eigenlayer --tail=100 || true
+          else
+            echo "Cannot get eigenlayer logs without .env file"
+            docker logs $(docker ps -aq --filter "name=eigenlayer") --tail=100 || true
+          fi
+
+          echo "=== Deployment file check ==="
+          ls -la .nodes/ || true
+          if [ -f .nodes/avs_deploy.json ]; then
+            echo "Deployment file contents:"
+            cat .nodes/avs_deploy.json
+          else
+            echo "No deployment file found"
+          fi
+
+      - name: Cleanup
+        if: always()
+        run: |
+          echo "Stopping processes..."
+
+          # Kill router and nodes
+          [ -f router.pid ] && kill $(cat router.pid) || true
+          [ -f node1.pid ] && kill $(cat node1.pid) || true
+          [ -f node2.pid ] && kill $(cat node2.pid) || true
+          [ -f node3.pid ] && kill $(cat node3.pid) || true
+
+          echo "Stopping Docker Compose services..."
+          if [ -f .env ]; then
+            docker compose down -v || true
+          else
+            echo "No .env file, stopping containers directly"
+            docker stop $(docker ps -aq) || true
+            docker rm $(docker ps -aq) || true
+          fi
+          echo "Cleanup completed"
