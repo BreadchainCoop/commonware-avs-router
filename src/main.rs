@@ -1,11 +1,13 @@
 mod bindings;
-mod handlers;
+mod creator;
+mod executor;
 mod ingress;
+mod orchestrator;
+mod usecases;
 mod validator;
 mod wire;
-//use alloy_primitives::{address, hex_literal::hex};
+use crate::orchestrator::interface::OrchestratorTrait;
 use ark_bn254::Fr;
-//use ark_ff::{Fp, PrimeField};
 use bn254::Bn254;
 use bn254::PrivateKey;
 use clap::{Arg, Command, value_parser};
@@ -24,7 +26,7 @@ use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-use std::{str::FromStr, time::Duration};
+use std::str::FromStr;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -177,21 +179,22 @@ fn main() {
         // Infer threshold
         let threshold = 3; //hardcoded for now
 
-        // Run as the orchestrator
+        // Run as the orchestrator using the builder pattern
         const DEFAULT_MESSAGE_BACKLOG: usize = 256;
-        const AGGREGATION_FREQUENCY: Duration = Duration::from_secs(30);
 
         let (sender, receiver) =
             network.register(0, Quota::per_second(NZU32!(1)), DEFAULT_MESSAGE_BACKLOG);
-        let orchestrator = handlers::Orchestrator::new(
-            context.clone(),
-            signer,
-            AGGREGATION_FREQUENCY,
-            contributors,
-            contributors_map,
-            threshold as usize,
-        )
-        .await;
+
+        // Use the builder pattern to create the orchestrator
+        let builder = crate::orchestrator::OrchestratorBuilder::new(context.clone(), signer)
+            .with_contributors(contributors)
+            .with_g1_map(contributors_map)
+            .with_threshold(threshold)
+            .load_from_env(); // Read configuration from environment variables
+
+        let orchestrator = crate::usecases::counter::CounterOrchestratorBuilder::build(builder)
+            .await
+            .expect("Failed to build orchestrator");
 
         context.spawn(|_| async move { orchestrator.run(sender, receiver).await });
 
