@@ -1,5 +1,6 @@
 use anyhow::Result;
 use async_trait::async_trait;
+use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
 
 use crate::executor::core::{ExecutionResult, VerificationData, VerificationExecutor};
@@ -10,7 +11,10 @@ use crate::executor::core::{ExecutionResult, VerificationData, VerificationExecu
 /// for unit testing without requiring real execution logic. It allows
 /// for predictable behavior and easy test scenario setup.
 #[allow(dead_code)]
-pub struct MockExecutor {
+pub struct MockExecutor<T = ()>
+where
+    T: Send + Sync,
+{
     /// Counter for tracking execution attempts
     execution_count: Arc<Mutex<u64>>,
     /// Whether execution should succeed or fail
@@ -19,10 +23,15 @@ pub struct MockExecutor {
     error_message: Option<String>,
     /// Custom execution result to return on success
     custom_result: Option<ExecutionResult>,
+    /// Phantom data for the task data type
+    _phantom: PhantomData<T>,
 }
 
 #[allow(dead_code)]
-impl MockExecutor {
+impl<T> MockExecutor<T>
+where
+    T: Send + Sync,
+{
     /// Creates a new MockExecutor that always succeeds.
     ///
     /// This constructor creates a mock executor that will accept
@@ -36,6 +45,7 @@ impl MockExecutor {
             should_succeed: true,
             error_message: None,
             custom_result: None,
+            _phantom: PhantomData,
         }
     }
 
@@ -69,6 +79,7 @@ impl MockExecutor {
             should_succeed: false,
             error_message: Some(error_message),
             custom_result: None,
+            _phantom: PhantomData,
         }
     }
 
@@ -93,6 +104,7 @@ impl MockExecutor {
             should_succeed,
             error_message,
             custom_result,
+            _phantom: PhantomData,
         }
     }
 
@@ -151,11 +163,15 @@ impl MockExecutor {
 }
 
 #[async_trait]
-impl VerificationExecutor for MockExecutor {
+impl<T> VerificationExecutor<T> for MockExecutor<T>
+where
+    T: Send + Sync,
+{
     async fn execute_verification(
         &mut self,
         _digest: &[u8],
         _verification_data: VerificationData,
+        _task_data: Option<&T>,
     ) -> Result<ExecutionResult> {
         let mut count = self.execution_count.lock().unwrap();
         *count += 1;
@@ -182,7 +198,10 @@ impl VerificationExecutor for MockExecutor {
     }
 }
 
-impl Default for MockExecutor {
+impl<T> Default for MockExecutor<T>
+where
+    T: Send + Sync,
+{
     fn default() -> Self {
         Self::new()
     }
