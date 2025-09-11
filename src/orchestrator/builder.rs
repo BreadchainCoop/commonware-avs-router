@@ -255,7 +255,7 @@ impl<C: Clock> OrchestratorBuilder<C> {
     ) -> Result<crate::orchestrator::generic::Orchestrator<TC, E, V, C>, Box<dyn std::error::Error>>
     where
         TC: crate::creator::core::Creator + Send + Sync,
-        E: crate::executor::core::VerificationExecutor + Send + Sync,
+        E: crate::executor::core::VerificationExecutor<TC::TaskData> + Send + Sync,
         V: crate::validator::interface::ValidatorTrait + Send + Sync,
     {
         self.validate()?;
