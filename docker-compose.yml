@@ -1,4 +1,5 @@
 services:
+  # Ethereum node for local development
   ethereum:
     platform: linux/amd64
     image: ghcr.io/breadchaincoop/ethereum:dev
@@ -6,7 +7,10 @@ services:
       - .env
     ports:
       - "8545:8545"
+    networks:
+      - avs-network
   
+  # EigenLayer contracts deployment
   eigenlayer:
     platform: linux/amd64
     image: ghcr.io/breadchaincoop/eigenlayer:dev
@@ -17,7 +21,10 @@ services:
     volumes:
       - ./.nodes:/root/.nodes
       - ./config/config.json:/bls-middleware/contracts/docker/eigenlayer/config.json
+    networks:
+      - avs-network
   
+  # BLS Signer service (Cerberus)
   signer:
     image: ghcr.io/layr-labs/cerberus:0.0.2
     platform: linux/amd64
@@ -29,3 +36,57 @@ services:
     env_file:
       - .env
     restart: unless-stopped
+    networks:
+      - avs-network
+  
+  # AVS Router service
+  avs-router:
+    image: ghcr.io/breadchaincoop/commonware-avs-router:dev
+    platform: linux/amd64
+    depends_on:
+      - ethereum
+      - eigenlayer
+      - signer
+    env_file:
+      - .env
+    environment:
+      - RPC_URL=http://ethereum:8545
+      - WS_RPC=ws://ethereum:8545
+      - CERBERUS_GRPC_URL=signer:${CERBERUS_GRPC_PORT:-50051}
+    ports:
+      - "${AVS_ROUTER_PORT:-8080}:${AVS_ROUTER_PORT:-8080}"
+      - "${AVS_ROUTER_METRICS_PORT:-9090}:${AVS_ROUTER_METRICS_PORT:-9090}"
+    volumes:
+      - ./.nodes:/root/.nodes
+      - ./config:/config
+    restart: unless-stopped
+    networks:
+      - avs-network
+  
+  # AVS Node service
+  avs-node:
+    image: ghcr.io/breadchaincoop/commonware-avs-node:v0.1.0
+    platform: linux/amd64
+    depends_on:
+      - ethereum
+      - eigenlayer
+      - avs-router
+    env_file:
+      - .env
+    environment:
+      - RPC_URL=http://ethereum:8545
+      - WS_RPC=ws://ethereum:8545
+      - AVS_ROUTER_URL=http://avs-router:${AVS_ROUTER_PORT:-8080}
+    ports:
+      - "${AVS_NODE_PORT:-8081}:${AVS_NODE_PORT:-8081}"
+      - "${AVS_NODE_METRICS_PORT:-9091}:${AVS_NODE_METRICS_PORT:-9091}"
+    volumes:
+      - ./.nodes:/root/.nodes
+      - ./config:/config
+    restart: unless-stopped
+    networks:
+      - avs-network
+
+networks:
+  avs-network:
+    driver: bridge
