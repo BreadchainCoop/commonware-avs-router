@@ -12,14 +12,10 @@ library BN254 {
     non_snake_case,
     clippy::pub_underscore_fields,
     clippy::style,
-    clippy::empty_structs_with_brackets,
-    clippy::identity_op,
-    clippy::type_complexity,
-    clippy::useless_conversion,
-    clippy::clone_on_copy
+    clippy::empty_structs_with_brackets
 )]
 pub mod BN254 {
-
+    use super::*;
     use alloy::sol_types as alloy_sol_types;
     #[derive(serde::Serialize, serde::Deserialize, Default, Debug, PartialEq, Eq, Hash)]
     /**```solidity
@@ -182,7 +178,8 @@ pub mod BN254 {
         impl alloy_sol_types::EventTopic for G1Point {
             #[inline]
             fn topic_preimage_length(rust: &Self::RustType) -> usize {
-                <alloy::sol_types::sol_data::Uint<
+                0usize
+                    + <alloy::sol_types::sol_data::Uint<
                         256,
                     > as alloy_sol_types::EventTopic>::topic_preimage_length(&rust.X)
                     + <alloy::sol_types::sol_data::Uint<
@@ -375,10 +372,13 @@ pub mod BN254 {
         impl alloy_sol_types::EventTopic for G2Point {
             #[inline]
             fn topic_preimage_length(rust: &Self::RustType) -> usize {
-                <alloy::sol_types::sol_data::FixedArray<
-                    alloy::sol_types::sol_data::Uint<256>,
-                    2usize,
-                > as alloy_sol_types::EventTopic>::topic_preimage_length(&rust.X)
+                0usize
+                    + <alloy::sol_types::sol_data::FixedArray<
+                        alloy::sol_types::sol_data::Uint<256>,
+                        2usize,
+                    > as alloy_sol_types::EventTopic>::topic_preimage_length(
+                        &rust.X
+                    )
                     + <alloy::sol_types::sol_data::FixedArray<
                         alloy::sol_types::sol_data::Uint<256>,
                         2usize,
@@ -829,7 +829,8 @@ pub mod IBLSSignatureCheckerTypes {
         impl alloy_sol_types::EventTopic for NonSignerStakesAndSignature {
             #[inline]
             fn topic_preimage_length(rust: &Self::RustType) -> usize {
-                <alloy::sol_types::sol_data::Array<
+                0usize
+                    + <alloy::sol_types::sol_data::Array<
                         alloy::sol_types::sol_data::Uint<32>,
                     > as alloy_sol_types::EventTopic>::topic_preimage_length(
                         &rust.nonSignerQuorumBitmapIndices,
@@ -1074,7 +1075,7 @@ library OperatorStateRetriever {
     clippy::empty_structs_with_brackets
 )]
 pub mod OperatorStateRetriever {
-
+    use super::*;
     use alloy::sol_types as alloy_sol_types;
     #[derive(serde::Serialize, serde::Deserialize, Default, Debug, PartialEq, Eq, Hash)]
     /**```solidity
@@ -1285,7 +1286,8 @@ pub mod OperatorStateRetriever {
         impl alloy_sol_types::EventTopic for CheckSignaturesIndices {
             #[inline]
             fn topic_preimage_length(rust: &Self::RustType) -> usize {
-                <alloy::sol_types::sol_data::Array<
+                0usize
+                    + <alloy::sol_types::sol_data::Array<
                         alloy::sol_types::sol_data::Uint<32>,
                     > as alloy_sol_types::EventTopic>::topic_preimage_length(
                         &rust.nonSignerQuorumBitmapIndices,
@@ -1522,7 +1524,8 @@ pub mod OperatorStateRetriever {
         impl alloy_sol_types::EventTopic for Operator {
             #[inline]
             fn topic_preimage_length(rust: &Self::RustType) -> usize {
-                <alloy::sol_types::sol_data::Address as alloy_sol_types::EventTopic>::topic_preimage_length(
+                0usize
+                    + <alloy::sol_types::sol_data::Address as alloy_sol_types::EventTopic>::topic_preimage_length(
                         &rust.operator,
                     )
                     + <alloy::sol_types::sol_data::FixedBytes<
@@ -3672,8 +3675,12 @@ pub mod BLSSigCheckOperatorStateRetriever {
             data: &[u8],
             validate: bool,
         ) -> alloy_sol_types::Result<Self> {
-            type DecodeShim<T> = fn(&[u8], bool) -> alloy_sol_types::Result<T>;
-            static DECODE_SHIMS: &[DecodeShim<BLSSigCheckOperatorStateRetrieverCalls>] = &[
+            static DECODE_SHIMS: &[fn(
+                &[u8],
+                bool,
+            ) -> alloy_sol_types::Result<
+                BLSSigCheckOperatorStateRetrieverCalls,
+            >] = &[
                 {
                     fn getBatchOperatorId(
                         data: &[u8],
@@ -3921,8 +3928,12 @@ pub mod BLSSigCheckOperatorStateRetriever {
             data: &[u8],
             validate: bool,
         ) -> alloy_sol_types::Result<Self> {
-            type DecodeShim<T> = fn(&[u8], bool) -> alloy_sol_types::Result<T>;
-            static DECODE_SHIMS: &[DecodeShim<BLSSigCheckOperatorStateRetrieverErrors>] = &[
+            static DECODE_SHIMS: &[fn(
+                &[u8],
+                bool,
+            ) -> alloy_sol_types::Result<
+                BLSSigCheckOperatorStateRetrieverErrors,
+            >] = &[
                 {
                     fn OperatorNotRegistered(
                         data: &[u8],
