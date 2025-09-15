@@ -1,0 +1,466 @@
+name: Ingress Integration Test
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - staging
+      - test-ci
+      - ingress-ci/cd
+  pull_request:
+    branches:
+      - main
+      - dev
+      - staging
+      - test-ci
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  ingress-integration-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+
+      - name: Checkout commonware-avs-node
+        uses: actions/checkout@v3
+        with:
+          repository: BreadchainCoop/commonware-avs-node
+          path: commonware-avs-node
+          ref: dev
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+            scripts/target
+            commonware-avs-node/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build projects
+        run: |
+          echo "Building router..."
+          cargo build --release
+          echo "Building AVS node..."
+          cd commonware-avs-node
+          cargo build --release
+          cd ..
+          echo "Building verification script..."
+          cd scripts
+          cargo build --release --bin verify_increments
+          cd ..
+
+      - name: Set up environment with ingress enabled
+        run: |
+          # Debug: Check what files are present
+          echo "=== Current directory contents ==="
+          ls -la
+
+          echo "=== Checking for example.env ==="
+          if [ -f example.env ]; then
+            echo "example.env found"
+            cp example.env .env
+          else
+            echo "ERROR: example.env not found"
+            exit 1
+          fi
+
+          echo "=== Checking commonware-avs-node ==="
+          if [ -d commonware-avs-node ]; then
+            echo "commonware-avs-node directory found"
+            ls -la commonware-avs-node/
+            if [ -f commonware-avs-node/example.env ]; then
+              cp commonware-avs-node/example.env commonware-avs-node/.env
+            else
+              echo "No example.env in commonware-avs-node, creating from main .env"
+              cp .env commonware-avs-node/.env
+            fi
+          else
+            echo "ERROR: commonware-avs-node directory not found"
+            exit 1
+          fi
+
+          # Create required directories
+          mkdir -p .nodes/operator_keys
+
+          # Copy config template
+          cp config/config.example.json config/config.json
+
+          # Update .env for local mode with INGRESS ENABLED
+          sed -i 's|^HTTP_RPC=.*|HTTP_RPC=http://localhost:8545|' .env
+          sed -i 's|^WS_RPC=.*|WS_RPC=ws://localhost:8545|' .env
+          sed -i 's|^RPC_URL=.*|RPC_URL=http://ethereum:8545|' .env
+          sed -i 's|^ENVIRONMENT=.*|ENVIRONMENT=LOCAL|' .env
+          
+          # ENABLE INGRESS MODE
+          sed -i 's|^INGRESS=.*|INGRESS=true|' .env
+
+          # Ensure TEST_ACCOUNTS is set
+          sed -i 's|^TEST_ACCOUNTS=.*|TEST_ACCOUNTS=3|' .env
+
+          # For LOCAL mode forking from Holesky, use Holesky contract addresses
+          # These are required by the eigenlayer container's main.sh script
+          # Uncomment the Holesky testnet addresses (they contain the specific Holesky addresses)
+          sed -i 's|^#DELEGATION_MANAGER_ADDRESS=0xA44151489861Fe9e3055d95adC98FbD462B948e7|DELEGATION_MANAGER_ADDRESS=0xA44151489861Fe9e3055d95adC98FbD462B948e7|' .env
+          sed -i 's|^#STRATEGY_MANAGER_ADDRESS=0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6|STRATEGY_MANAGER_ADDRESS=0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6|' .env
+          sed -i 's|^#LST_CONTRACT_ADDRESS=0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034|LST_CONTRACT_ADDRESS=0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034|' .env
+          sed -i 's|^#LST_STRATEGY_ADDRESS=0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3|LST_STRATEGY_ADDRESS=0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3|' .env
+          sed -i 's|^#BLS_SIGNATURE_CHECKER_ADDRESS=0xca249215e082e17c12bb3c4881839a3f883e5c6b|BLS_SIGNATURE_CHECKER_ADDRESS=0xca249215e082e17c12bb3c4881839a3f883e5c6b|' .env
+          sed -i 's|^#OPERATOR_STATE_RETRIEVER_ADDRESS=0xB4baAfee917fb4449f5ec64804217bccE9f46C67|OPERATOR_STATE_RETRIEVER_ADDRESS=0xB4baAfee917fb4449f5ec64804217bccE9f46C67|' .env
+          sed -i 's|^#ALLOCATION_MANAGER_ADDRESS=0x78469728304326CBc65f8f95FA756B0B73164462|ALLOCATION_MANAGER_ADDRESS=0x78469728304326CBc65f8f95FA756B0B73164462|' .env
+
+          # Set FORK_URL for local forking
+          sed -i 's|^# FORK_URL=.*|FORK_URL=https://ethereum-holesky.publicnode.com|' .env
+
+          # Use default Anvil private key for testing
+          DEFAULT_PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+          sed -i "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$DEFAULT_PRIVATE_KEY|" .env
+          sed -i "s|^FUNDED_KEY=.*|FUNDED_KEY=$DEFAULT_PRIVATE_KEY|" .env
+
+          # Update commonware-avs-node .env file
+          sed -i 's|^HTTP_RPC=.*|HTTP_RPC=http://localhost:8545|' commonware-avs-node/.env
+          sed -i 's|^WS_RPC=.*|WS_RPC=ws://localhost:8545|' commonware-avs-node/.env
+          sed -i 's|^AVS_DEPLOYMENT_PATH=.*|AVS_DEPLOYMENT_PATH="../.nodes/avs_deploy.json"|' commonware-avs-node/.env
+          sed -i "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$DEFAULT_PRIVATE_KEY|" commonware-avs-node/.env
+
+          echo "Environment configuration:"
+          grep -E "^(ENVIRONMENT|HTTP_RPC|PRIVATE_KEY|INGRESS)" .env
+
+          echo "EigenLayer contract addresses:"
+          grep -E "^(DELEGATION_MANAGER_ADDRESS|STRATEGY_MANAGER_ADDRESS)" .env || echo "Contract addresses not found in .env"
+
+      - name: Pull Docker images
+        run: docker compose pull
+
+      - name: Start infrastructure services
+        run: |
+          docker compose up -d
+
+          # Show running containers
+          docker compose ps
+
+          # Give containers a moment to start
+          sleep 5
+
+          # Check if eigenlayer container started successfully
+          if ! docker compose ps | grep -q "eigenlayer.*Up"; then
+            echo "Warning: eigenlayer container may not have started properly"
+            echo "Container logs:"
+            docker compose logs eigenlayer
+          fi
+
+      - name: Wait for EigenLayer setup
+        run: |
+          echo "Waiting for EigenLayer setup to complete..."
+          timeout=300
+          elapsed=0
+
+          # Show initial eigenlayer logs to see if it's starting correctly
+          echo "=== Initial EigenLayer container logs ==="
+          docker compose logs eigenlayer --tail=50
+
+          while [ $elapsed -lt $timeout ]; do
+            # Check if eigenlayer container has completed setup
+            if docker compose logs eigenlayer 2>/dev/null | grep -q "Operator 3 weight in quorum" && [ -f .nodes/avs_deploy.json ]; then
+              echo "EigenLayer setup completed successfully"
+              
+              # Check what files were created
+              echo "=== Files created by eigenlayer container ==="
+              echo "Contents of .nodes directory:"
+              ls -la .nodes/
+              echo "Contents of .nodes/operator_keys directory:"
+              ls -la .nodes/operator_keys/
+              
+              # Show the end of eigenlayer logs to see completion
+              echo "=== Final EigenLayer logs ==="
+              docker compose logs eigenlayer --tail=20
+              break
+            fi
+            
+            # Check if container exited with error
+            container_id=$(docker compose ps -q eigenlayer)
+            if [ -n "$container_id" ] && [ "$(docker inspect -f '{{.State.Status}}' $container_id 2>/dev/null)" = "exited" ]; then
+              echo "EigenLayer container has exited unexpectedly"
+              echo "=== Full EigenLayer logs ==="
+              docker compose logs eigenlayer
+              echo "=== Container exit code ==="
+              docker compose ps eigenlayer
+              exit 1
+            fi
+            
+            echo "Waiting for EigenLayer setup... ($elapsed/$timeout seconds)"
+            sleep 10
+            elapsed=$((elapsed + 10))
+          done
+
+          if [ $elapsed -ge $timeout ]; then
+            echo "Timeout waiting for EigenLayer setup"
+            echo "=== Full Eigenlayer logs ==="
+            docker compose logs eigenlayer
+            echo "=== Container status ==="
+            docker compose ps eigenlayer
+            echo "=== Files in .nodes directory ==="
+            ls -la .nodes/
+            exit 1
+          fi
+
+          # Give extra time for services to stabilize
+          sleep 10
+
+      - name: Start AVS nodes
+        run: |
+          cd commonware-avs-node
+          source .env
+
+          # Create logs directory
+          mkdir -p ../logs
+
+          # Debug: List available keyfiles
+          echo "Available keyfiles in .nodes/operator_keys:"
+          ls -la ../.nodes/operator_keys/ || echo "operator_keys directory not found"
+
+          # Set CONTRIBUTOR_KEYFILE paths relative to current directory
+          export CONTRIBUTOR_1_KEYFILE="../.nodes/operator_keys/testacc1.private.bls.key.json"
+          export CONTRIBUTOR_2_KEYFILE="../.nodes/operator_keys/testacc2.private.bls.key.json"
+          export CONTRIBUTOR_3_KEYFILE="../.nodes/operator_keys/testacc3.private.bls.key.json"
+
+          # Verify keyfiles exist
+          for keyfile in "$CONTRIBUTOR_1_KEYFILE" "$CONTRIBUTOR_2_KEYFILE" "$CONTRIBUTOR_3_KEYFILE"; do
+            if [ -f "$keyfile" ]; then
+              echo "✓ Found keyfile: $keyfile"
+            else
+              echo "✗ Missing keyfile: $keyfile"
+            fi
+          done
+
+          # Start node 1
+          ./target/release/commonware-avs-node --key-file $CONTRIBUTOR_1_KEYFILE --port 3001 --orchestrator orchestrator.json > ../logs/node1.log 2>&1 &
+          echo $! > ../node1.pid
+          echo "Node 1 started with PID: $(cat ../node1.pid)"
+
+          sleep 2
+
+          # Start node 2
+          ./target/release/commonware-avs-node --key-file $CONTRIBUTOR_2_KEYFILE --port 3002 --orchestrator orchestrator.json > ../logs/node2.log 2>&1 &
+          echo $! > ../node2.pid
+          echo "Node 2 started with PID: $(cat ../node2.pid)"
+
+          sleep 2
+
+          # Start node 3  
+          ./target/release/commonware-avs-node --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestrator orchestrator.json > ../logs/node3.log 2>&1 &
+          echo $! > ../node3.pid
+          echo "Node 3 started with PID: $(cat ../node3.pid)"
+
+          # Wait for nodes to initialize
+          echo "Waiting for nodes to initialize..."
+          sleep 15
+
+      - name: Start router with ingress
+        run: |
+          source .env
+
+          # Start router in orchestrator mode with ingress enabled
+          echo "Starting router with INGRESS=true"
+          INGRESS=true ./target/release/commonware-avs-router --key-file config/orchestrator.json --port 3000 > logs/router.log 2>&1 &
+          echo $! > router.pid
+          echo "Router started with PID: $(cat router.pid)"
+
+          # Wait for router and HTTP server to initialize
+          echo "Waiting for router and HTTP server to initialize..."
+          sleep 15
+          
+          # Check if HTTP server is listening on port 8080
+          echo "Checking if HTTP server is available on port 8080..."
+          if curl -f -X GET http://localhost:8080 2>/dev/null; then
+            echo "HTTP server is responding (might return 404 for GET, which is expected)"
+          else
+            echo "HTTP server check - waiting for POST endpoint..."
+          fi
+
+      - name: Test ingress endpoint
+        run: |
+          echo "Testing ingress HTTP endpoint..."
+          
+          # Send multiple task requests to the ingress endpoint
+          for i in {1..5}; do
+            echo "Sending task request $i..."
+            response=$(curl -s -X POST http://localhost:8080/trigger \
+              -H "Content-Type: application/json" \
+              -d '{
+                "body": {
+                  "var1": "test-value-'$i'",
+                  "var2": "another-value-'$i'"
+                }
+              }')
+            
+            echo "Response $i: $response"
+            
+            # Check if response indicates success
+            if echo "$response" | grep -q '"success":true'; then
+              echo "✓ Task $i queued successfully"
+            else
+              echo "✗ Failed to queue task $i"
+              echo "Full response: $response"
+            fi
+            
+            sleep 2
+          done
+          
+          echo "Waiting for tasks to be processed..."
+          sleep 30
+
+      - name: Wait for aggregation cycles with ingress tasks
+        run: |
+          echo "Waiting for signature aggregation cycles with ingress tasks..."
+          echo "This will take approximately 2-3 minutes..."
+          
+          # Send periodic tasks during aggregation
+          for i in {1..6}; do
+            echo "Sending periodic task $i..."
+            curl -s -X POST http://localhost:8080/trigger \
+              -H "Content-Type: application/json" \
+              -d '{
+                "body": {
+                  "var1": "periodic-'$i'",
+                  "var2": "task-'$i'"
+                }
+              }' > /dev/null 2>&1 || true
+            sleep 20
+          done &
+          
+          # Wait for aggregation to complete
+          sleep 120
+
+      - name: Verify counter increments with ingress
+        run: |
+          cd scripts
+          source ../.env
+          export AVS_DEPLOYMENT_PATH="../.nodes/avs_deploy.json"
+
+          if [ ! -f "$AVS_DEPLOYMENT_PATH" ]; then
+            echo "Deployment file not found at $AVS_DEPLOYMENT_PATH"
+            ls -la ../.nodes/
+            exit 1
+          fi
+
+          echo "Running verification for ingress mode..."
+          cargo run --release --bin verify_increments
+
+      - name: Check ingress server logs
+        if: always()
+        run: |
+          echo "=== Router logs (showing ingress activity) ==="
+          if [ -f logs/router.log ]; then
+            echo "Searching for ingress-related logs..."
+            grep -i "ingress\|http\|trigger\|queue" logs/router.log | tail -50 || echo "No ingress logs found"
+            echo ""
+            echo "=== Last 30 lines of router log ==="
+            tail -30 logs/router.log
+          else
+            echo "No router log found"
+          fi
+
+      - name: Collect logs on failure
+        if: failure()
+        run: |
+          echo "=== Working directory ==="
+          pwd
+          ls -la
+
+          echo "=== Environment variables ==="
+          grep "INGRESS" .env || echo "INGRESS not found in .env"
+
+          echo "=== Docker Compose status ==="
+          if [ -f .env ]; then
+            docker compose ps || true
+          else
+            echo ".env file not found, checking Docker containers directly"
+            docker ps -a || true
+          fi
+
+          echo "=== Router logs (full) ==="
+          if [ -f logs/router.log ]; then
+            tail -100 logs/router.log || true
+          else
+            echo "No router log found"
+          fi
+
+          echo "=== Node logs ==="
+          if [ -f logs/node1.log ]; then
+            tail -50 logs/node1.log || true
+          else
+            echo "No node1 log found"
+          fi
+
+          if [ -f logs/node2.log ]; then
+            tail -50 logs/node2.log || true
+          else
+            echo "No node2 log found"
+          fi
+
+          if [ -f logs/node3.log ]; then
+            tail -50 logs/node3.log || true
+          else
+            echo "No node3 log found"
+          fi
+
+          echo "=== EigenLayer logs ==="
+          if [ -f .env ]; then
+            docker compose logs eigenlayer --tail=100 || true
+          else
+            echo "Cannot get eigenlayer logs without .env file"
+            docker logs $(docker ps -aq --filter "name=eigenlayer") --tail=100 || true
+          fi
+
+          echo "=== Deployment file check ==="
+          ls -la .nodes/ || true
+          if [ -f .nodes/avs_deploy.json ]; then
+            echo "Deployment file contents:"
+            cat .nodes/avs_deploy.json
+          else
+            echo "No deployment file found"
+          fi
+
+          echo "=== Check HTTP server connectivity ==="
+          curl -v http://localhost:8080/trigger || echo "Failed to connect to ingress endpoint"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          echo "Stopping processes..."
+
+          # Kill router and nodes
+          [ -f router.pid ] && kill $(cat router.pid) || true
+          [ -f node1.pid ] && kill $(cat node1.pid) || true
+          [ -f node2.pid ] && kill $(cat node2.pid) || true
+          [ -f node3.pid ] && kill $(cat node3.pid) || true
+
+          echo "Stopping Docker Compose services..."
+          if [ -f .env ]; then
+            docker compose down -v || true
+          else
+            echo "No .env file, stopping containers directly"
+            docker stop $(docker ps -aq) || true
+            docker rm $(docker ps -aq) || true
+          fi
+          echo "Cleanup completed"
