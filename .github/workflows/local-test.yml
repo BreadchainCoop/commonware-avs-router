@@ -5,12 +5,10 @@ on:
     branches:
       - main
       - dev
-      - test-ci
   pull_request:
     branches:
       - main
       - dev
-      - test-ci
 
 env:
   CARGO_TERM_COLOR: always
