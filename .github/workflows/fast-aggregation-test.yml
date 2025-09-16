@@ -1,0 +1,301 @@
+name: Fast Aggregation Test
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - staging
+      - test-ci
+  pull_request:
+    branches:
+      - main
+      - dev
+      - staging
+      - test-ci
+
+env:
+  CARGO_TERM_COLOR: always
+  AGGREGATION_FREQUENCY: 1  # Set aggregation frequency to 1 second for fast testing
+
+jobs:
+  fast-aggregation-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+
+      - name: Checkout commonware-avs-node
+        uses: actions/checkout@v3
+        with:
+          repository: BreadchainCoop/commonware-avs-node
+          path: commonware-avs-node
+          ref: dev
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+            scripts/target
+            commonware-avs-node/target
+          key: ${{ runner.os }}-cargo-fast-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build projects
+        run: |
+          echo "Building router..."
+          cargo build --release
+          echo "Building AVS node..."
+          cd commonware-avs-node
+          cargo build --release
+          cd ..
+          echo "Building verification script..."
+          cd scripts
+          cargo build --release --bin verify_increments
+          cd ..
+
+      - name: Set up environment with fast aggregation
+        run: |
+          # Copy example.env to .env
+          cp example.env .env
+          
+          # Copy to AVS node
+          if [ -d commonware-avs-node ]; then
+            if [ -f commonware-avs-node/example.env ]; then
+              cp commonware-avs-node/example.env commonware-avs-node/.env
+            else
+              cp .env commonware-avs-node/.env
+            fi
+          fi
+
+          # Create required directories
+          mkdir -p .nodes/operator_keys
+
+          # Copy config template
+          cp config/config.example.json config/config.json
+
+          # Update .env for local mode
+          sed -i 's|^HTTP_RPC=.*|HTTP_RPC=http://localhost:8545|' .env
+          sed -i 's|^WS_RPC=.*|WS_RPC=ws://localhost:8545|' .env
+          sed -i 's|^RPC_URL=.*|RPC_URL=http://ethereum:8545|' .env
+          sed -i 's|^ENVIRONMENT=.*|ENVIRONMENT=LOCAL|' .env
+
+          # Ensure TEST_ACCOUNTS is set
+          sed -i 's|^TEST_ACCOUNTS=.*|TEST_ACCOUNTS=3|' .env
+
+          # Set up Holesky addresses for LOCAL mode forking
+          sed -i 's|^#DELEGATION_MANAGER_ADDRESS=0xA44151489861Fe9e3055d95adC98FbD462B948e7|DELEGATION_MANAGER_ADDRESS=0xA44151489861Fe9e3055d95adC98FbD462B948e7|' .env
+          sed -i 's|^#STRATEGY_MANAGER_ADDRESS=0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6|STRATEGY_MANAGER_ADDRESS=0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6|' .env
+          sed -i 's|^#LST_CONTRACT_ADDRESS=0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034|LST_CONTRACT_ADDRESS=0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034|' .env
+          sed -i 's|^#LST_STRATEGY_ADDRESS=0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3|LST_STRATEGY_ADDRESS=0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3|' .env
+          sed -i 's|^#BLS_SIGNATURE_CHECKER_ADDRESS=0xca249215e082e17c12bb3c4881839a3f883e5c6b|BLS_SIGNATURE_CHECKER_ADDRESS=0xca249215e082e17c12bb3c4881839a3f883e5c6b|' .env
+          sed -i 's|^#OPERATOR_STATE_RETRIEVER_ADDRESS=0xB4baAfee917fb4449f5ec64804217bccE9f46C67|OPERATOR_STATE_RETRIEVER_ADDRESS=0xB4baAfee917fb4449f5ec64804217bccE9f46C67|' .env
+          sed -i 's|^#ALLOCATION_MANAGER_ADDRESS=0x78469728304326CBc65f8f95FA756B0B73164462|ALLOCATION_MANAGER_ADDRESS=0x78469728304326CBc65f8f95FA756B0B73164462|' .env
+
+          # Set FORK_URL for local forking
+          sed -i 's|^# FORK_URL=.*|FORK_URL=https://ethereum-holesky.publicnode.com|' .env
+
+          # Use default Anvil private key for testing
+          DEFAULT_PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+          sed -i "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$DEFAULT_PRIVATE_KEY|" .env
+          sed -i "s|^FUNDED_KEY=.*|FUNDED_KEY=$DEFAULT_PRIVATE_KEY|" .env
+
+          # Update commonware-avs-node .env file
+          sed -i 's|^HTTP_RPC=.*|HTTP_RPC=http://localhost:8545|' commonware-avs-node/.env
+          sed -i 's|^WS_RPC=.*|WS_RPC=ws://localhost:8545|' commonware-avs-node/.env
+          sed -i 's|^AVS_DEPLOYMENT_PATH=.*|AVS_DEPLOYMENT_PATH="../.nodes/avs_deploy.json"|' commonware-avs-node/.env
+          sed -i "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$DEFAULT_PRIVATE_KEY|" commonware-avs-node/.env
+
+          echo "Environment configuration with AGGREGATION_FREQUENCY=$AGGREGATION_FREQUENCY:"
+          grep -E "^(ENVIRONMENT|HTTP_RPC|PRIVATE_KEY)" .env
+          echo "AGGREGATION_FREQUENCY=$AGGREGATION_FREQUENCY"
+
+      - name: Pull Docker images
+        run: docker compose pull
+
+      - name: Start infrastructure services
+        run: |
+          docker compose up -d
+          docker compose ps
+          sleep 5
+
+      - name: Wait for EigenLayer setup
+        run: |
+          echo "Waiting for EigenLayer setup to complete..."
+          timeout=300
+          elapsed=0
+
+          while [ $elapsed -lt $timeout ]; do
+            if docker compose logs eigenlayer 2>/dev/null | grep -q "Operator 3 weight in quorum" && [ -f .nodes/avs_deploy.json ]; then
+              echo "EigenLayer setup completed successfully"
+              break
+            fi
+            
+            container_id=$(docker compose ps -q eigenlayer)
+            if [ -n "$container_id" ] && [ "$(docker inspect -f '{{.State.Status}}' $container_id 2>/dev/null)" = "exited" ]; then
+              echo "EigenLayer container has exited unexpectedly"
+              docker compose logs eigenlayer
+              exit 1
+            fi
+            
+            echo "Waiting for EigenLayer setup... ($elapsed/$timeout seconds)"
+            sleep 10
+            elapsed=$((elapsed + 10))
+          done
+
+          if [ $elapsed -ge $timeout ]; then
+            echo "Timeout waiting for EigenLayer setup"
+            docker compose logs eigenlayer
+            exit 1
+          fi
+
+          sleep 10
+
+      - name: Start AVS nodes
+        run: |
+          cd commonware-avs-node
+          source .env
+
+          mkdir -p ../logs
+
+          export CONTRIBUTOR_1_KEYFILE="../.nodes/operator_keys/testacc1.private.bls.key.json"
+          export CONTRIBUTOR_2_KEYFILE="../.nodes/operator_keys/testacc2.private.bls.key.json"
+          export CONTRIBUTOR_3_KEYFILE="../.nodes/operator_keys/testacc3.private.bls.key.json"
+
+          # Start nodes
+          ./target/release/commonware-avs-node --key-file $CONTRIBUTOR_1_KEYFILE --port 3001 --orchestrator orchestrator.json > ../logs/node1.log 2>&1 &
+          echo $! > ../node1.pid
+          echo "Node 1 started with PID: $(cat ../node1.pid)"
+
+          sleep 2
+
+          ./target/release/commonware-avs-node --key-file $CONTRIBUTOR_2_KEYFILE --port 3002 --orchestrator orchestrator.json > ../logs/node2.log 2>&1 &
+          echo $! > ../node2.pid
+          echo "Node 2 started with PID: $(cat ../node2.pid)"
+
+          sleep 2
+
+          ./target/release/commonware-avs-node --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestrator orchestrator.json > ../logs/node3.log 2>&1 &
+          echo $! > ../node3.pid
+          echo "Node 3 started with PID: $(cat ../node3.pid)"
+
+          echo "Waiting for nodes to initialize..."
+          sleep 10
+
+      - name: Start router with fast aggregation
+        run: |
+          source .env
+          
+          # Export the aggregation frequency environment variable
+          export AGGREGATION_FREQUENCY=1
+          
+          echo "Starting router with AGGREGATION_FREQUENCY=$AGGREGATION_FREQUENCY"
+          
+          # Start router in orchestrator mode with fast aggregation
+          ./target/release/commonware-avs-router --key-file config/orchestrator.json --port 3000 > logs/router.log 2>&1 &
+          echo $! > router.pid
+          echo "Router started with PID: $(cat router.pid)"
+
+          # Wait for router to initialize
+          echo "Waiting for router to initialize with 1-second aggregation frequency..."
+          sleep 10
+          
+          # Check that the router is using the correct aggregation frequency
+          echo "=== Router log excerpt (checking aggregation frequency) ==="
+          grep -i "aggregation" logs/router.log | head -10 || true
+
+      - name: Wait for fast aggregation cycles
+        run: |
+          echo "Waiting for fast signature aggregation cycles (1 second frequency)..."
+          echo "With 1-second frequency, we should see multiple aggregations in 30 seconds..."
+          
+          # Wait for 30 seconds to allow multiple aggregation cycles
+          sleep 30
+          
+          # Check router logs for aggregation activity
+          echo "=== Checking for aggregation activity ==="
+          grep -i "aggregat" logs/router.log | tail -20 || echo "No aggregation logs found"
+          
+          # Count aggregation events
+          aggregation_count=$(grep -c "aggregat" logs/router.log 2>/dev/null || echo "0")
+          echo "Found $aggregation_count aggregation-related log entries"
+          
+          # With 1-second frequency over 30 seconds, we expect at least 10 aggregations
+          if [ "$aggregation_count" -lt 10 ]; then
+            echo "Warning: Expected more aggregation events with 1-second frequency"
+            echo "Full router log:"
+            cat logs/router.log
+          fi
+
+      - name: Verify counter increments with fast aggregation
+        run: |
+          cd scripts
+          source ../.env
+          export AVS_DEPLOYMENT_PATH="../.nodes/avs_deploy.json"
+
+          if [ ! -f "$AVS_DEPLOYMENT_PATH" ]; then
+            echo "Deployment file not found at $AVS_DEPLOYMENT_PATH"
+            ls -la ../.nodes/
+            exit 1
+          fi
+
+          echo "Running verification after fast aggregation cycles..."
+          cargo run --release --bin verify_increments
+          
+          # Additional verification: Check that we got multiple increments
+          echo "=== Checking router logs for successful aggregations ==="
+          grep -i "success\|complet\|aggregat" ../logs/router.log | tail -30 || true
+
+      - name: Collect logs on failure
+        if: failure()
+        run: |
+          echo "=== Router logs (last 100 lines) ==="
+          if [ -f logs/router.log ]; then
+            tail -100 logs/router.log || true
+          fi
+
+          echo "=== Node1 logs (last 50 lines) ==="
+          if [ -f logs/node1.log ]; then
+            tail -50 logs/node1.log || true
+          fi
+
+          echo "=== Node2 logs (last 50 lines) ==="
+          if [ -f logs/node2.log ]; then
+            tail -50 logs/node2.log || true
+          fi
+
+          echo "=== Node3 logs (last 50 lines) ==="
+          if [ -f logs/node3.log ]; then
+            tail -50 logs/node3.log || true
+          fi
+
+          echo "=== EigenLayer logs ==="
+          docker compose logs eigenlayer --tail=50 || true
+
+      - name: Cleanup
+        if: always()
+        run: |
+          echo "Stopping processes..."
+          [ -f router.pid ] && kill $(cat router.pid) || true
+          [ -f node1.pid ] && kill $(cat node1.pid) || true
+          [ -f node2.pid ] && kill $(cat node2.pid) || true
+          [ -f node3.pid ] && kill $(cat node3.pid) || true
+
+          echo "Stopping Docker Compose services..."
+          docker compose down -v || true
+          echo "Cleanup completed"
