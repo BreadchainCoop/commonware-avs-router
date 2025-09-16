@@ -39,7 +39,7 @@ pub struct OrchestratorConfig {
 pub struct Orchestrator<TC, E, V, C>
 where
     TC: Creator,
-    E: VerificationExecutor,
+    E: VerificationExecutor<TC::TaskData>,
     V: ValidatorTrait,
     C: Clock,
 {
@@ -59,7 +59,7 @@ where
 impl<TC, E, V, C> Orchestrator<TC, E, V, C>
 where
     TC: Creator,
-    E: VerificationExecutor,
+    E: VerificationExecutor<TC::TaskData>,
     V: ValidatorTrait,
     C: Clock,
 {
@@ -112,7 +112,7 @@ where
 impl<TC, E, V, C> OrchestratorTrait for Orchestrator<TC, E, V, C>
 where
     TC: Creator + Send + Sync,
-    E: VerificationExecutor + Send + Sync,
+    E: VerificationExecutor<TC::TaskData> + Send + Sync,
     V: ValidatorTrait + Send + Sync,
     C: Clock + Send + Sync,
 {
@@ -263,6 +263,7 @@ where
                         match self.executor.execute_verification(
                             &expected_digest,
                             verification_data,
+                            Some(&msg.metadata),
                         ).await {
                             Ok(result) => {
                                 info!(
@@ -289,7 +290,7 @@ where
 impl<TC, E, V, C> Orchestrator<TC, E, V, C>
 where
     TC: Creator,
-    E: VerificationExecutor,
+    E: VerificationExecutor<TC::TaskData>,
     V: ValidatorTrait,
     C: Clock,
 {

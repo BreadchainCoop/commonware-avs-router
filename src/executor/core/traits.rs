@@ -4,11 +4,15 @@ use async_trait::async_trait;
 use super::types::VerificationData;
 
 #[async_trait]
-pub trait VerificationExecutor: Send + Sync {
+pub trait VerificationExecutor<T = ()>: Send + Sync
+where
+    T: Send + Sync,
+{
     async fn execute_verification(
         &mut self,
         payload_hash: &[u8],
         verification_data: VerificationData,
+        task_data: Option<&T>,
     ) -> Result<ExecutionResult>;
 }
 
