@@ -2,9 +2,17 @@ name: Integration Test
 
 on:
   push:
-    branches: [dev, test-ci]
+    branches:
+      - main
+      - dev
+      - staging
+      - test-ci
   pull_request:
-    branches: [dev, test-ci]
+    branches:
+      - main
+      - dev
+      - staging
+      - test-ci
 
 env:
   CARGO_TERM_COLOR: always
