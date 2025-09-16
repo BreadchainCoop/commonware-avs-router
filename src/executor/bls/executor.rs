@@ -19,8 +19,8 @@ use super::types::BlsVerificationData;
 
 pub struct BlsEigenlayerExecutor<H> {
     view_only_provider: ReadOnlyProvider,
-    bls_apk_registry: BLSApkRegistryInstance<(), ReadOnlyProvider>,
-    bls_operator_state_retriever: BLSSigCheckOperatorStateRetrieverInstance<(), ReadOnlyProvider>,
+    bls_apk_registry: BLSApkRegistryInstance<ReadOnlyProvider>,
+    bls_operator_state_retriever: BLSSigCheckOperatorStateRetrieverInstance<ReadOnlyProvider>,
     registry_coordinator_address: Address,
     contract_handler: H,
     g1_hash_map: HashMap<PublicKey, Address>,
@@ -29,11 +29,8 @@ pub struct BlsEigenlayerExecutor<H> {
 impl<H> BlsEigenlayerExecutor<H> {
     pub fn new(
         view_only_provider: ReadOnlyProvider,
-        bls_apk_registry: BLSApkRegistryInstance<(), ReadOnlyProvider>,
-        bls_operator_state_retriever: BLSSigCheckOperatorStateRetrieverInstance<
-            (),
-            ReadOnlyProvider,
-        >,
+        bls_apk_registry: BLSApkRegistryInstance<ReadOnlyProvider>,
+        bls_operator_state_retriever: BLSSigCheckOperatorStateRetrieverInstance<ReadOnlyProvider>,
         registry_coordinator_address: Address,
         contract_handler: H,
     ) -> Self {
@@ -75,10 +72,11 @@ impl<H> BlsEigenlayerExecutor<H> {
             .call()
             .await
             .map_err(|e| anyhow::anyhow!("Failed to get operator from pubkey hash: {}", e))?
-            .operator;
+            .0;
 
-        self.g1_hash_map.insert(contributor.clone(), address);
-        Ok(address)
+        self.g1_hash_map
+            .insert(contributor.clone(), Address::from(address));
+        Ok(Address::from(address))
     }
 }
 

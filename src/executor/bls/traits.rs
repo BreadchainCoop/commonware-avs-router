@@ -1,4 +1,4 @@
-use crate::bindings::blssigcheckoperatorstateretriever::BLSSigCheckOperatorStateRetriever::getNonSignerStakesAndSignatureReturn;
+use crate::bindings::blssigcheckoperatorstateretriever::IBLSSignatureCheckerTypes::NonSignerStakesAndSignature;
 use alloy_primitives::{Bytes, FixedBytes};
 use anyhow::Result;
 use async_trait::async_trait;
@@ -29,7 +29,7 @@ pub trait BlsSignatureVerificationHandler: Send + Sync {
         msg_hash: FixedBytes<32>,
         quorum_numbers: Bytes,
         current_block_number: u32,
-        non_signer_data: getNonSignerStakesAndSignatureReturn,
+        non_signer_data: NonSignerStakesAndSignature,
         task_data: Option<&Self::TaskData>,
     ) -> Result<crate::executor::core::ExecutionResult>;
 }

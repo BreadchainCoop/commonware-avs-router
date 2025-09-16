@@ -66,7 +66,8 @@ pub async fn create_listening_creator_with_server(
 /// Creates a new BlsEigenlayerExecutor configured for Counter operations
 pub async fn create_counter_executor() -> Result<BlsEigenlayerExecutor<CounterHandler>> {
     let http_rpc = env::var("HTTP_RPC").expect("HTTP_RPC must be set");
-    let view_only_provider = ProviderBuilder::new().on_http(url::Url::parse(&http_rpc).unwrap());
+    let view_only_provider =
+        ProviderBuilder::new().connect_http(url::Url::parse(&http_rpc).unwrap());
 
     let deployment =
         AvsDeployment::load().map_err(|e| anyhow::anyhow!("Failed to load deployment: {}", e))?;

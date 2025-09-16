@@ -10,7 +10,7 @@ pub mod tests;
 
 // Re-export the main types for easy access
 #[allow(unused_imports)]
-pub use bls::{BlsEigenlayerExecutor, convert_non_signer_data};
+pub use bls::BlsEigenlayerExecutor;
 #[allow(unused_imports)]
 pub use core::{ExecutionResult, VerificationData, VerificationExecutor};
 

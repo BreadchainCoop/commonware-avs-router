@@ -5,7 +5,7 @@ use crate::bindings::{WalletProvider as AlloyProvider, counter::Counter};
 
 /// Concrete provider for the counter usecase.
 pub struct CounterProvider {
-    counter: Counter::CounterInstance<(), AlloyProvider>,
+    counter: Counter::CounterInstance<AlloyProvider>,
 }
 
 impl CounterProvider {
@@ -17,7 +17,7 @@ impl CounterProvider {
     /// Reads the current on-chain number as the round.
     pub async fn get_current_round(&self) -> Result<u64> {
         let current = self.counter.number().call().await?;
-        Ok(current._0.to::<u64>())
+        Ok(current.to::<u64>())
     }
 
     /// Encodes the round into ABI-encoded bytes for hashing/signing.
