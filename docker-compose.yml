@@ -29,3 +29,82 @@ services:
     env_file:
       - .env
     restart: unless-stopped
+  
+  commonware-avs-node-1:
+    image: ghcr.io/breadchaincoop/commonware-avs-node:v0.1.0
+    platform: linux/amd64
+    depends_on:
+      - eigenlayer
+    env_file:
+      - .env
+    environment:
+      - HTTP_RPC=http://ethereum:8545
+      - WS_RPC=ws://ethereum:8545
+      - AVS_DEPLOYMENT_PATH=/app/.nodes/avs_deploy.json
+    volumes:
+      - ./.nodes:/app/.nodes:ro
+      - ./config/orchestrator_with_g2.json:/app/orchestrator_with_g2.json:ro
+    command: ["--key-file", "/app/.nodes/operator_keys/node1.bls.key.json", "--port", "3001", "--orchestrator", "/app/orchestrator_with_g2.json"]
+    ports:
+      - "4001:3001"
+    restart: unless-stopped
+  
+  commonware-avs-node-2:
+    image: ghcr.io/breadchaincoop/commonware-avs-node:v0.1.0
+    platform: linux/amd64
+    depends_on:
+      - eigenlayer
+    env_file:
+      - .env
+    environment:
+      - HTTP_RPC=http://ethereum:8545
+      - WS_RPC=ws://ethereum:8545
+      - AVS_DEPLOYMENT_PATH=/app/.nodes/avs_deploy.json
+    volumes:
+      - ./.nodes:/app/.nodes:ro
+      - ./config/orchestrator_with_g2.json:/app/orchestrator_with_g2.json:ro
+    command: ["--key-file", "/app/.nodes/operator_keys/node2.bls.key.json", "--port", "3002", "--orchestrator", "/app/orchestrator_with_g2.json"]
+    ports:
+      - "4002:3002"
+    restart: unless-stopped
+  
+  commonware-avs-node-3:
+    image: ghcr.io/breadchaincoop/commonware-avs-node:v0.1.0
+    platform: linux/amd64
+    depends_on:
+      - eigenlayer
+    env_file:
+      - .env
+    environment:
+      - HTTP_RPC=http://ethereum:8545
+      - WS_RPC=ws://ethereum:8545
+      - AVS_DEPLOYMENT_PATH=/app/.nodes/avs_deploy.json
+    volumes:
+      - ./.nodes:/app/.nodes:ro
+      - ./config/orchestrator_with_g2.json:/app/orchestrator_with_g2.json:ro
+    command: ["--key-file", "/app/.nodes/operator_keys/node3.bls.key.json", "--port", "3003", "--orchestrator", "/app/orchestrator_with_g2.json"]
+    ports:
+      - "4003:3003"
+    restart: unless-stopped
+  
+  commonware-avs-router:
+    image: ghcr.io/breadchaincoop/commonware-avs-router:dev
+    platform: linux/amd64
+    depends_on:
+      - eigenlayer
+      - commonware-avs-node-1
+      - commonware-avs-node-2
+      - commonware-avs-node-3
+    env_file:
+      - .env
+    environment:
+      - HTTP_RPC=http://ethereum:8545
+      - WS_RPC=ws://ethereum:8545
+      - AVS_DEPLOYMENT_PATH=/app/.nodes/avs_deploy.json
+    volumes:
+      - ./.nodes:/app/.nodes:ro
+      - ./config/orchestrator_with_g2.json:/app/orchestrator_with_g2.json:ro
+    command: ["--key-file", "/app/orchestrator_with_g2.json", "--port", "3000"]
+    ports:
+      - "4000:3000"
+    restart: unless-stopped
