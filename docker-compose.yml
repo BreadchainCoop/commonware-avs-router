@@ -38,54 +38,118 @@ services:
     restart: unless-stopped
     networks:
       - avs-network
+
+  # NOTE: AVS Router and Node services are commented out due to key format incompatibility
+  # The Docker images expect different key formats than what EigenLayer generates.
+  # 
+  # To run the full environment, use the infrastructure services above (ethereum, eigenlayer, signer)
+  # and run the AVS router and nodes natively following the instructions in the workflow file.
+  #
+  # Example commands:
+  # 1. Build the router: cargo build --release
+  # 2. Build the nodes: cd commonware-avs-node && cargo build --release
+  # 3. Run router: ./target/release/commonware-avs-router --key-file config/orchestrator.json --port 3000
+  # 4. Run nodes: cd commonware-avs-node && ./target/release/commonware-avs-node --key-file <keyfile> --port <port> --orchestrator orchestrator.json
   
-  # AVS Router service
-  avs-router:
-    image: ghcr.io/breadchaincoop/commonware-avs-router:dev
-    platform: linux/amd64
-    depends_on:
-      - ethereum
-      - eigenlayer
-      - signer
-    env_file:
-      - .env
-    environment:
-      - RPC_URL=http://ethereum:8545
-      - WS_RPC=ws://ethereum:8545
-      - CERBERUS_GRPC_URL=signer:${CERBERUS_GRPC_PORT:-50051}
-    ports:
-      - "${AVS_ROUTER_PORT:-8080}:${AVS_ROUTER_PORT:-8080}"
-      - "${AVS_ROUTER_METRICS_PORT:-9090}:${AVS_ROUTER_METRICS_PORT:-9090}"
-    volumes:
-      - ./.nodes:/root/.nodes
-      - ./config:/config
-    restart: unless-stopped
-    networks:
-      - avs-network
+  # Uncomment below when key format issues are resolved:
   
-  # AVS Node service
-  avs-node:
-    image: ghcr.io/breadchaincoop/commonware-avs-node:v0.1.0
-    platform: linux/amd64
-    depends_on:
-      - ethereum
-      - eigenlayer
-      - avs-router
-    env_file:
-      - .env
-    environment:
-      - RPC_URL=http://ethereum:8545
-      - WS_RPC=ws://ethereum:8545
-      - AVS_ROUTER_URL=http://avs-router:${AVS_ROUTER_PORT:-8080}
-    ports:
-      - "${AVS_NODE_PORT:-8081}:${AVS_NODE_PORT:-8081}"
-      - "${AVS_NODE_METRICS_PORT:-9091}:${AVS_NODE_METRICS_PORT:-9091}"
-    volumes:
-      - ./.nodes:/root/.nodes
-      - ./config:/config
-    restart: unless-stopped
-    networks:
-      - avs-network
+  # avs-router:
+  #   image: ghcr.io/breadchaincoop/commonware-avs-router:dev
+  #   platform: linux/amd64
+  #   command: ["--key-file", "/config/orchestrator.json", "--port", "4000"]
+  #   depends_on:
+  #     - ethereum
+  #     - eigenlayer
+  #     - signer
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - RPC_URL=http://ethereum:8545
+  #     - WS_RPC=ws://ethereum:8545
+  #     - HTTP_RPC=http://ethereum:8545
+  #     - CERBERUS_GRPC_URL=signer:${CERBERUS_GRPC_PORT:-50051}
+  #     - AVS_DEPLOYMENT_PATH=/root/.nodes/avs_deploy.json
+  #   ports:
+  #     - "4000:4000"
+  #     - "${AVS_ROUTER_METRICS_PORT:-9090}:${AVS_ROUTER_METRICS_PORT:-9090}"
+  #   volumes:
+  #     - ./.nodes:/root/.nodes
+  #     - ./config:/config
+  #   restart: unless-stopped
+  #   networks:
+  #     - avs-network
+  
+  # avs-node-1:
+  #   image: ghcr.io/breadchaincoop/commonware-avs-node:v0.1.0
+  #   platform: linux/amd64
+  #   command: ["--key-file", "/root/.nodes/operator_keys/testacc1.private.bls.key.json", "--port", "4001", "--orchestrator", "/config/orchestrator.json"]
+  #   depends_on:
+  #     - ethereum
+  #     - eigenlayer
+  #     - avs-router
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - RPC_URL=http://ethereum:8545
+  #     - WS_RPC=ws://ethereum:8545
+  #     - HTTP_RPC=http://ethereum:8545
+  #     - AVS_DEPLOYMENT_PATH=/root/.nodes/avs_deploy.json
+  #   ports:
+  #     - "4001:4001"
+  #   volumes:
+  #     - ./.nodes:/root/.nodes
+  #     - ./config:/config
+  #   restart: unless-stopped
+  #   networks:
+  #     - avs-network
+  
+  # avs-node-2:
+  #   image: ghcr.io/breadchaincoop/commonware-avs-node:v0.1.0
+  #   platform: linux/amd64
+  #   command: ["--key-file", "/root/.nodes/operator_keys/testacc2.private.bls.key.json", "--port", "4002", "--orchestrator", "/config/orchestrator.json"]
+  #   depends_on:
+  #     - ethereum
+  #     - eigenlayer
+  #     - avs-router
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - RPC_URL=http://ethereum:8545
+  #     - WS_RPC=ws://ethereum:8545
+  #     - HTTP_RPC=http://ethereum:8545
+  #     - AVS_DEPLOYMENT_PATH=/root/.nodes/avs_deploy.json
+  #   ports:
+  #     - "4002:4002"
+  #   volumes:
+  #     - ./.nodes:/root/.nodes
+  #     - ./config:/config
+  #   restart: unless-stopped
+  #   networks:
+  #     - avs-network
+  
+  # avs-node-3:
+  #   image: ghcr.io/breadchaincoop/commonware-avs-node:v0.1.0
+  #   platform: linux/amd64
+  #   command: ["--key-file", "/root/.nodes/operator_keys/testacc3.private.bls.key.json", "--port", "4003", "--orchestrator", "/config/orchestrator.json"]
+  #   depends_on:
+  #     - ethereum
+  #     - eigenlayer
+  #     - avs-router
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - RPC_URL=http://ethereum:8545
+  #     - WS_RPC=ws://ethereum:8545
+  #     - HTTP_RPC=http://ethereum:8545
+  #     - AVS_DEPLOYMENT_PATH=/root/.nodes/avs_deploy.json
+  #   ports:
+  #     - "4003:4003"
+  #   volumes:
+  #     - ./.nodes:/root/.nodes
+  #     - ./config:/config
+  #   restart: unless-stopped
+  #   networks:
+  #     - avs-network
 
 networks:
   avs-network:
