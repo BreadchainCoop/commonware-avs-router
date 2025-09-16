@@ -16,7 +16,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  AGGREGATION_FREQUENCY: 1  # Set aggregation frequency to 1 second for fast testing
+  AGGREGATION_FREQUENCY: 0.1  # Set aggregation frequency to 0.1 seconds (100ms) for ultra-fast testing
 
 jobs:
   fast-aggregation-test:
@@ -202,7 +202,7 @@ jobs:
           source .env
           
           # Export the aggregation frequency environment variable
-          export AGGREGATION_FREQUENCY=1
+          export AGGREGATION_FREQUENCY=0.1
           
           echo "Starting router with AGGREGATION_FREQUENCY=$AGGREGATION_FREQUENCY"
           
@@ -212,7 +212,7 @@ jobs:
           echo "Router started with PID: $(cat router.pid)"
 
           # Wait for router to initialize
-          echo "Waiting for router to initialize with 1-second aggregation frequency..."
+          echo "Waiting for router to initialize with 0.1-second (100ms) aggregation frequency..."
           sleep 10
           
           # Check that the router is using the correct aggregation frequency
@@ -221,8 +221,8 @@ jobs:
 
       - name: Wait for fast aggregation cycles
         run: |
-          echo "Waiting for fast signature aggregation cycles (1 second frequency)..."
-          echo "With 1-second frequency, we should see multiple aggregations in 30 seconds..."
+          echo "Waiting for ultra-fast signature aggregation cycles (0.1 second / 100ms frequency)..."
+          echo "With 0.1-second frequency, we should see approximately 300 aggregations in 30 seconds..."
           
           # Wait for 30 seconds to allow multiple aggregation cycles
           sleep 30
@@ -235,9 +235,9 @@ jobs:
           aggregation_count=$(grep -c "aggregat" logs/router.log 2>/dev/null || echo "0")
           echo "Found $aggregation_count aggregation-related log entries"
           
-          # With 1-second frequency over 30 seconds, we expect at least 10 aggregations
-          if [ "$aggregation_count" -lt 10 ]; then
-            echo "Warning: Expected more aggregation events with 1-second frequency"
+          # With 0.1-second frequency over 30 seconds, we expect at least 100 aggregations
+          if [ "$aggregation_count" -lt 100 ]; then
+            echo "Warning: Expected more aggregation events with 0.1-second frequency"
             echo "Full router log:"
             cat logs/router.log
           fi

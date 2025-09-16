@@ -138,3 +138,42 @@ async fn test_invalid_aggregation_frequency_env() {
         std::env::remove_var("AGGREGATION_FREQUENCY");
     }
 }
+
+#[tokio::test]
+async fn test_sub_second_aggregation_frequency() {
+    // Test various sub-second frequencies
+    let sub_second_frequencies = vec![
+        ("0.1", Duration::from_millis(100)),
+        ("0.5", Duration::from_millis(500)),
+        ("0.25", Duration::from_millis(250)),
+        ("0.001", Duration::from_millis(1)),
+        ("1.5", Duration::from_millis(1500)),
+    ];
+    
+    for (freq_str, expected_duration) in sub_second_frequencies {
+        unsafe {
+            std::env::set_var("AGGREGATION_FREQUENCY", freq_str);
+        }
+        
+        let clock = MockClock::new();
+        let test_signer = signer::create_test_signer();
+        let (contributors, g1_map) = contributor::create_test_contributors();
+        
+        let builder = OrchestratorBuilder::new(clock, test_signer)
+            .with_contributors(contributors)
+            .with_g1_map(g1_map)
+            .load_from_env();
+        
+        let config = builder.get_config().expect("Failed to get config");
+        assert_eq!(
+            config.config.aggregation_frequency,
+            expected_duration,
+            "Aggregation frequency should be {} seconds",
+            freq_str
+        );
+        
+        unsafe {
+            std::env::remove_var("AGGREGATION_FREQUENCY");
+        }
+    }
+}

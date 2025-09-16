@@ -161,11 +161,11 @@ impl<C: Clock> OrchestratorBuilder<C> {
             self.config.ingress_address = address;
         }
 
-        // Check for aggregation frequency
+        // Check for aggregation frequency (supports fractional seconds)
         if let Ok(freq) = std::env::var("AGGREGATION_FREQUENCY")
-            && let Ok(seconds) = freq.parse::<u64>()
+            && let Ok(seconds) = freq.parse::<f64>()
         {
-            self.config.aggregation_frequency = Duration::from_secs(seconds);
+            self.config.aggregation_frequency = Duration::from_secs_f64(seconds);
             info!(
                 "Aggregation frequency set to {} seconds from environment",
                 seconds

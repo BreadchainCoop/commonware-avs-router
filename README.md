@@ -124,7 +124,8 @@ Required environment variables:
 - `PRIVATE_KEY`: Private key for transactions. **NOTE:** Address must be funded on Holesky testnet
 
 Optional environment variables:
-- `AGGREGATION_FREQUENCY`: Signature aggregation frequency in seconds (default: 30)
+- `AGGREGATION_FREQUENCY`: Signature aggregation frequency in seconds, supports fractional values (default: 30)
+  - Examples: `30` (30 seconds), `1` (1 second), `0.1` (100ms), `0.5` (500ms)
 - `THRESHOLD`: Minimum signatures required for aggregation
 - `INGRESS`: Enable HTTP ingress mode (true/false)
 - `INGRESS_ADDRESS`: Address for ingress server (default: 0.0.0.0:8080)
