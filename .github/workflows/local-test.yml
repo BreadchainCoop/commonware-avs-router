@@ -5,13 +5,11 @@ on:
     branches:
       - main
       - dev
-      - staging
       - test-ci
   pull_request:
     branches:
       - main
       - dev
-      - staging
       - test-ci
 
 env:
