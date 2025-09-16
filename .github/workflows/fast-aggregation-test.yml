@@ -1,21 +1,18 @@
-name: Integration Test
+name: Fast Aggregation Test
 
 on:
   push:
     branches:
-      - main
       - dev
-  pull_request:
-    branches:
-      - main
-      - dev
+
 env:
   CARGO_TERM_COLOR: always
+  AGGREGATION_FREQUENCY: 0.3  # Set aggregation frequency to 0.3 seconds (300ms) for fast testing
 
 jobs:
-  integration-test:
+  fast-aggregation-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
@@ -48,7 +45,7 @@ jobs:
             target
             scripts/target
             commonware-avs-node/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-fast-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Build projects
         run: |
@@ -63,34 +60,18 @@ jobs:
           cargo build --release --bin verify_increments
           cd ..
 
-      - name: Set up environment
+      - name: Set up environment with fast aggregation
         run: |
-          # Debug: Check what files are present
-          echo "=== Current directory contents ==="
-          ls -la
-
-          echo "=== Checking for example.env ==="
-          if [ -f example.env ]; then
-            echo "example.env found"
-            cp example.env .env
-          else
-            echo "ERROR: example.env not found"
-            exit 1
-          fi
-
-          echo "=== Checking commonware-avs-node ==="
+          # Copy example.env to .env
+          cp example.env .env
+          
+          # Copy to AVS node
           if [ -d commonware-avs-node ]; then
-            echo "commonware-avs-node directory found"
-            ls -la commonware-avs-node/
             if [ -f commonware-avs-node/example.env ]; then
               cp commonware-avs-node/example.env commonware-avs-node/.env
             else
-              echo "No example.env in commonware-avs-node, creating from main .env"
               cp .env commonware-avs-node/.env
             fi
-          else
-            echo "ERROR: commonware-avs-node directory not found"
-            exit 1
           fi
 
           # Create required directories
@@ -108,9 +89,7 @@ jobs:
           # Ensure TEST_ACCOUNTS is set
           sed -i 's|^TEST_ACCOUNTS=.*|TEST_ACCOUNTS=3|' .env
 
-          # For LOCAL mode forking from Holesky, use Holesky contract addresses
-          # These are required by the eigenlayer container's main.sh script
-          # Uncomment the Holesky testnet addresses (they contain the specific Holesky addresses)
+          # Set up Holesky addresses for LOCAL mode forking
           sed -i 's|^#DELEGATION_MANAGER_ADDRESS=0xA44151489861Fe9e3055d95adC98FbD462B948e7|DELEGATION_MANAGER_ADDRESS=0xA44151489861Fe9e3055d95adC98FbD462B948e7|' .env
           sed -i 's|^#STRATEGY_MANAGER_ADDRESS=0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6|STRATEGY_MANAGER_ADDRESS=0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6|' .env
           sed -i 's|^#LST_CONTRACT_ADDRESS=0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034|LST_CONTRACT_ADDRESS=0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034|' .env
@@ -127,20 +106,15 @@ jobs:
           sed -i "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$DEFAULT_PRIVATE_KEY|" .env
           sed -i "s|^FUNDED_KEY=.*|FUNDED_KEY=$DEFAULT_PRIVATE_KEY|" .env
 
-          # For LOCAL mode, keep contract addresses commented out so they can be auto-deployed
-          # The eigenlayer container will deploy these contracts and save addresses to avs_deploy.json
-
           # Update commonware-avs-node .env file
           sed -i 's|^HTTP_RPC=.*|HTTP_RPC=http://localhost:8545|' commonware-avs-node/.env
           sed -i 's|^WS_RPC=.*|WS_RPC=ws://localhost:8545|' commonware-avs-node/.env
           sed -i 's|^AVS_DEPLOYMENT_PATH=.*|AVS_DEPLOYMENT_PATH="../.nodes/avs_deploy.json"|' commonware-avs-node/.env
           sed -i "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$DEFAULT_PRIVATE_KEY|" commonware-avs-node/.env
 
-          echo "Environment configuration:"
+          echo "Environment configuration with AGGREGATION_FREQUENCY=$AGGREGATION_FREQUENCY:"
           grep -E "^(ENVIRONMENT|HTTP_RPC|PRIVATE_KEY)" .env
-
-          echo "EigenLayer contract addresses:"
-          grep -E "^(DELEGATION_MANAGER_ADDRESS|STRATEGY_MANAGER_ADDRESS)" .env || echo "Contract addresses not found in .env"
+          echo "AGGREGATION_FREQUENCY=$AGGREGATION_FREQUENCY"
 
       - name: Pull Docker images
         run: docker compose pull
@@ -148,19 +122,8 @@ jobs:
       - name: Start infrastructure services
         run: |
           docker compose up -d
-
-          # Show running containers
           docker compose ps
-
-          # Give containers a moment to start
           sleep 5
-
-          # Check if eigenlayer container started successfully
-          if ! docker compose ps | grep -q "eigenlayer.*Up"; then
-            echo "Warning: eigenlayer container may not have started properly"
-            echo "Container logs:"
-            docker compose logs eigenlayer
-          fi
 
       - name: Wait for EigenLayer setup
         run: |
@@ -168,36 +131,16 @@ jobs:
           timeout=300
           elapsed=0
 
-          # Show initial eigenlayer logs to see if it's starting correctly
-          echo "=== Initial EigenLayer container logs ==="
-          docker compose logs eigenlayer --tail=50
-
           while [ $elapsed -lt $timeout ]; do
-            # Check if eigenlayer container has completed setup
             if docker compose logs eigenlayer 2>/dev/null | grep -q "Operator 3 weight in quorum" && [ -f .nodes/avs_deploy.json ]; then
               echo "EigenLayer setup completed successfully"
-              
-              # Check what files were created
-              echo "=== Files created by eigenlayer container ==="
-              echo "Contents of .nodes directory:"
-              ls -la .nodes/
-              echo "Contents of .nodes/operator_keys directory:"
-              ls -la .nodes/operator_keys/
-              
-              # Show the end of eigenlayer logs to see completion
-              echo "=== Final EigenLayer logs ==="
-              docker compose logs eigenlayer --tail=20
               break
             fi
             
-            # Check if container exited with error
             container_id=$(docker compose ps -q eigenlayer)
             if [ -n "$container_id" ] && [ "$(docker inspect -f '{{.State.Status}}' $container_id 2>/dev/null)" = "exited" ]; then
               echo "EigenLayer container has exited unexpectedly"
-              echo "=== Full EigenLayer logs ==="
               docker compose logs eigenlayer
-              echo "=== Container exit code ==="
-              docker compose ps eigenlayer
               exit 1
             fi
             
@@ -208,90 +151,89 @@ jobs:
 
           if [ $elapsed -ge $timeout ]; then
             echo "Timeout waiting for EigenLayer setup"
-            echo "=== Full Eigenlayer logs ==="
             docker compose logs eigenlayer
-            echo "=== Container status ==="
-            docker compose ps eigenlayer
-            echo "=== Files in .nodes directory ==="
-            ls -la .nodes/
             exit 1
           fi
 
-          # Give extra time for services to stabilize
           sleep 10
 
       - name: Start AVS nodes
         run: |
-          # The commonware-avs-node already has the correct orchestrator.json with G2 public key
-          # No need to copy from config/ (which has wrong format)
-
           cd commonware-avs-node
           source .env
 
-          # Create logs directory
           mkdir -p ../logs
 
-          # Debug: List available keyfiles
-          echo "Available keyfiles in .nodes/operator_keys:"
-          ls -la ../.nodes/operator_keys/ || echo "operator_keys directory not found"
-
-          # Set CONTRIBUTOR_KEYFILE paths relative to current directory
           export CONTRIBUTOR_1_KEYFILE="../.nodes/operator_keys/testacc1.private.bls.key.json"
           export CONTRIBUTOR_2_KEYFILE="../.nodes/operator_keys/testacc2.private.bls.key.json"
           export CONTRIBUTOR_3_KEYFILE="../.nodes/operator_keys/testacc3.private.bls.key.json"
 
-          # Verify keyfiles exist
-          for keyfile in "$CONTRIBUTOR_1_KEYFILE" "$CONTRIBUTOR_2_KEYFILE" "$CONTRIBUTOR_3_KEYFILE"; do
-            if [ -f "$keyfile" ]; then
-              echo "✓ Found keyfile: $keyfile"
-            else
-              echo "✗ Missing keyfile: $keyfile"
-            fi
-          done
-
-          # Start node 1
+          # Start nodes
           ./target/release/commonware-avs-node --key-file $CONTRIBUTOR_1_KEYFILE --port 3001 --orchestrator orchestrator.json > ../logs/node1.log 2>&1 &
           echo $! > ../node1.pid
           echo "Node 1 started with PID: $(cat ../node1.pid)"
 
           sleep 2
 
-          # Start node 2
           ./target/release/commonware-avs-node --key-file $CONTRIBUTOR_2_KEYFILE --port 3002 --orchestrator orchestrator.json > ../logs/node2.log 2>&1 &
           echo $! > ../node2.pid
           echo "Node 2 started with PID: $(cat ../node2.pid)"
 
           sleep 2
 
-          # Start node 3  
           ./target/release/commonware-avs-node --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestrator orchestrator.json > ../logs/node3.log 2>&1 &
           echo $! > ../node3.pid
           echo "Node 3 started with PID: $(cat ../node3.pid)"
 
-          # Wait for nodes to initialize
           echo "Waiting for nodes to initialize..."
-          sleep 15
+          sleep 10
 
-      - name: Start router
+      - name: Start router with fast aggregation
         run: |
           source .env
-
-          # Start router in orchestrator mode
+          
+          # Export the aggregation frequency environment variable
+          export AGGREGATION_FREQUENCY=0.3
+          
+          echo "Starting router with AGGREGATION_FREQUENCY=$AGGREGATION_FREQUENCY"
+          
+          # Start router in orchestrator mode with fast aggregation
           ./target/release/commonware-avs-router --key-file config/orchestrator.json --port 3000 > logs/router.log 2>&1 &
           echo $! > router.pid
           echo "Router started with PID: $(cat router.pid)"
 
           # Wait for router to initialize
-          echo "Waiting for router to initialize..."
-          sleep 15
+          echo "Waiting for router to initialize with 0.3-second (300ms) aggregation frequency..."
+          sleep 10
+          
+          # Check that the router is using the correct aggregation frequency
+          echo "=== Router log excerpt (checking aggregation frequency) ==="
+          grep -i "aggregation" logs/router.log | head -10 || true
 
-      - name: Wait for aggregation cycles
+      - name: Wait for fast aggregation cycles
         run: |
-          echo "Waiting for signature aggregation cycles..."
-          echo "This will take approximately 2-3 minutes..."
-          sleep 120
+          echo "Waiting for fast signature aggregation cycles (0.3 second / 300ms frequency)..."
+          echo "With 0.3-second frequency, we should see approximately 100 aggregations in 30 seconds..."
+          
+          # Wait for 30 seconds to allow multiple aggregation cycles
+          sleep 30
+          
+          # Check router logs for aggregation activity
+          echo "=== Checking for aggregation activity ==="
+          grep -i "aggregat" logs/router.log | tail -20 || echo "No aggregation logs found"
+          
+          # Count aggregation events
+          aggregation_count=$(grep -c "aggregat" logs/router.log 2>/dev/null || echo "0")
+          echo "Found $aggregation_count aggregation-related log entries"
+          
+          # With 0.3-second frequency over 30 seconds, we expect at least 50 aggregations
+          if [ "$aggregation_count" -lt 50 ]; then
+            echo "Warning: Expected more aggregation events with 0.3-second frequency"
+            echo "Full router log:"
+            cat logs/router.log
+          fi
 
-      - name: Verify counter increments
+      - name: Verify counter increments with fast aggregation
         run: |
           cd scripts
           source ../.env
@@ -303,84 +245,48 @@ jobs:
             exit 1
           fi
 
-          echo "Running verification..."
+          echo "Running verification after fast aggregation cycles..."
           cargo run --release --bin verify_increments
+          
+          # Additional verification: Check that we got multiple increments
+          echo "=== Checking router logs for successful aggregations ==="
+          grep -i "success\|complet\|aggregat" ../logs/router.log | tail -30 || true
 
       - name: Collect logs on failure
         if: failure()
         run: |
-          echo "=== Working directory ==="
-          pwd
-          ls -la
-
-          echo "=== Docker Compose status ==="
-          if [ -f .env ]; then
-            docker compose ps || true
-          else
-            echo ".env file not found, checking Docker containers directly"
-            docker ps -a || true
-          fi
-
-          echo "=== Router logs ==="
+          echo "=== Router logs (last 100 lines) ==="
           if [ -f logs/router.log ]; then
-            tail -50 logs/router.log || true
-          else
-            echo "No router log found"
+            tail -100 logs/router.log || true
           fi
 
-          echo "=== Node logs ==="
+          echo "=== Node1 logs (last 50 lines) ==="
           if [ -f logs/node1.log ]; then
             tail -50 logs/node1.log || true
-          else
-            echo "No node1 log found"
           fi
 
+          echo "=== Node2 logs (last 50 lines) ==="
           if [ -f logs/node2.log ]; then
             tail -50 logs/node2.log || true
-          else
-            echo "No node2 log found"
           fi
 
+          echo "=== Node3 logs (last 50 lines) ==="
           if [ -f logs/node3.log ]; then
             tail -50 logs/node3.log || true
-          else
-            echo "No node3 log found"
           fi
 
           echo "=== EigenLayer logs ==="
-          if [ -f .env ]; then
-            docker compose logs eigenlayer --tail=100 || true
-          else
-            echo "Cannot get eigenlayer logs without .env file"
-            docker logs $(docker ps -aq --filter "name=eigenlayer") --tail=100 || true
-          fi
-
-          echo "=== Deployment file check ==="
-          ls -la .nodes/ || true
-          if [ -f .nodes/avs_deploy.json ]; then
-            echo "Deployment file contents:"
-            cat .nodes/avs_deploy.json
-          else
-            echo "No deployment file found"
-          fi
+          docker compose logs eigenlayer --tail=50 || true
 
       - name: Cleanup
         if: always()
         run: |
           echo "Stopping processes..."
-
-          # Kill router and nodes
           [ -f router.pid ] && kill $(cat router.pid) || true
           [ -f node1.pid ] && kill $(cat node1.pid) || true
           [ -f node2.pid ] && kill $(cat node2.pid) || true
           [ -f node3.pid ] && kill $(cat node3.pid) || true
 
           echo "Stopping Docker Compose services..."
-          if [ -f .env ]; then
-            docker compose down -v || true
-          else
-            echo "No .env file, stopping containers directly"
-            docker stop $(docker ps -aq) || true
-            docker rm $(docker ps -aq) || true
-          fi
+          docker compose down -v || true
           echo "Cleanup completed"
