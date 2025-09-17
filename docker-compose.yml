@@ -33,6 +33,7 @@ services:
   
   node-1:
     image: ghcr.io/breadchaincoop/commonware-avs-node:pr-55
+    pull_policy: always
     platform: linux/amd64
     depends_on:
       eigenlayer:
@@ -57,6 +58,7 @@ services:
   
   node-2:
     image: ghcr.io/breadchaincoop/commonware-avs-node:pr-55
+    pull_policy: always
     platform: linux/amd64
     depends_on:
       eigenlayer:
@@ -81,6 +83,7 @@ services:
   
   node-3:
     image: ghcr.io/breadchaincoop/commonware-avs-node:pr-55
+    pull_policy: always
     platform: linux/amd64
     depends_on:
       eigenlayer:
@@ -104,7 +107,7 @@ services:
     #restart: unless-stopped
   
   router:
-    image: commonware-avs-router:debug
+    image: commonware-avs-router:debug-v2
     #platform: linux/amd64
     depends_on:
       eigenlayer:

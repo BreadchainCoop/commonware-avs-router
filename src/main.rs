@@ -144,9 +144,41 @@ fn main() {
                 let verifier = participant.pub_keys.unwrap().g2_pub_key;
                 tracing::info!(key = ?verifier, "registered authorized key",);
                 if let Some(socket) = participant.socket {
-                    let socket_addr = SocketAddr::from_str(&socket)
-                        .expect("Bootstrapper address not well-formed");
-                    recipients.push((verifier, socket_addr));
+                    println!("DEBUG ROUTER: Attempting to resolve/parse socket address: '{}'", socket);
+                    tracing::info!("DEBUG ROUTER: Attempting to resolve/parse socket address: '{}'", socket);
+                    
+                    // Try to resolve hostname:port to socket addresses
+                    use std::net::ToSocketAddrs;
+                    match socket.to_socket_addrs() {
+                        Ok(mut addrs) => {
+                            if let Some(socket_addr) = addrs.next() {
+                                println!("DEBUG ROUTER: Resolved '{}' to '{}'", socket, socket_addr);
+                                tracing::info!("DEBUG ROUTER: Resolved '{}' to '{}'", socket, socket_addr);
+                                recipients.push((verifier, socket_addr));
+                            } else {
+                                println!("DEBUG ROUTER: No addresses found for '{}'", socket);
+                                tracing::error!("DEBUG ROUTER: No addresses found for '{}'", socket);
+                                panic!("No addresses found for socket: {}", socket);
+                            }
+                        }
+                        Err(e) => {
+                            // If resolution fails, try parsing as direct IP:PORT
+                            match SocketAddr::from_str(&socket) {
+                                Ok(socket_addr) => {
+                                    println!("DEBUG ROUTER: Using direct socket address: {}", socket_addr);
+                                    tracing::info!("DEBUG ROUTER: Using direct socket address: {}", socket_addr);
+                                    recipients.push((verifier, socket_addr));
+                                }
+                                Err(parse_err) => {
+                                    println!("DEBUG ROUTER: Failed to resolve '{}': {:?}, and failed to parse as IP: {:?}", 
+                                            socket, e, parse_err);
+                                    tracing::error!("DEBUG ROUTER: Failed to resolve '{}': {:?}, and failed to parse as IP: {:?}",
+                                                  socket, e, parse_err);
+                                    panic!("Bootstrapper address not well-formed: {}", socket);
+                                }
+                            }
+                        }
+                    }
                 }
             }
             let orchestrator_verifier = signer.public_key();
