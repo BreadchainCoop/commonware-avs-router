@@ -6,6 +6,10 @@ on:
       - main
       - dev
       - staging
+  pull_request:
+    branches:
+      - main
+      - dev
   release:
     types: [created]
 
@@ -57,8 +61,19 @@ jobs:
         shell: bash
         run: |
           SHORT_SHA="$(echo "${GITHUB_SHA}" | cut -c1-7)"
-          CHANNEL_TAG="${GITHUB_REF_NAME}"
-          [[ "${GITHUB_EVENT_NAME}" != "release" && "$CHANNEL_TAG" == "main" ]] && CHANNEL_TAG="latest"
+          
+          # Handle different event types
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            # For PRs, use pr-<number> as the tag
+            CHANNEL_TAG="pr-${{ github.event.pull_request.number }}"
+          elif [[ "${GITHUB_EVENT_NAME}" == "release" ]]; then
+            # For releases, use the release tag
+            CHANNEL_TAG="${GITHUB_REF_NAME}"
+          else
+            # For pushes to branches
+            CHANNEL_TAG="${GITHUB_REF_NAME}"
+            [[ "$CHANNEL_TAG" == "main" ]] && CHANNEL_TAG="latest"
+          fi
 
           echo "short_sha=${SHORT_SHA}"     >> "$GITHUB_OUTPUT"
           echo "channel_tag=${CHANNEL_TAG}" >> "$GITHUB_OUTPUT"

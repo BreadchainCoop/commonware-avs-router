@@ -20,8 +20,8 @@ services:
     image: ghcr.io/layr-labs/cerberus:0.0.2
     platform: linux/amd64
     depends_on:
-      ethereum:
-        condition: service_started
+      eigenlayer:
+        condition: service_completed_successfully
     ports:
       - "${CERBERUS_METRICS_PORT:-9081}:${CERBERUS_METRICS_PORT:-9081}"
       - "${CERBERUS_GRPC_PORT:-50051}:${CERBERUS_GRPC_PORT:-50051}"
