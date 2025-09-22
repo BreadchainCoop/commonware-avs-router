@@ -182,20 +182,40 @@ jobs:
           fi
           echo "Counter contract address: $COUNTER_ADDRESS"
           
-          # Check initial counter state in router logs
-          echo "=== Checking counter state in logs ==="
+          # Read the initial counter value from the smart contract
+          # The function signature for "number()" is 0x8381f58a
+          INITIAL_COUNT=$(curl -s -X POST http://localhost:8545 \
+            -H "Content-Type: application/json" \
+            -d '{
+              "jsonrpc":"2.0",
+              "method":"eth_call",
+              "params":[{
+                "to":"'$COUNTER_ADDRESS'",
+                "data":"0x8381f58a"
+              }, "latest"],
+              "id":1
+            }' | jq -r '.result' | xargs printf "%d\n")
           
-          # Look for counter increment messages
-          INITIAL_COUNT=$(docker compose logs router | grep -o "state=\"[0-9]*\"" | tail -1 | grep -o "[0-9]*" || echo "0")
-          echo "Initial counter state: $INITIAL_COUNT"
+          echo "Initial counter value: $INITIAL_COUNT"
           
-          # Wait for the next aggregation cycle (usually 30 seconds)
+          # Wait for the next aggregation cycle (30 seconds by default)
           echo "Waiting for aggregation cycle..."
           sleep 35
           
-          # Check if counter has incremented
-          FINAL_COUNT=$(docker compose logs router | grep -o "state=\"[0-9]*\"" | tail -1 | grep -o "[0-9]*" || echo "0")
-          echo "Final counter state: $FINAL_COUNT"
+          # Read the final counter value from the smart contract
+          FINAL_COUNT=$(curl -s -X POST http://localhost:8545 \
+            -H "Content-Type: application/json" \
+            -d '{
+              "jsonrpc":"2.0",
+              "method":"eth_call",
+              "params":[{
+                "to":"'$COUNTER_ADDRESS'",
+                "data":"0x8381f58a"
+              }, "latest"],
+              "id":1
+            }' | jq -r '.result' | xargs printf "%d\n")
+          
+          echo "Final counter value: $FINAL_COUNT"
           
           # Verify increment
           if [ "$FINAL_COUNT" -gt "$INITIAL_COUNT" ]; then
