@@ -102,7 +102,7 @@ fn main() {
         .get_one::<String>("port")
         .expect("Please provide port");
     let key = load_key_from_file(key_file);
-    let me = format!("{}@{}", key, port);
+    let me = format!("{key}@{port}");
     let parts = me.split('@').collect::<Vec<&str>>();
     if parts.len() != 2 {
         panic!("Identity not well-formed");
