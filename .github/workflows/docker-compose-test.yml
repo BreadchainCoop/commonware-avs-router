@@ -34,8 +34,12 @@ jobs:
           sed -i 's|^# WS_RPC=ws://localhost:8545|WS_RPC=ws://localhost:8545|' .env
           sed -i 's|^# RPC_URL=http://ethereum:8545|RPC_URL=http://ethereum:8545|' .env
           
-          # Set FORK_URL for local forking from Holesky  
-          sed -i 's|^# FORK_URL=.*|FORK_URL=https://ethereum-holesky.publicnode.com|' .env
+          # Set FORK_URL for local forking from repository secret or default to Holesky
+          if [ -n "${{ secrets.RPC_URL }}" ]; then
+            sed -i "s|^# FORK_URL=.*|FORK_URL=${{ secrets.RPC_URL }}|" .env
+          else
+            sed -i 's|^# FORK_URL=.*|FORK_URL=https://ethereum-holesky.publicnode.com|' .env
+          fi
           
           # Uncomment Holesky testnet contract addresses (needed for LOCAL mode with fork)
           sed -i 's|^#DELEGATION_MANAGER_ADDRESS=0xA44151489861Fe9e3055d95adC98FbD462B948e7|DELEGATION_MANAGER_ADDRESS=0xA44151489861Fe9e3055d95adC98FbD462B948e7|' .env
@@ -61,8 +65,8 @@ jobs:
 
       - name: Prepare for EigenLayer setup
         run: |
-          # Create the .nodes directory for EigenLayer to populate
-          mkdir -p .nodes
+          # The .nodes directory should already exist, but ensure subdirectories are ready
+          mkdir -p .nodes/operator_keys
           echo "EigenLayer will generate BLS keys and deploy contracts..."
 
       - name: Start services with docker-compose
@@ -163,6 +167,20 @@ jobs:
           
           # Wait for services to be fully ready
           sleep 20
+          
+          # Get the counter contract address from the deployment file
+          if [ ! -f ".nodes/avs_deploy.json" ]; then
+            echo "AVS deployment file not found"
+            exit 1
+          fi
+          
+          COUNTER_ADDRESS=$(cat .nodes/avs_deploy.json | jq -r '.addresses.counter' || echo "")
+          if [ -z "$COUNTER_ADDRESS" ]; then
+            echo "Counter contract address not found in deployment file"
+            cat .nodes/avs_deploy.json
+            exit 1
+          fi
+          echo "Counter contract address: $COUNTER_ADDRESS"
           
           # Check initial counter state in router logs
           echo "=== Checking counter state in logs ==="
