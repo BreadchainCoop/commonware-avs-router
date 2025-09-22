@@ -124,7 +124,7 @@ jobs:
           
           # Check if nodes and router are still running
           for service in node-1 node-2 node-3 router; do
-            if [ "$(docker compose ps $service --format json | jq -r ".[0].State")" != "running" ]; then
+            if [ "$(docker compose ps $service --format json | jq -r ".State // empty")" != "running" ]; then
               echo "Service $service is not running!"
               docker compose logs $service --tail 50
               exit 1
@@ -156,7 +156,7 @@ jobs:
           docker compose ps
           
           for service in node-1 node-2 node-3 router; do
-            if [ "$(docker compose ps $service --format json | jq -r ".[0].State")" != "running" ]; then
+            if [ "$(docker compose ps $service --format json | jq -r ".State // empty")" != "running" ]; then
               echo "Service $service is not running!"
               docker compose logs $service --tail 50
               exit 1
