@@ -133,4 +133,5 @@ services:
     command: ["--key-file", "/app/router_orchestrator.json", "--port", "3000"]
     ports:
       - "4000:3000"
+      - "8080:8080"
     restart: unless-stopped

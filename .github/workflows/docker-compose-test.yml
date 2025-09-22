@@ -297,13 +297,14 @@ jobs:
           echo "Starting counter value: $START_COUNT"
           
           # Send ingress requests to trigger increments
-          echo "Sending ingress requests..."
+          echo "Sending ingress requests to /trigger endpoint..."
           for i in {1..5}; do
             echo "Sending ingress request $i..."
-            # Assuming the router exposes an ingress endpoint on port 4000
-            curl -X POST http://localhost:4000/ingress \
+            # The ingress server runs on port 8080 with /trigger endpoint
+            # Expected payload format: {"body": {"metadata": {"key": "value"}}}
+            curl -X POST http://localhost:8080/trigger \
               -H "Content-Type: application/json" \
-              -d '{"action":"increment"}' || true
+              -d '{"body": {"metadata": {"request_id": "'$i'", "action": "increment"}}}' || true
             sleep 1
           done
           
