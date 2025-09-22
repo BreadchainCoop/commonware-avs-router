@@ -7,12 +7,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends pkg-config libs
 COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
 
 # Pre-build deps
-# Create dummy main files for both workspace members to satisfy Cargo during dependency pre-build
 RUN mkdir src && echo 'fn main(){}' > src/main.rs
-RUN mkdir -p scripts/src && echo 'fn main(){}' > scripts/src/main.rs
-RUN echo '[package]\nname = "scripts"\nversion = "0.1.0"\nedition = "2021"' > scripts/Cargo.toml
 RUN cargo build --release || true
-RUN rm -rf src scripts
+RUN rm -rf src
 
 # Now copy real source
 COPY src ./src
