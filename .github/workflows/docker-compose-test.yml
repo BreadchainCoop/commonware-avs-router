@@ -236,8 +236,8 @@ jobs:
           # Update the .env file to set fast aggregation
           echo "AGGREGATION_FREQUENCY=0.5" >> .env
           
-          # Restart the router to pick up the new configuration
-          docker compose restart router
+          # Recreate the router to pick up the new environment variables
+          docker compose up -d router --force-recreate
           
           # Wait for router to be ready
           sleep 10
@@ -284,13 +284,18 @@ jobs:
           
           # Update the .env file to enable ingress
           sed -i 's/^INGRESS=false/INGRESS=true/' .env
+          # Also ensure it's set (in case it wasn't in the file)
           echo "INGRESS=true" >> .env
           
-          # Restart the router to pick up ingress configuration
-          docker compose restart router
+          # Recreate the router to pick up the new environment variables
+          docker compose up -d router --force-recreate
           
-          # Wait for router to be ready
-          sleep 10
+          # Wait for router to be ready and ingress server to start
+          sleep 15
+          
+          # Verify ingress mode is enabled
+          echo "Checking if ingress mode is enabled..."
+          docker compose logs router --tail 20 | grep -i "ingress\|8080" || true
           
           # Get the starting counter value from previous step
           START_COUNT=${{ env.LAST_COUNT }}
