@@ -2155,7 +2155,9 @@ pub mod BLSSigCheckOperatorStateRetriever {
         }
         #[doc(hidden)]
         impl ::core::convert::From<UnderlyingRustTuple<'_>> for BytesArrayLengthTooLong {
-            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self { Self {} }
+            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self {
+                Self {}
+            }
         }
         impl alloy_sol_types::SolError for BytesArrayLengthTooLong {
             type Parameters<'a> = UnderlyingSolTuple<'a>;
@@ -2211,7 +2213,9 @@ pub mod BLSSigCheckOperatorStateRetriever {
         }
         #[doc(hidden)]
         impl ::core::convert::From<UnderlyingRustTuple<'_>> for BytesArrayNotOrdered {
-            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self { Self {} }
+            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self {
+                Self {}
+            }
         }
         impl alloy_sol_types::SolError for BytesArrayNotOrdered {
             type Parameters<'a> = UnderlyingSolTuple<'a>;
@@ -2267,7 +2271,9 @@ pub mod BLSSigCheckOperatorStateRetriever {
         }
         #[doc(hidden)]
         impl ::core::convert::From<UnderlyingRustTuple<'_>> for ECAddFailed {
-            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self { Self {} }
+            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self {
+                Self {}
+            }
         }
         impl alloy_sol_types::SolError for ECAddFailed {
             type Parameters<'a> = UnderlyingSolTuple<'a>;
@@ -2323,7 +2329,9 @@ pub mod BLSSigCheckOperatorStateRetriever {
         }
         #[doc(hidden)]
         impl ::core::convert::From<UnderlyingRustTuple<'_>> for InvalidSigma {
-            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self { Self {} }
+            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self {
+                Self {}
+            }
         }
         impl alloy_sol_types::SolError for InvalidSigma {
             type Parameters<'a> = UnderlyingSolTuple<'a>;
@@ -2379,7 +2387,9 @@ pub mod BLSSigCheckOperatorStateRetriever {
         }
         #[doc(hidden)]
         impl ::core::convert::From<UnderlyingRustTuple<'_>> for OperatorNotRegistered {
-            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self { Self {} }
+            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self {
+                Self {}
+            }
         }
         impl alloy_sol_types::SolError for OperatorNotRegistered {
             type Parameters<'a> = UnderlyingSolTuple<'a>;

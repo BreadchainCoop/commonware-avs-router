@@ -2022,7 +2022,9 @@ pub mod BLSApkRegistry {
         }
         #[doc(hidden)]
         impl ::core::convert::From<UnderlyingRustTuple<'_>> for BLSPubkeyAlreadyRegistered {
-            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self { Self {} }
+            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self {
+                Self {}
+            }
         }
         impl alloy_sol_types::SolError for BLSPubkeyAlreadyRegistered {
             type Parameters<'a> = UnderlyingSolTuple<'a>;
@@ -2078,7 +2080,9 @@ pub mod BLSApkRegistry {
         }
         #[doc(hidden)]
         impl ::core::convert::From<UnderlyingRustTuple<'_>> for BlockNumberBeforeFirstUpdate {
-            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self { Self {} }
+            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self {
+                Self {}
+            }
         }
         impl alloy_sol_types::SolError for BlockNumberBeforeFirstUpdate {
             type Parameters<'a> = UnderlyingSolTuple<'a>;
@@ -2134,7 +2138,9 @@ pub mod BLSApkRegistry {
         }
         #[doc(hidden)]
         impl ::core::convert::From<UnderlyingRustTuple<'_>> for BlockNumberNotLatest {
-            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self { Self {} }
+            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self {
+                Self {}
+            }
         }
         impl alloy_sol_types::SolError for BlockNumberNotLatest {
             type Parameters<'a> = UnderlyingSolTuple<'a>;
@@ -2190,7 +2196,9 @@ pub mod BLSApkRegistry {
         }
         #[doc(hidden)]
         impl ::core::convert::From<UnderlyingRustTuple<'_>> for BlockNumberTooRecent {
-            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self { Self {} }
+            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self {
+                Self {}
+            }
         }
         impl alloy_sol_types::SolError for BlockNumberTooRecent {
             type Parameters<'a> = UnderlyingSolTuple<'a>;
@@ -2246,7 +2254,9 @@ pub mod BLSApkRegistry {
         }
         #[doc(hidden)]
         impl ::core::convert::From<UnderlyingRustTuple<'_>> for ECAddFailed {
-            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self { Self {} }
+            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self {
+                Self {}
+            }
         }
         impl alloy_sol_types::SolError for ECAddFailed {
             type Parameters<'a> = UnderlyingSolTuple<'a>;
@@ -2302,7 +2312,9 @@ pub mod BLSApkRegistry {
         }
         #[doc(hidden)]
         impl ::core::convert::From<UnderlyingRustTuple<'_>> for ECMulFailed {
-            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self { Self {} }
+            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self {
+                Self {}
+            }
         }
         impl alloy_sol_types::SolError for ECMulFailed {
             type Parameters<'a> = UnderlyingSolTuple<'a>;
@@ -2358,7 +2370,9 @@ pub mod BLSApkRegistry {
         }
         #[doc(hidden)]
         impl ::core::convert::From<UnderlyingRustTuple<'_>> for ECPairingFailed {
-            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self { Self {} }
+            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self {
+                Self {}
+            }
         }
         impl alloy_sol_types::SolError for ECPairingFailed {
             type Parameters<'a> = UnderlyingSolTuple<'a>;
@@ -2414,7 +2428,9 @@ pub mod BLSApkRegistry {
         }
         #[doc(hidden)]
         impl ::core::convert::From<UnderlyingRustTuple<'_>> for G2PubkeyAlreadySet {
-            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self { Self {} }
+            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self {
+                Self {}
+            }
         }
         impl alloy_sol_types::SolError for G2PubkeyAlreadySet {
             type Parameters<'a> = UnderlyingSolTuple<'a>;
@@ -2470,7 +2486,9 @@ pub mod BLSApkRegistry {
         }
         #[doc(hidden)]
         impl ::core::convert::From<UnderlyingRustTuple<'_>> for InvalidBLSSignatureOrPrivateKey {
-            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self { Self {} }
+            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self {
+                Self {}
+            }
         }
         impl alloy_sol_types::SolError for InvalidBLSSignatureOrPrivateKey {
             type Parameters<'a> = UnderlyingSolTuple<'a>;
@@ -2526,7 +2544,9 @@ pub mod BLSApkRegistry {
         }
         #[doc(hidden)]
         impl ::core::convert::From<UnderlyingRustTuple<'_>> for OnlyRegistryCoordinatorOwner {
-            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self { Self {} }
+            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self {
+                Self {}
+            }
         }
         impl alloy_sol_types::SolError for OnlyRegistryCoordinatorOwner {
             type Parameters<'a> = UnderlyingSolTuple<'a>;
@@ -2582,7 +2602,9 @@ pub mod BLSApkRegistry {
         }
         #[doc(hidden)]
         impl ::core::convert::From<UnderlyingRustTuple<'_>> for OperatorAlreadyRegistered {
-            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self { Self {} }
+            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self {
+                Self {}
+            }
         }
         impl alloy_sol_types::SolError for OperatorAlreadyRegistered {
             type Parameters<'a> = UnderlyingSolTuple<'a>;
@@ -2638,7 +2660,9 @@ pub mod BLSApkRegistry {
         }
         #[doc(hidden)]
         impl ::core::convert::From<UnderlyingRustTuple<'_>> for OperatorNotRegistered {
-            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self { Self {} }
+            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self {
+                Self {}
+            }
         }
         impl alloy_sol_types::SolError for OperatorNotRegistered {
             type Parameters<'a> = UnderlyingSolTuple<'a>;
@@ -2694,7 +2718,9 @@ pub mod BLSApkRegistry {
         }
         #[doc(hidden)]
         impl ::core::convert::From<UnderlyingRustTuple<'_>> for QuorumAlreadyExists {
-            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self { Self {} }
+            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self {
+                Self {}
+            }
         }
         impl alloy_sol_types::SolError for QuorumAlreadyExists {
             type Parameters<'a> = UnderlyingSolTuple<'a>;
@@ -2750,7 +2776,9 @@ pub mod BLSApkRegistry {
         }
         #[doc(hidden)]
         impl ::core::convert::From<UnderlyingRustTuple<'_>> for QuorumDoesNotExist {
-            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self { Self {} }
+            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self {
+                Self {}
+            }
         }
         impl alloy_sol_types::SolError for QuorumDoesNotExist {
             type Parameters<'a> = UnderlyingSolTuple<'a>;
@@ -2806,7 +2834,9 @@ pub mod BLSApkRegistry {
         }
         #[doc(hidden)]
         impl ::core::convert::From<UnderlyingRustTuple<'_>> for ZeroPubKey {
-            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self { Self {} }
+            fn from(_tuple: UnderlyingRustTuple<'_>) -> Self {
+                Self {}
+            }
         }
         impl alloy_sol_types::SolError for ZeroPubKey {
             type Parameters<'a> = UnderlyingSolTuple<'a>;
@@ -3789,7 +3819,9 @@ pub mod BLSApkRegistry {
             }
             #[doc(hidden)]
             impl ::core::convert::From<UnderlyingRustTuple<'_>> for deregisterOperatorReturn {
-                fn from(_tuple: UnderlyingRustTuple<'_>) -> Self { Self {} }
+                fn from(_tuple: UnderlyingRustTuple<'_>) -> Self {
+                    Self {}
+                }
             }
         }
         impl alloy_sol_types::SolCall for deregisterOperatorCall {
@@ -5019,7 +5051,9 @@ pub mod BLSApkRegistry {
             }
             #[doc(hidden)]
             impl ::core::convert::From<UnderlyingRustTuple<'_>> for initializeQuorumReturn {
-                fn from(_tuple: UnderlyingRustTuple<'_>) -> Self { Self {} }
+                fn from(_tuple: UnderlyingRustTuple<'_>) -> Self {
+                    Self {}
+                }
             }
         }
         impl alloy_sol_types::SolCall for initializeQuorumCall {
@@ -5650,7 +5684,9 @@ pub mod BLSApkRegistry {
             }
             #[doc(hidden)]
             impl ::core::convert::From<UnderlyingRustTuple<'_>> for registerOperatorReturn {
-                fn from(_tuple: UnderlyingRustTuple<'_>) -> Self { Self {} }
+                fn from(_tuple: UnderlyingRustTuple<'_>) -> Self {
+                    Self {}
+                }
             }
         }
         impl alloy_sol_types::SolCall for registerOperatorCall {
@@ -5739,7 +5775,9 @@ pub mod BLSApkRegistry {
             }
             #[doc(hidden)]
             impl ::core::convert::From<UnderlyingRustTuple<'_>> for registryCoordinatorCall {
-                fn from(_tuple: UnderlyingRustTuple<'_>) -> Self { Self {} }
+                fn from(_tuple: UnderlyingRustTuple<'_>) -> Self {
+                    Self {}
+                }
             }
         }
         {
@@ -5879,7 +5917,9 @@ pub mod BLSApkRegistry {
             }
             #[doc(hidden)]
             impl ::core::convert::From<UnderlyingRustTuple<'_>> for verifyAndRegisterG2PubkeyForOperatorReturn {
-                fn from(_tuple: UnderlyingRustTuple<'_>) -> Self { Self {} }
+                fn from(_tuple: UnderlyingRustTuple<'_>) -> Self {
+                    Self {}
+                }
             }
         }
         impl alloy_sol_types::SolCall for verifyAndRegisterG2PubkeyForOperatorCall {
