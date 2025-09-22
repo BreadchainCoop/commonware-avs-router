@@ -102,7 +102,7 @@ fn main() {
         .get_one::<String>("port")
         .expect("Please provide port");
     let key = load_key_from_file(key_file);
-    let me = format!("{}@{}", key, port);
+    let me = format!("{key}@{port}");
     let parts = me.split('@').collect::<Vec<&str>>();
     if parts.len() != 2 {
         panic!("Identity not well-formed");
@@ -145,7 +145,7 @@ fn main() {
                 tracing::info!(key = ?verifier, "registered authorized key",);
                 if let Some(socket) = participant.socket {
                     tracing::info!("Attempting to resolve/parse socket address: '{}'", socket);
-                    
+
                     // Try to resolve hostname:port to socket addresses
                     use std::net::ToSocketAddrs;
                     match socket.to_socket_addrs() {
@@ -155,7 +155,7 @@ fn main() {
                                 recipients.push((verifier, socket_addr));
                             } else {
                                 tracing::error!("No addresses found for '{}'", socket);
-                                panic!("No addresses found for socket: {}", socket);
+                                panic!("No addresses found for socket: {socket}");
                             }
                         }
                         Err(e) => {
@@ -168,7 +168,7 @@ fn main() {
                                 Err(parse_err) => {
                                     tracing::error!("Failed to resolve '{}': {:?}, and failed to parse as IP: {:?}",
                                                   socket, e, parse_err);
-                                    panic!("Bootstrapper address not well-formed: {}", socket);
+                                    panic!("Bootstrapper address not well-formed: {socket}");
                                 }
                             }
                         }
