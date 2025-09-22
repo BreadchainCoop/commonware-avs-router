@@ -67,6 +67,10 @@ jobs:
         run: |
           # The .nodes directory should already exist, but ensure subdirectories are ready
           mkdir -p .nodes/operator_keys
+          
+          # Create config.json from the example (required by eigenlayer service)
+          cp config/config.example.json config/config.json
+          
           echo "EigenLayer will generate BLS keys and deploy contracts..."
 
       - name: Start services with docker-compose
