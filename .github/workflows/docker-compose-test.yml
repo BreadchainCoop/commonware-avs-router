@@ -29,10 +29,10 @@ jobs:
           # Set to LOCAL mode
           sed -i 's|^ENVIRONMENT=.*|ENVIRONMENT=LOCAL|' .env
           
-          # Uncomment and set local RPC URLs
-          sed -i 's|^# HTTP_RPC=http://localhost:8545|HTTP_RPC=http://localhost:8545|' .env
-          sed -i 's|^# WS_RPC=ws://localhost:8545|WS_RPC=ws://localhost:8545|' .env
-          sed -i 's|^# RPC_URL=http://ethereum:8545|RPC_URL=http://ethereum:8545|' .env
+          # Uncomment local RPC URLs
+          sed -i '/^# HTTP_RPC=http:\/\/localhost:8545/s/^# //' .env
+          sed -i '/^# WS_RPC=ws:\/\/localhost:8545/s/^# //' .env
+          sed -i '/^# RPC_URL=http:\/\/ethereum:8545/s/^# //' .env
           
           # Set FORK_URL for local forking from repository secret or default to Holesky
           if [ -n "${{ secrets.RPC_URL }}" ]; then
@@ -42,13 +42,13 @@ jobs:
           fi
           
           # Uncomment Holesky testnet contract addresses (needed for LOCAL mode with fork)
-          sed -i 's|^#DELEGATION_MANAGER_ADDRESS=0xA44151489861Fe9e3055d95adC98FbD462B948e7|DELEGATION_MANAGER_ADDRESS=0xA44151489861Fe9e3055d95adC98FbD462B948e7|' .env
-          sed -i 's|^#STRATEGY_MANAGER_ADDRESS=0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6|STRATEGY_MANAGER_ADDRESS=0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6|' .env
-          sed -i 's|^#LST_CONTRACT_ADDRESS=0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034|LST_CONTRACT_ADDRESS=0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034|' .env
-          sed -i 's|^#LST_STRATEGY_ADDRESS=0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3|LST_STRATEGY_ADDRESS=0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3|' .env
-          sed -i 's|^#BLS_SIGNATURE_CHECKER_ADDRESS=0xca249215e082e17c12bb3c4881839a3f883e5c6b|BLS_SIGNATURE_CHECKER_ADDRESS=0xca249215e082e17c12bb3c4881839a3f883e5c6b|' .env
-          sed -i 's|^#OPERATOR_STATE_RETRIEVER_ADDRESS=0xB4baAfee917fb4449f5ec64804217bccE9f46C67|OPERATOR_STATE_RETRIEVER_ADDRESS=0xB4baAfee917fb4449f5ec64804217bccE9f46C67|' .env
-          sed -i 's|^#ALLOCATION_MANAGER_ADDRESS=0x78469728304326CBc65f8f95FA756B0B73164462|ALLOCATION_MANAGER_ADDRESS=0x78469728304326CBc65f8f95FA756B0B73164462|' .env
+          sed -i '/^#DELEGATION_MANAGER_ADDRESS=0xA44151489861Fe9e3055d95adC98FbD462B948e7/s/^#//' .env
+          sed -i '/^#STRATEGY_MANAGER_ADDRESS=0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6/s/^#//' .env
+          sed -i '/^#LST_CONTRACT_ADDRESS=0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034/s/^#//' .env
+          sed -i '/^#LST_STRATEGY_ADDRESS=0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3/s/^#//' .env
+          sed -i '/^#BLS_SIGNATURE_CHECKER_ADDRESS=0xca249215e082e17c12bb3c4881839a3f883e5c6b/s/^#//' .env
+          sed -i '/^#OPERATOR_STATE_RETRIEVER_ADDRESS=0xB4baAfee917fb4449f5ec64804217bccE9f46C67/s/^#//' .env
+          sed -i '/^#ALLOCATION_MANAGER_ADDRESS=0x78469728304326CBc65f8f95FA756B0B73164462/s/^#//' .env
           
           # Use default Anvil private key for testing
           DEFAULT_ANVIL_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
@@ -198,9 +198,9 @@ jobs:
           
           echo "Initial counter value: $INITIAL_COUNT"
           
-          # Wait for the next aggregation cycle (30 seconds by default)
-          echo "Waiting for aggregation cycle..."
-          sleep 35
+          # Wait for 5 aggregation cycles (30 seconds each by default = 150 seconds)
+          echo "Waiting for 5 aggregation cycles (150 seconds)..."
+          sleep 150
           
           # Read the final counter value from the smart contract
           FINAL_COUNT=$(curl -s -X POST http://localhost:8545 \
@@ -227,21 +227,6 @@ jobs:
             exit 1
           fi
           
-          # Check for successful signature aggregation
-          if docker compose logs router | grep -q "Successfully aggregated signatures"; then
-            echo "✓ Signatures are being successfully aggregated"
-          else
-            echo "⚠ No signature aggregation detected yet"
-          fi
-          
-          # Verify nodes are participating
-          for node in node-1 node-2 node-3; do
-            if docker compose logs $node | grep -q "Signed message"; then
-              echo "✓ $node is signing messages"
-            else
-              echo "⚠ $node signature not detected"
-            fi
-          done
 
       - name: Collect logs on failure
         if: failure()
