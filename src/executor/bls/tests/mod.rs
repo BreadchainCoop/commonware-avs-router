@@ -84,13 +84,13 @@ impl BlsSignatureVerificationHandler for TestBlsSignatureVerificationHandler {
 #[test]
 fn test_mock_verification_handler_creation() {
     let handler = MockVerificationHandler::new();
-    assert_eq!(format!("{:?}", handler), "MockVerificationHandler");
+    assert_eq!(format!("{handler:?}"), "MockVerificationHandler");
 }
 
 #[test]
 fn test_mock_verification_handler_default() {
     let handler = MockVerificationHandler;
-    assert_eq!(format!("{:?}", handler), "MockVerificationHandler");
+    assert_eq!(format!("{handler:?}"), "MockVerificationHandler");
 }
 
 #[tokio::test]

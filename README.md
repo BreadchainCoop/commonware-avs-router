@@ -123,6 +123,13 @@ Required environment variables:
 - `CONTRIBUTOR_X_KEYFILE`: BLS key files for contributors
 - `PRIVATE_KEY`: Private key for transactions. **NOTE:** Address must be funded on Holesky testnet
 
+Optional environment variables:
+- `AGGREGATION_FREQUENCY`: Signature aggregation frequency in seconds, supports fractional values (default: 30)
+  - Examples: `30` (30 seconds), `1` (1 second), `0.1` (100ms), `0.5` (500ms)
+- `THRESHOLD`: Minimum signatures required for aggregation
+- `INGRESS`: Enable HTTP ingress mode (true/false)
+- `INGRESS_ADDRESS`: Address for ingress server (default: 0.0.0.0:8080)
+
 Contract addresses are automatically loaded from the deployment JSON file.
 
 ### Docker
@@ -146,6 +153,7 @@ services:
       - WS_RPC=${WS_RPC}
       - AVS_DEPLOYMENT_PATH=/app/config/avs_deploy.json
       - PRIVATE_KEY=${PRIVATE_KEY}
+      - AGGREGATION_FREQUENCY=${AGGREGATION_FREQUENCY:-30}
       - CONTRIBUTOR_1_KEYFILE=/app/keys/contributor1.bls.key.json
       - CONTRIBUTOR_2_KEYFILE=/app/keys/contributor2.bls.key.json
       - CONTRIBUTOR_3_KEYFILE=/app/keys/contributor3.bls.key.json
