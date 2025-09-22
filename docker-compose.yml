@@ -13,7 +13,7 @@ services:
     env_file:
       - .env
     volumes:
-      - ./.nodes:/root/.nodes
+      - ./config/.nodes:/root/.nodes
       - ./config/config.json:/bls-middleware/contracts/docker/eigenlayer/config.json
   
   signer:
@@ -48,8 +48,8 @@ services:
       - AVS_DEPLOYMENT_PATH=/app/.nodes/avs_deploy.json
       - RUST_BACKTRACE=1
     volumes:
-      - ./.nodes/operator_keys/testacc1.private.bls.key.json:/app/key.json:ro
-      - ./.nodes:/app/.nodes:ro
+      - ./config/.nodes/operator_keys/testacc1.private.bls.key.json:/app/key.json:ro
+      - ./config/.nodes:/app/.nodes:ro
       - ./config/public_orchestrator.json:/app/public_orchestrator.json:ro
     command: ["--key-file", "/app/key.json", "--port", "3001", "--orchestrator", "/app/public_orchestrator.json"]
     ports:
@@ -73,8 +73,8 @@ services:
       - AVS_DEPLOYMENT_PATH=/app/.nodes/avs_deploy.json
       - RUST_BACKTRACE=1
     volumes:
-      - ./.nodes/operator_keys/testacc2.private.bls.key.json:/app/key.json:ro
-      - ./.nodes:/app/.nodes:ro
+      - ./config/.nodes/operator_keys/testacc2.private.bls.key.json:/app/key.json:ro
+      - ./config/.nodes:/app/.nodes:ro
       - ./config/public_orchestrator.json:/app/public_orchestrator.json:ro
     command: ["--key-file", "/app/key.json", "--port", "3002", "--orchestrator", "/app/public_orchestrator.json"]
     ports:
@@ -98,8 +98,8 @@ services:
       - AVS_DEPLOYMENT_PATH=/app/.nodes/avs_deploy.json
       - RUST_BACKTRACE=1
     volumes:
-      - ./.nodes/operator_keys/testacc3.private.bls.key.json:/app/key.json:ro
-      - ./.nodes:/app/.nodes:ro
+      - ./config/.nodes/operator_keys/testacc3.private.bls.key.json:/app/key.json:ro
+      - ./config/.nodes:/app/.nodes:ro
       - ./config/public_orchestrator.json:/app/public_orchestrator.json:ro
     command: ["--key-file", "/app/key.json", "--port", "3003", "--orchestrator", "/app/public_orchestrator.json"]
     ports:
@@ -128,7 +128,7 @@ services:
       - AVS_DEPLOYMENT_PATH=/app/.nodes/avs_deploy.json
       - RUST_BACKTRACE=1
     volumes:
-      - ./.nodes:/app/.nodes:ro
+      - ./config/.nodes:/app/.nodes:ro
       - ./config/router_orchestrator.json:/app/router_orchestrator.json:ro
     command: ["--key-file", "/app/router_orchestrator.json", "--port", "3000"]
     ports:
