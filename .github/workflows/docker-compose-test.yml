@@ -195,6 +195,7 @@ jobs:
             }' | jq -r '.result' | xargs printf "%d\n")
           
           echo "Initial counter value: $INITIAL_COUNT"
+          echo "INITIAL_COUNT=$INITIAL_COUNT" >> $GITHUB_ENV
           
           # Wait for 5 aggregation cycles (30 seconds each by default = 150 seconds)
           echo "Waiting for 5 aggregation cycles (150 seconds)..."
@@ -218,12 +219,130 @@ jobs:
           # Verify increment
           if [ "$FINAL_COUNT" -gt "$INITIAL_COUNT" ]; then
             echo "✓ Counter successfully incremented from $INITIAL_COUNT to $FINAL_COUNT"
+            # Save the current count for next step
+            echo "LAST_COUNT=$FINAL_COUNT" >> $GITHUB_ENV
+            echo "COUNTER_ADDRESS=$COUNTER_ADDRESS" >> $GITHUB_ENV
           else
             echo "✗ Counter did not increment (still at $FINAL_COUNT)"
             echo "=== Recent router logs ==="
             docker compose logs router --tail 50
             exit 1
           fi
+
+      - name: Test with fast aggregation frequency
+        run: |
+          echo "Testing with fast aggregation frequency (0.5 seconds)..."
+          
+          # Update the .env file to set fast aggregation
+          echo "AGGREGATION_FREQUENCY=0.5" >> .env
+          
+          # Restart the router to pick up the new configuration
+          docker compose restart router
+          
+          # Wait for router to be ready
+          sleep 10
+          
+          # Get the starting counter value from previous step
+          START_COUNT=${{ env.LAST_COUNT }}
+          DEFAULT_COUNT=${{ env.LAST_COUNT }}
+          echo "Starting counter value: $START_COUNT"
+          echo "DEFAULT_COUNT=$DEFAULT_COUNT" >> $GITHUB_ENV
+          
+          # Wait for 10 fast aggregation cycles (0.5 seconds each = 5 seconds)
+          echo "Waiting for 10 fast aggregation cycles (5 seconds)..."
+          sleep 10
+          
+          # Read the counter value after fast aggregation
+          FAST_COUNT=$(curl -s -X POST http://localhost:8545 \
+            -H "Content-Type: application/json" \
+            -d '{
+              "jsonrpc":"2.0",
+              "method":"eth_call",
+              "params":[{
+                "to":"'${{ env.COUNTER_ADDRESS }}'",
+                "data":"0x8381f58a"
+              }, "latest"],
+              "id":1
+            }' | jq -r '.result' | xargs printf "%d\n")
+          
+          echo "Counter value after fast aggregation: $FAST_COUNT"
+          
+          # Verify fast aggregation worked (should have multiple increments)
+          if [ "$FAST_COUNT" -gt "$START_COUNT" ]; then
+            INCREMENTS=$((FAST_COUNT - START_COUNT))
+            echo "✓ Fast aggregation successful: $INCREMENTS increments in ~10 seconds"
+            echo "LAST_COUNT=$FAST_COUNT" >> $GITHUB_ENV
+          else
+            echo "✗ Fast aggregation failed (counter still at $FAST_COUNT)"
+            docker compose logs router --tail 50
+            exit 1
+          fi
+
+      - name: Test with ingress enabled
+        run: |
+          echo "Testing with ingress enabled..."
+          
+          # Update the .env file to enable ingress
+          sed -i 's/^INGRESS=false/INGRESS=true/' .env
+          echo "INGRESS=true" >> .env
+          
+          # Restart the router to pick up ingress configuration
+          docker compose restart router
+          
+          # Wait for router to be ready
+          sleep 10
+          
+          # Get the starting counter value from previous step
+          START_COUNT=${{ env.LAST_COUNT }}
+          echo "Starting counter value: $START_COUNT"
+          
+          # Send ingress requests to trigger increments
+          echo "Sending ingress requests..."
+          for i in {1..5}; do
+            echo "Sending ingress request $i..."
+            # Assuming the router exposes an ingress endpoint on port 4000
+            curl -X POST http://localhost:4000/ingress \
+              -H "Content-Type: application/json" \
+              -d '{"action":"increment"}' || true
+            sleep 1
+          done
+          
+          # Wait for aggregation to process the ingress requests
+          echo "Waiting for aggregation to process ingress requests..."
+          sleep 10
+          
+          # Read the counter value after ingress
+          INGRESS_COUNT=$(curl -s -X POST http://localhost:8545 \
+            -H "Content-Type: application/json" \
+            -d '{
+              "jsonrpc":"2.0",
+              "method":"eth_call",
+              "params":[{
+                "to":"'${{ env.COUNTER_ADDRESS }}'",
+                "data":"0x8381f58a"
+              }, "latest"],
+              "id":1
+            }' | jq -r '.result' | xargs printf "%d\n")
+          
+          echo "Counter value after ingress: $INGRESS_COUNT"
+          
+          # Verify ingress increments worked
+          if [ "$INGRESS_COUNT" -gt "$START_COUNT" ]; then
+            INCREMENTS=$((INGRESS_COUNT - START_COUNT))
+            echo "✓ Ingress test successful: $INCREMENTS increments after ingress requests"
+          else
+            echo "✗ Ingress test failed (counter still at $INGRESS_COUNT)"
+            docker compose logs router --tail 50
+            exit 1
+          fi
+          
+          # Final summary
+          echo "=== Test Summary ==="
+          echo "Initial count: ${{ env.INITIAL_COUNT }}"
+          echo "After default aggregation (5 cycles @ 30s): ${{ env.DEFAULT_COUNT }}"
+          echo "After fast aggregation (10 cycles @ 0.5s): $FAST_COUNT"
+          echo "After ingress requests (5 requests): $INGRESS_COUNT"
+          echo "Total increments: $((INGRESS_COUNT - ${{ env.INITIAL_COUNT }}))"
           
 
       - name: Collect logs on failure
