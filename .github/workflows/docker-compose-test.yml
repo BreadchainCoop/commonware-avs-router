@@ -121,6 +121,54 @@ jobs:
           # Final status check
           docker compose ps
 
+      - name: Test counter increment functionality
+        run: |
+          echo "Testing counter increment..."
+          
+          # Wait for services to be fully ready
+          sleep 20
+          
+          # Check initial counter state in router logs
+          echo "=== Checking counter state in logs ==="
+          
+          # Look for counter increment messages
+          INITIAL_COUNT=$(docker compose logs router | grep -o "state=\"[0-9]*\"" | tail -1 | grep -o "[0-9]*" || echo "0")
+          echo "Initial counter state: $INITIAL_COUNT"
+          
+          # Wait for the next aggregation cycle (usually 30 seconds)
+          echo "Waiting for aggregation cycle..."
+          sleep 35
+          
+          # Check if counter has incremented
+          FINAL_COUNT=$(docker compose logs router | grep -o "state=\"[0-9]*\"" | tail -1 | grep -o "[0-9]*" || echo "0")
+          echo "Final counter state: $FINAL_COUNT"
+          
+          # Verify increment
+          if [ "$FINAL_COUNT" -gt "$INITIAL_COUNT" ]; then
+            echo "✓ Counter successfully incremented from $INITIAL_COUNT to $FINAL_COUNT"
+          else
+            echo "✗ Counter did not increment (still at $FINAL_COUNT)"
+            echo "=== Recent router logs ==="
+            docker compose logs router --tail 50
+            exit 1
+          fi
+          
+          # Check for successful signature aggregation
+          if docker compose logs router | grep -q "Successfully aggregated signatures"; then
+            echo "✓ Signatures are being successfully aggregated"
+          else
+            echo "⚠ No signature aggregation detected yet"
+          fi
+          
+          # Verify nodes are participating
+          for node in node-1 node-2 node-3; do
+            if docker compose logs $node | grep -q "Signed message"; then
+              echo "✓ $node is signing messages"
+            else
+              echo "⚠ $node signature not detected"
+            fi
+          done
+
       - name: Collect logs on failure
         if: failure()
         run: |
