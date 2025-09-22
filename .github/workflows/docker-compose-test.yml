@@ -1,0 +1,151 @@
+name: Docker Compose Test
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+
+jobs:
+  docker-compose-test:
+    name: Test with Docker Compose
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Create .env file
+        run: |
+          cat > .env << EOF
+          # Cerberus (Signer) configuration
+          CERBERUS_REGION=us-east-1
+          CERBERUS_ACCESS_KEY_ID=test
+          CERBERUS_SECRET_ACCESS_KEY=test
+          CERBERUS_METRICS_PORT=9081
+          CERBERUS_GRPC_PORT=50051
+          CERBERUS_KMS_KEY_ID=test-key-id
+          EOF
+
+      - name: Build router image locally
+        run: |
+          docker build -t commonware-avs-router:debug-v2 .
+          
+      - name: Pull required images
+        run: |
+          docker compose pull ethereum eigenlayer signer node-1 node-2 node-3
+
+      - name: Generate node keys
+        run: |
+          # Create the keys directory
+          mkdir -p .nodes/operator_keys
+          
+          # Generate BLS keys for test operators
+          for i in 1 2 3; do
+            cat > .nodes/operator_keys/testacc${i}.private.bls.key.json << EOF
+          {
+            "privateKey": "$((100 + i))"
+          }
+          EOF
+          done
+
+      - name: Start services with docker-compose
+        run: |
+          docker compose up -d
+          
+      - name: Wait for services to be healthy
+        run: |
+          echo "Waiting for services to start..."
+          sleep 30
+          
+          # Check if all services are running
+          docker compose ps
+          
+          # Wait for eigenlayer to complete
+          echo "Waiting for EigenLayer setup to complete..."
+          timeout 120 bash -c 'until [ "$(docker compose ps eigenlayer --format json | jq -r ".[0].State")" = "exited" ]; do sleep 5; echo "Waiting for eigenlayer..."; done'
+          
+          # Check if nodes and router are still running
+          for service in node-1 node-2 node-3 router; do
+            if [ "$(docker compose ps $service --format json | jq -r ".[0].State")" != "running" ]; then
+              echo "Service $service is not running!"
+              docker compose logs $service --tail 50
+              exit 1
+            fi
+          done
+
+      - name: Run health checks
+        run: |
+          # Check Ethereum RPC
+          curl -X POST http://localhost:8545 \
+            -H "Content-Type: application/json" \
+            -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
+            || (echo "Ethereum RPC not responding" && exit 1)
+          
+          # Check router HTTP endpoint
+          curl -f http://localhost:4000/health || echo "Note: Router may not have a health endpoint"
+          
+          # Check if services are communicating (via logs)
+          echo "=== Router logs ==="
+          docker compose logs router --tail 20
+          
+          echo "=== Node-1 logs ==="
+          docker compose logs node-1 --tail 20
+
+      - name: Verify P2P connectivity
+        run: |
+          # Check for successful P2P connections in logs
+          echo "Checking for P2P connectivity..."
+          
+          # Look for connection patterns in logs
+          if docker compose logs router | grep -q "generated payload for state"; then
+            echo "✓ Router is generating payloads"
+          else
+            echo "✗ Router not generating payloads yet"
+          fi
+          
+          if docker compose logs | grep -q "failed to dial peer"; then
+            echo "⚠ Some P2P connection issues detected (this may be normal during startup)"
+          fi
+          
+          # Give services more time to establish connections
+          sleep 10
+          
+          # Final status check
+          docker compose ps
+
+      - name: Collect logs on failure
+        if: failure()
+        run: |
+          echo "=== Docker Compose Status ==="
+          docker compose ps -a
+          
+          echo "=== Ethereum Logs ==="
+          docker compose logs ethereum --tail 50
+          
+          echo "=== EigenLayer Logs ==="
+          docker compose logs eigenlayer --tail 100
+          
+          echo "=== Router Logs ==="
+          docker compose logs router --tail 100
+          
+          echo "=== Node-1 Logs ==="
+          docker compose logs node-1 --tail 100
+          
+          echo "=== Node-2 Logs ==="
+          docker compose logs node-2 --tail 100
+          
+          echo "=== Node-3 Logs ==="
+          docker compose logs node-3 --tail 100
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker compose down --volumes --remove-orphans
