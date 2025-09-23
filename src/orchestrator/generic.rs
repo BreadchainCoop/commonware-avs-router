@@ -158,11 +158,24 @@ where
                 .send(commonware_p2p::Recipients::All, Bytes::from(buf), true)
                 .await
                 .expect("failed to broadcast message");
-            signatures.insert(current_round, HashMap::new());
-            info!(
-                "Created signatures entry for state: {}, threshold is: {}",
-                current_round, self.t
-            );
+
+            // Only create a new signature entry if one doesn't exist for this round
+            use std::collections::hash_map::Entry;
+            match signatures.entry(current_round) {
+                Entry::Vacant(e) => {
+                    e.insert(HashMap::new());
+                    info!(
+                        "Created signatures entry for state: {}, threshold is: {}",
+                        current_round, self.t
+                    );
+                }
+                Entry::Occupied(_) => {
+                    info!(
+                        "Reusing existing signatures entry for state: {}, threshold is: {}",
+                        current_round, self.t
+                    );
+                }
+            }
 
             // Listen for messages until the next broadcast
             let continue_time = self.runtime.current() + self.aggregation_frequency;
