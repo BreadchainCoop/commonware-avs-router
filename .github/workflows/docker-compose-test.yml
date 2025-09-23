@@ -285,6 +285,9 @@ jobs:
           START_COUNT=${{ env.LAST_COUNT }}
           echo "Starting counter value: $START_COUNT"
           
+          # Debug: Verify we have the counter address
+          echo "Counter address from environment: ${{ env.COUNTER_ADDRESS }}"
+          
           # Send ingress requests to trigger increments
           echo "Sending ingress requests to /trigger endpoint..."
           for i in {1..5}; do
@@ -319,13 +322,29 @@ jobs:
           
           # Read the counter value after ingress - with debug output
           echo "=== Reading counter value from contract ==="
+          # Use the counter address from the environment (saved in earlier step)
+          COUNTER_ADDR="${{ env.COUNTER_ADDRESS }}"
+          echo "Using counter address: $COUNTER_ADDR"
+          
+          # Debug: Show the exact JSON being sent
+          echo "RPC Request JSON:"
+          echo '{
+            "jsonrpc":"2.0",
+            "method":"eth_call",
+            "params":[{
+              "to":"'$COUNTER_ADDR'",
+              "data":"0x8381f58a"
+            }, "latest"],
+            "id":1
+          }'
+          
           COUNTER_RESPONSE=$(curl -s -X POST http://localhost:8545 \
             -H "Content-Type: application/json" \
             -d '{
               "jsonrpc":"2.0",
               "method":"eth_call",
               "params":[{
-                "to":"'${{ env.COUNTER_ADDRESS }}'",
+                "to":"'$COUNTER_ADDR'",
                 "data":"0x8381f58a"
               }, "latest"],
               "id":1
