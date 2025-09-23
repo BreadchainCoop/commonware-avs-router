@@ -7,7 +7,7 @@ use commonware_p2p::{Receiver, Sender};
 use commonware_runtime::Clock;
 use commonware_utils::hex;
 use std::{collections::HashMap, time::Duration};
-use tracing::info;
+use tracing::{error, info};
 
 use crate::creator::core::Creator;
 use crate::executor::core::{VerificationData, VerificationExecutor};
