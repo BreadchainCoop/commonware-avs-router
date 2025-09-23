@@ -130,8 +130,8 @@ where
             let (payload, current_round) = match payload_result {
                 Ok(result) => result,
                 Err(e) => {
-                    error!("Failed to get payload and round: {}", e);
-                    panic!("Failed to get payload and round: {}", e);
+                    error!("Failed to get payload and round: {e}");
+                    panic!("Failed to get payload and round: {e}");
                 }
             };
             info!("Orchestrator: Got payload and round {}", current_round);

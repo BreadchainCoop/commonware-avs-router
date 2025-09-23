@@ -182,7 +182,11 @@ impl TaskQueue for SimpleTaskQueue {
             Ok(mut queue) => {
                 let queue_size = queue.len();
                 queue.push(task);
-                info!("Task pushed to queue. Queue size: {} -> {}", queue_size, queue.len());
+                info!(
+                    "Task pushed to queue. Queue size: {} -> {}",
+                    queue_size,
+                    queue.len()
+                );
             }
             Err(e) => {
                 error!("Failed to push task to queue: {}", e);
@@ -196,10 +200,14 @@ impl TaskQueue for SimpleTaskQueue {
             Ok(mut queue) => {
                 let result = queue.pop();
                 if result.is_some() {
-                    info!("Task popped from queue. Queue size: {} -> {}", queue.len() + 1, queue.len());
+                    info!(
+                        "Task popped from queue. Queue size: {} -> {}",
+                        queue.len() + 1,
+                        queue.len()
+                    );
                 }
                 result
-            },
+            }
             Err(e) => {
                 error!("Failed to pop task from queue: {}", e);
                 None
@@ -275,8 +283,10 @@ impl<Q: TaskQueue + Send + Sync + 'static> ListeningCounterCreator<Q> {
         use tokio::time::{Duration, sleep};
         let mut attempts = 0;
         let max_attempts = self.config.timeout_ms / self.config.polling_interval_ms;
-        info!("Waiting for task from queue (timeout: {}ms, polling: {}ms, max_attempts: {})", 
-              self.config.timeout_ms, self.config.polling_interval_ms, max_attempts);
+        info!(
+            "Waiting for task from queue (timeout: {}ms, polling: {}ms, max_attempts: {})",
+            self.config.timeout_ms, self.config.polling_interval_ms, max_attempts
+        );
         loop {
             if let Some(task) = self.queue.pop() {
                 info!("Task retrieved from queue after {} attempts", attempts);
@@ -292,11 +302,17 @@ impl<Q: TaskQueue + Send + Sync + 'static> ListeningCounterCreator<Q> {
             }
             attempts += 1;
             if attempts >= max_attempts {
-                warn!("Timeout reached after {} attempts, breaking wait loop", attempts);
+                warn!(
+                    "Timeout reached after {} attempts, breaking wait loop",
+                    attempts
+                );
                 break;
             }
             if attempts % 10 == 0 {
-                debug!("Still waiting for task, attempt {}/{}", attempts, max_attempts);
+                debug!(
+                    "Still waiting for task, attempt {}/{}",
+                    attempts, max_attempts
+                );
             }
             sleep(Duration::from_millis(self.config.polling_interval_ms)).await;
         }

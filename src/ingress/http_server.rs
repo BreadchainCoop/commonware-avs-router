@@ -24,13 +24,20 @@ pub async fn trigger_task_handler(
         if let Ok(mut queue) = state.lock() {
             let queue_size_before = queue.len();
             queue.push(req.clone());
-            info!("Task added to HTTP queue. Queue size: {} -> {}", queue_size_before, queue.len());
+            info!(
+                "Task added to HTTP queue. Queue size: {} -> {}",
+                queue_size_before,
+                queue.len()
+            );
         } else {
             error!("Failed to acquire lock on HTTP queue");
-            return (StatusCode::INTERNAL_SERVER_ERROR, Json(TaskResponse {
-                success: false,
-                message: "Failed to queue task".to_string(),
-            }));
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(TaskResponse {
+                    success: false,
+                    message: "Failed to queue task".to_string(),
+                }),
+            );
         }
     }
     (
