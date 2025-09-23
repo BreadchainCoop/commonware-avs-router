@@ -134,7 +134,7 @@ where
                 }
             };
             info!("Orchestrator: Got payload and round {}", current_round);
-            
+
             // Create a new hasher for each iteration
             let mut hasher = Sha256::new();
             hasher.update(&payload);
