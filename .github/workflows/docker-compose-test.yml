@@ -221,11 +221,11 @@ jobs:
           echo "AGGREGATION_FREQUENCY=0.5" >> .env
           
           # Recreate only the router container to pick up new environment variables
-          # Note: We stop and remove the router, then recreate it without --force-recreate
-          # to avoid recreating its dependencies (ethereum, eigenlayer, etc.)
+          # Note: We stop and remove the router, then recreate it with --no-deps
+          # to avoid starting its dependencies (eigenlayer would try to redeploy)
           docker compose stop router
           docker compose rm -f router
-          docker compose up -d router --no-recreate
+          docker compose up -d router --no-deps
           
           # Wait for router to be ready
           sleep 10
@@ -276,11 +276,11 @@ jobs:
           echo "INGRESS=true" >> .env
           
           # Recreate only the router container to pick up new environment variables
-          # Note: We stop and remove the router, then recreate it without --force-recreate
-          # to avoid recreating its dependencies (ethereum, eigenlayer, etc.)
+          # Note: We stop and remove the router, then recreate it with --no-deps
+          # to avoid starting its dependencies (eigenlayer would try to redeploy)
           docker compose stop router
           docker compose rm -f router
-          docker compose up -d router --no-recreate
+          docker compose up -d router --no-deps
           
           # Wait for router to be ready and ingress server to start
           sleep 15
