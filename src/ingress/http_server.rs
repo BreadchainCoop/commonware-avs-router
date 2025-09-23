@@ -1,6 +1,6 @@
 use axum::{Json, Router, extract::State, http::StatusCode, routing::post};
 use std::sync::{Arc, Mutex};
-use tracing::info;
+use tracing::{error, info};
 
 use crate::ingress::types::{TaskRequest, TaskResponse};
 
@@ -9,6 +9,7 @@ pub async fn trigger_task_handler(
     State(state): State<Arc<Mutex<Vec<TaskRequest>>>>,
     Json(req): Json<TaskRequest>,
 ) -> (StatusCode, Json<TaskResponse>) {
+    info!("Received task request via HTTP: {:?}", req.body.metadata);
     // Add business logic here such as api-key verification, ecdsa signature verification, etc retrieved from the TaskRequest
     // for example, if we assume `var1` is the api-key
     // let var1 = req.body.var1;
@@ -21,7 +22,15 @@ pub async fn trigger_task_handler(
     // Add to queue
     {
         if let Ok(mut queue) = state.lock() {
+            let queue_size_before = queue.len();
             queue.push(req.clone());
+            info!("Task added to HTTP queue. Queue size: {} -> {}", queue_size_before, queue.len());
+        } else {
+            error!("Failed to acquire lock on HTTP queue");
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(TaskResponse {
+                success: false,
+                message: "Failed to queue task".to_string(),
+            }));
         }
     }
     (

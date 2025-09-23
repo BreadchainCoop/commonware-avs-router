@@ -125,7 +125,16 @@ where
         let mut signatures = HashMap::new();
 
         loop {
-            let (payload, current_round) = self.task_creator.get_payload_and_round().await.unwrap();
+            info!("Orchestrator: Starting new aggregation cycle");
+            let payload_result = self.task_creator.get_payload_and_round().await;
+            let (payload, current_round) = match payload_result {
+                Ok(result) => result,
+                Err(e) => {
+                    error!("Failed to get payload and round: {}", e);
+                    panic!("Failed to get payload and round: {}", e);
+                }
+            };
+            info!("Orchestrator: Got payload and round {}", current_round);
             hasher.update(&payload);
             let payload = hasher.finalize();
             info!(
