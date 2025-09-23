@@ -304,21 +304,38 @@ jobs:
           # Send ingress requests to trigger increments
           echo "Sending ingress requests to /trigger endpoint..."
           for i in {1..5}; do
-            echo "Sending ingress request $i..."
+            echo "=== Sending ingress request $i ==="
             # The ingress server runs on port 8080 with /trigger endpoint
             # Expected payload format: {"body": {"metadata": {"key": "value"}}}
-            curl -X POST http://localhost:8080/trigger \
+            RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST http://localhost:8080/trigger \
               -H "Content-Type: application/json" \
-              -d '{"body": {"metadata": {"request_id": "'$i'", "action": "increment"}}}' || true
+              -d '{"body": {"metadata": {"request_id": "'$i'", "action": "increment"}}}')
+            HTTP_STATUS=$(echo "$RESPONSE" | tail -n 1 | cut -d: -f2)
+            BODY=$(echo "$RESPONSE" | head -n -1)
+            echo "Response: $BODY"
+            echo "HTTP Status: $HTTP_STATUS"
+            
+            if [ "$HTTP_STATUS" != "200" ]; then
+              echo "Warning: HTTP request failed with status $HTTP_STATUS"
+            fi
             sleep 1
           done
           
           # Wait for aggregation to process the ingress requests
           echo "Waiting for aggregation to process ingress requests..."
-          sleep 10
+          sleep 15
           
-          # Read the counter value after ingress
-          INGRESS_COUNT=$(curl -s -X POST http://localhost:8545 \
+          # Debug: Check if the router is still running
+          echo "=== Checking router status ==="
+          docker compose ps router
+          
+          # Debug: Check recent router logs to see if it processed ingress requests
+          echo "=== Recent router logs (checking for ingress processing) ==="
+          docker compose logs router --tail 30 | grep -i "ingress\|trigger\|queued\|task" || true
+          
+          # Read the counter value after ingress - with debug output
+          echo "=== Reading counter value from contract ==="
+          COUNTER_RESPONSE=$(curl -s -X POST http://localhost:8545 \
             -H "Content-Type: application/json" \
             -d '{
               "jsonrpc":"2.0",
@@ -328,7 +345,19 @@ jobs:
                 "data":"0x8381f58a"
               }, "latest"],
               "id":1
-            }' | jq -r '.result' | xargs printf "%d\n")
+            }')
+          
+          echo "Raw RPC response: $COUNTER_RESPONSE"
+          COUNTER_HEX=$(echo "$COUNTER_RESPONSE" | jq -r '.result')
+          echo "Extracted hex value: $COUNTER_HEX"
+          
+          # Handle empty or invalid response
+          if [ -z "$COUNTER_HEX" ] || [ "$COUNTER_HEX" = "null" ] || [ "$COUNTER_HEX" = "0x" ]; then
+            echo "Warning: Invalid counter response, defaulting to 0"
+            INGRESS_COUNT=0
+          else
+            INGRESS_COUNT=$(printf "%d\n" "$COUNTER_HEX" 2>/dev/null || echo "0")
+          fi
           
           echo "Counter value after ingress: $INGRESS_COUNT"
           
