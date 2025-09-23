@@ -134,10 +134,6 @@ impl SimpleTaskQueue {
         }
     }
 
-    pub fn get_queue(&self) -> Arc<Mutex<Vec<TaskRequest>>> {
-        self.queue.clone()
-    }
-
     /// Try to acquire the lock with timeout and retries
     fn try_lock_with_timeout(&self) -> Result<std::sync::MutexGuard<'_, Vec<TaskRequest>>, String> {
         let start_time = Instant::now();

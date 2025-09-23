@@ -1,12 +1,13 @@
 use axum::{Json, Router, extract::State, http::StatusCode, routing::post};
-use std::sync::{Arc, Mutex};
-use tracing::{error, info};
+use std::sync::Arc;
+use tracing::info;
 
 use crate::ingress::types::{TaskRequest, TaskResponse};
+use crate::usecases::counter::creator::{SimpleTaskQueue, TaskQueue};
 
 // Handler for POST /trigger
 pub async fn trigger_task_handler(
-    State(state): State<Arc<Mutex<Vec<TaskRequest>>>>,
+    State(queue): State<Arc<SimpleTaskQueue>>,
     Json(req): Json<TaskRequest>,
 ) -> (StatusCode, Json<TaskResponse>) {
     info!("Received task request via HTTP: {:?}", req.body.metadata);
@@ -19,27 +20,9 @@ pub async fn trigger_task_handler(
     //         message: "Invalid api-key".to_string(),
     //     }));
     // }
-    // Add to queue
-    {
-        if let Ok(mut queue) = state.lock() {
-            let queue_size_before = queue.len();
-            queue.push(req.clone());
-            info!(
-                "Task added to HTTP queue. Queue size: {} -> {}",
-                queue_size_before,
-                queue.len()
-            );
-        } else {
-            error!("Failed to acquire lock on HTTP queue");
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(TaskResponse {
-                    success: false,
-                    message: "Failed to queue task".to_string(),
-                }),
-            );
-        }
-    }
+
+    // Add to queue using the TaskQueue trait method
+    queue.push(req);
     (
         StatusCode::OK,
         Json(TaskResponse {
@@ -50,7 +33,7 @@ pub async fn trigger_task_handler(
 }
 
 // Start the HTTP server in a background task
-pub async fn start_http_server(queue: Arc<Mutex<Vec<TaskRequest>>>, addr: &str) {
+pub async fn start_http_server(queue: Arc<SimpleTaskQueue>, addr: &str) {
     let app = Router::new()
         .route("/trigger", post(trigger_task_handler))
         .with_state(queue);

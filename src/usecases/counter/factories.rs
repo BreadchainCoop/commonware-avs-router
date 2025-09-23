@@ -11,7 +11,7 @@ use alloy_provider::ProviderBuilder;
 use alloy_signer_local::PrivateKeySigner;
 use anyhow::Result;
 use commonware_eigenlayer::config::AvsDeployment;
-use std::{env, str::FromStr};
+use std::{env, str::FromStr, sync::Arc};
 
 /// Factory function to create a default creator
 pub async fn create_creator() -> anyhow::Result<CounterCreatorType> {
@@ -55,10 +55,12 @@ pub async fn create_listening_creator_with_server(
     let provider = CounterProvider::new(counter_address, provider.clone());
     let queue = SimpleTaskQueue::new();
     let config = CreatorConfig::default();
+    // Clone the queue for the creator - both share the same underlying storage
     let creator = ListeningCounterCreator::new(provider, queue.clone(), config);
-    let queue = queue.get_queue();
+    // Wrap the queue in Arc for the HTTP server
+    let queue_for_server = Arc::new(queue);
     tokio::spawn(async move {
-        start_http_server(queue, &addr).await;
+        start_http_server(queue_for_server, &addr).await;
     });
     Ok(CounterCreatorType::Listening(creator))
 }
