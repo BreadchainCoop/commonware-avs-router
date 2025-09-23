@@ -277,6 +277,9 @@ jobs:
           # Wait for router to be ready and ingress server to start
           sleep 15
           
+          # Debug: Check if ingress mode is activated
+          echo "=== Checking router logs for ingress mode ==="
+          docker compose logs router --tail 20 | grep -i "ingress\|8080" || true
           
           # Get the starting counter value from previous step
           START_COUNT=${{ env.LAST_COUNT }}
