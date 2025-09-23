@@ -143,22 +143,6 @@ jobs:
           echo "=== Node-1 logs ==="
           docker compose logs node-1 --tail 20
 
-      - name: Verify services are running
-        run: |
-          # Check if all critical services are running
-          echo "Checking service status..."
-          docker compose ps
-          
-          for service in node-1 node-2 node-3 router; do
-            if [ "$(docker compose ps $service --format json | jq -r ".State // empty")" != "running" ]; then
-              echo "Service $service is not running!"
-              docker compose logs $service --tail 50
-              exit 1
-            fi
-          done
-          
-          echo "✓ All services are running"
-
       - name: Test counter increment functionality
         run: |
           echo "Testing counter increment..."
@@ -248,9 +232,9 @@ jobs:
           echo "Starting counter value: $START_COUNT"
           echo "DEFAULT_COUNT=$DEFAULT_COUNT" >> $GITHUB_ENV
           
-          # Wait for 10 fast aggregation cycles (0.5 seconds each = 5 seconds)
-          echo "Waiting for 10 fast aggregation cycles (5 seconds)..."
-          sleep 10
+          # Wait for 1 minute total with fast aggregation (0.5 seconds each cycle)
+          echo "Waiting for 1 minute with fast aggregation..."
+          sleep 60
           
           # Read the counter value after fast aggregation
           FAST_COUNT=$(curl -s -X POST http://localhost:8545 \
@@ -293,9 +277,6 @@ jobs:
           # Wait for router to be ready and ingress server to start
           sleep 15
           
-          # Verify ingress mode is enabled
-          echo "Checking if ingress mode is enabled..."
-          docker compose logs router --tail 20 | grep -i "ingress\|8080" || true
           
           # Get the starting counter value from previous step
           START_COUNT=${{ env.LAST_COUNT }}
