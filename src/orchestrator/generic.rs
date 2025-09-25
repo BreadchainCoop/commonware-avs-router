@@ -170,10 +170,7 @@ where
                     );
                 }
                 Entry::Occupied(_) => {
-                    info!(
-                        "Reusing existing signatures entry for state: {}, threshold is: {}",
-                        current_round, self.t
-                    );
+                    // Reusing existing signatures entry for this round
                 }
             }
 

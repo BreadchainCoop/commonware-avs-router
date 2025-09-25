@@ -54,10 +54,14 @@ pub async fn create_listening_creator_with_server(
         .map_err(|e| anyhow::anyhow!("Failed to get counter address: {}", e))?;
     let provider = CounterProvider::new(counter_address, provider.clone());
     let queue = SimpleTaskQueue::new();
-    // Use a much longer timeout for ingress mode since we wait for external requests
+    // Use configurable timeout for ingress mode, defaulting to 30 seconds
+    let timeout_ms = env::var("INGRESS_TIMEOUT_MS")
+        .unwrap_or_else(|_| "30000".to_string())
+        .parse()
+        .unwrap_or(30000);
     let config = CreatorConfig {
         polling_interval_ms: 100,
-        timeout_ms: 60000, // 60 seconds timeout for ingress mode
+        timeout_ms,
     };
     // Clone the queue for the creator - both share the same underlying storage
     let creator = ListeningCounterCreator::new(provider, queue.clone(), config);

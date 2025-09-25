@@ -285,16 +285,11 @@ jobs:
           # Wait for router to be ready and ingress server to start
           sleep 15
           
-          # Debug: Check if ingress mode is activated
-          echo "=== Checking router logs for ingress mode ==="
-          docker compose logs router --tail 20 | grep -i "ingress\|8080" || true
           
           # Get the starting counter value from previous step
           START_COUNT=${{ env.LAST_COUNT }}
           echo "Starting counter value: $START_COUNT"
           
-          # Debug: Verify we have the counter address
-          echo "Counter address from environment: ${{ env.COUNTER_ADDRESS }}"
           
           # Send ingress requests to trigger increments
           echo "Sending ingress requests to /trigger endpoint..."
@@ -320,32 +315,9 @@ jobs:
           echo "Waiting for aggregation to process ingress requests..."
           sleep 15
           
-          # Debug: Check if the router is still running
-          echo "=== Checking router status ==="
-          docker compose ps router
           
-          # Debug: Check recent router logs to see if it processed ingress requests
-          echo "=== Recent router logs (checking for ingress processing) ==="
-          docker compose logs router --tail 30 | grep -i "ingress\|trigger\|queued\|task" || true
-          
-          # Read the counter value after ingress - with debug output
-          echo "=== Reading counter value from contract ==="
-          # Use the counter address from the environment (saved in earlier step)
+          # Read the counter value after ingress
           COUNTER_ADDR="${{ env.COUNTER_ADDRESS }}"
-          echo "Using counter address: $COUNTER_ADDR"
-          
-          # Debug: Show the exact JSON being sent
-          echo "RPC Request JSON:"
-          echo '{
-            "jsonrpc":"2.0",
-            "method":"eth_call",
-            "params":[{
-              "to":"'$COUNTER_ADDR'",
-              "data":"0x8381f58a"
-            }, "latest"],
-            "id":1
-          }'
-          
           COUNTER_RESPONSE=$(curl -s -X POST http://localhost:8545 \
             -H "Content-Type: application/json" \
             -d '{
@@ -358,9 +330,7 @@ jobs:
               "id":1
             }')
           
-          echo "Raw RPC response: $COUNTER_RESPONSE"
           COUNTER_HEX=$(echo "$COUNTER_RESPONSE" | jq -r '.result')
-          echo "Extracted hex value: $COUNTER_HEX"
           
           # Handle empty or invalid response
           if [ -z "$COUNTER_HEX" ] || [ "$COUNTER_HEX" = "null" ] || [ "$COUNTER_HEX" = "0x" ]; then
