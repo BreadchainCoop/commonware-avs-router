@@ -63,13 +63,6 @@ jobs:
         run: |
           docker compose pull ethereum eigenlayer signer node-1 node-2 node-3
 
-      - name: Prepare for EigenLayer setup
-        run: |
-          # Create config.json from the example (required by eigenlayer service)
-          cp config/config.example.json config/config.json
-          
-          echo "EigenLayer will generate BLS keys and deploy contracts..."
-
       - name: Start services with docker-compose
         run: |
           docker compose up -d

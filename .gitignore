@@ -6,7 +6,6 @@ config/.nodes/*
 !config/.nodes/operator_keys/
 config/.nodes/operator_keys/*
 !config/.nodes/operator_keys/.gitkeep
-config/config.json
 
 # Test artifacts
 /logs

@@ -14,7 +14,7 @@ services:
       - .env
     volumes:
       - ./config/.nodes:/root/.nodes
-      - ./config/config.json:/bls-middleware/contracts/docker/eigenlayer/config.json
+      - ./config/config.example.json:/bls-middleware/contracts/docker/eigenlayer/config.json
   
   signer:
     image: ghcr.io/layr-labs/cerberus:0.0.2

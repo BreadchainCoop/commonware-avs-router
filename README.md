@@ -13,84 +13,45 @@ The router coordinates multiple operators to sign messages, aggregates their sig
 
 ### Prerequisites
 - Docker and Docker Compose
-- Rust
 - Git
 
 ### Local Development
-1. **Configure environment:**
-```bash
-cp example.env .env
-
-# Edit .env to set your configuration
-
-cp config/config.example.json config/config.json
-
-# Edit "config/config.json" if you need different operator socket addresses
-```
-
-2. **Start services:**
-```bash
-docker compose up
-
-# Add -d flag to run in background
-```
-
-### Manual Node Setup
-If you need to run nodes outside of Docker, you can use the following process.
-
-1. **Configure environment:**
-```bash
-cd commonware-avs-node
-
-cp example.env .env
-
-# Edit .env to set your configuration
-```
-
-2. **Build binaries:**
-```bash
-cargo build --release
-```
-
-3. **Run nodes (one per terminal):**
-```bash
-# Node 1
-cargo run --release -- --key-file $CONTRIBUTOR_1_KEYFILE --port 3001 --orchestrator orchestrator.json
-
-# Node 2
-cargo run --release -- --key-file $CONTRIBUTOR_2_KEYFILE --port 3002 --orchestrator orchestrator.json
-
-# Node 3
-cargo run --release -- --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestrator orchestrator.json
-```
-
-### Manual Router Setup
-
-If you need to run a router outside of Docker, you can use the following process.
 
 1. **Configure environment:**
 ```bash
 cp example.env .env
-
 # Edit .env to set your configuration
-
-cp config/config.example.json config/config.json
-
-# Edit "config/config.json" if you need different operator socket addresses
 ```
 
-2. **Build binaries:**
+2. **Start all services:**
 ```bash
-cargo build --release
+docker compose up -d
 ```
 
-3. **Start router:**
-```bash
-# Orchestrator mode
-cargo run --release -- --key-file config/orchestrator.json --port 3000
+This will start:
+- Ethereum node (Anvil fork)
+- EigenLayer contract deployment
+- 3 operator nodes
+- Router/orchestrator
+- Signer service
 
-# Or with ingress enabled
-cargo run --release -- --ingress
+3. **Monitor services:**
+```bash
+# View logs
+docker compose logs -f router
+
+# Check service status
+docker compose ps
+```
+
+### Stop Services
+
+```bash
+# Stop all services
+docker compose down
+
+# Stop and remove volumes (clean state)
+docker compose down -v
 ```
 
 ## Architecture
@@ -129,6 +90,7 @@ Optional environment variables:
 - `THRESHOLD`: Minimum signatures required for aggregation
 - `INGRESS`: Enable HTTP ingress mode (true/false)
 - `INGRESS_ADDRESS`: Address for ingress server (default: 0.0.0.0:8080)
+- `INGRESS_TIMEOUT_MS`: Timeout for waiting for ingress tasks in milliseconds (default: 30000)
 
 Contract addresses are automatically loaded from the deployment JSON file.
 
@@ -166,15 +128,21 @@ services:
 
 Enable HTTP endpoints for external task requests:
 
+1. **Enable ingress in .env:**
 ```bash
-INGRESS=true cargo run --release -- --key-file config/orchestrator.json --port 3000
+INGRESS=true
 ```
 
-Trigger tasks via HTTP:
+2. **Restart the router:**
+```bash
+docker compose restart router
+```
+
+3. **Trigger tasks via HTTP:**
 ```bash
 curl -X POST http://localhost:8080/trigger \
   -H "Content-Type: application/json" \
-  -d '{"body": {"var1": "value1", "var2": "value2", "var3": "value3"}}'
+  -d '{"body": {"metadata": {"request_id": "1", "action": "increment"}}}'
 ```
 
 ## Development
