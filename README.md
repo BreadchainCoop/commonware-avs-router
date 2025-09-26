@@ -65,11 +65,12 @@ docker compose down -v
 If you're developing the router and want to test local changes:
 
 ```bash
-# Build and run with local image
-docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --build
-```
+# Build the router image locally
+docker build -t ghcr.io/breadchaincoop/commonware-avs-router:dev .
 
-This uses the `docker-compose.ci.yml` override file which builds the router image locally instead of pulling from the registry.
+# Run with locally built image
+docker compose up -d
+```
 
 ## Architecture
 

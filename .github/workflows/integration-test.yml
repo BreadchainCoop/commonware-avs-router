@@ -57,6 +57,18 @@ jobs:
           sed -i "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$DEFAULT_ANVIL_KEY|" .env
           sed -i "s|^FUNDED_KEY=.*|FUNDED_KEY=$DEFAULT_ANVIL_KEY|" .env
 
+      - name: Create CI override file
+        run: |
+          cat > docker-compose.ci.yml << 'EOF'
+          # Override file for CI testing - uses locally built image
+          services:
+            router:
+              image: commonware-avs-router:ci-test
+              build:
+                context: .
+                dockerfile: Dockerfile
+          EOF
+
       - name: Build router image for CI testing
         run: |
           docker build -t commonware-avs-router:ci-test .
