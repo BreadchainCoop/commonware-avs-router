@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use bytes::{Buf, BufMut};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use tracing::error;
+use tracing::{error, warn};
 
 use super::provider::CounterProvider;
 
