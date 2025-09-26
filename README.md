@@ -20,7 +20,13 @@ The router coordinates multiple operators to sign messages, aggregates their sig
 1. **Configure environment:**
 ```bash
 cp example.env .env
-# Edit .env to set your configuration
+```
+
+For LOCAL mode (default), the example.env is pre-configured. You'll need to set a private key:
+```bash
+# Use Anvil's default test key for local development
+echo "PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" >> .env
+echo "FUNDED_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" >> .env
 ```
 
 2. **Start all services:**
