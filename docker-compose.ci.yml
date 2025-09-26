@@ -1,0 +1,7 @@
+# Override file for CI testing - uses locally built image
+services:
+  router:
+    image: commonware-avs-router:ci-test
+    build:
+      context: .
+      dockerfile: Dockerfile

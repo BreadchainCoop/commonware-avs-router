@@ -34,7 +34,7 @@ echo "FUNDED_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2f
 docker compose up -d
 ```
 
-This will start:
+This will automatically pull the latest pre-built images from the GitHub Container Registry (ghcr.io) and start:
 - Ethereum node (Anvil fork)
 - EigenLayer contract deployment
 - 3 operator nodes
@@ -59,6 +59,17 @@ docker compose down
 # Stop and remove volumes (clean state)
 docker compose down -v
 ```
+
+### Building from Source (Development Only)
+
+If you're developing the router and want to test local changes:
+
+```bash
+# Build and run with local image
+docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --build
+```
+
+This uses the `docker-compose.ci.yml` override file which builds the router image locally instead of pulling from the registry.
 
 ## Architecture
 

@@ -110,7 +110,7 @@ services:
     restart: unless-stopped
   
   router:
-    image: commonware-avs-router:debug-v2
+    image: ghcr.io/breadchaincoop/commonware-avs-router:dev
     platform: linux/amd64
     depends_on:
       eigenlayer:
