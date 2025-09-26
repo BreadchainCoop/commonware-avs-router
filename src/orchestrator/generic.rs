@@ -160,9 +160,7 @@ where
                         current_round, self.t
                     );
                 }
-                Entry::Occupied(_) => {
-                    // Reusing existing signatures entry for this round
-                }
+                Entry::Occupied(_) => {}
             }
 
             // Listen for messages until the next broadcast
