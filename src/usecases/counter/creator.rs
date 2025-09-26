@@ -263,10 +263,8 @@ impl<Q: TaskQueue + Send + Sync + 'static> ListeningCounterCreator<Q> {
         use tokio::time::{Duration, sleep};
         let mut attempts = 0;
         let max_attempts = self.config.timeout_ms / self.config.polling_interval_ms;
-        // Waiting for task from queue
         loop {
             if let Some(task) = self.queue.pop() {
-                // Task retrieved from queue
                 // Store the task for metadata access
                 if let Ok(mut current_task) = self.current_task.lock() {
                     *current_task = Some(task.clone());
