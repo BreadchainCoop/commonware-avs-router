@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use bytes::{Buf, BufMut};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use tracing::{error, warn};
+use tracing::error;
 
 use super::provider::CounterProvider;
 
@@ -279,13 +279,8 @@ impl<Q: TaskQueue + Send + Sync + 'static> ListeningCounterCreator<Q> {
             }
             attempts += 1;
             if attempts >= max_attempts {
-                warn!(
-                    "Timeout reached after {} attempts, breaking wait loop",
-                    attempts
-                );
                 break;
             }
-            // Check every 10 attempts
             sleep(Duration::from_millis(self.config.polling_interval_ms)).await;
         }
         Err(anyhow::anyhow!(
