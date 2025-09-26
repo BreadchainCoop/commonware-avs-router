@@ -1,74 +1,20 @@
 name: Integration Test
 
 on:
-  push:
-    branches:
-      - main
-      - dev
-      - staging
-  pull_request:
+  workflow_run:
+    workflows: ["Docker CI/CD"]
+    types:
+      - completed
     branches:
       - main
       - dev
       - staging
 
 jobs:
-  wait-for-docker-build:
-    name: Wait for Docker Image Build
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
-    steps:
-      - name: Wait for Docker workflow to complete
-        run: |
-          echo "Waiting for Docker CI/CD workflow to complete..."
-          
-          # Maximum wait time (10 minutes)
-          MAX_WAIT=600
-          INTERVAL=10
-          elapsed=0
-          
-          while [ $elapsed -lt $MAX_WAIT ]; do
-            # Check if the Docker CI/CD workflow has completed successfully
-            STATUS=$(gh api \
-              -H "Accept: application/vnd.github+json" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              /repos/${{ github.repository }}/actions/runs \
-              --jq ".workflow_runs[] | select(.head_sha == \"${{ github.sha }}\" and .name == \"Docker CI/CD\") | .status" \
-              | head -1)
-            
-            CONCLUSION=$(gh api \
-              -H "Accept: application/vnd.github+json" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              /repos/${{ github.repository }}/actions/runs \
-              --jq ".workflow_runs[] | select(.head_sha == \"${{ github.sha }}\" and .name == \"Docker CI/CD\") | .conclusion" \
-              | head -1)
-            
-            echo "Docker workflow status: $STATUS, conclusion: $CONCLUSION"
-            
-            if [ "$STATUS" = "completed" ]; then
-              if [ "$CONCLUSION" = "success" ]; then
-                echo "Docker CI/CD workflow completed successfully"
-                exit 0
-              else
-                echo "Docker CI/CD workflow failed with conclusion: $CONCLUSION"
-                exit 1
-              fi
-            fi
-            
-            sleep $INTERVAL
-            elapsed=$((elapsed + INTERVAL))
-          done
-          
-          echo "Timeout waiting for Docker CI/CD workflow"
-          exit 1
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   docker-compose-test:
     name: Test with Docker Compose
     runs-on: ubuntu-latest
-    needs: [wait-for-docker-build]
-    if: always() && (needs.wait-for-docker-build.result == 'success' || needs.wait-for-docker-build.result == 'skipped')
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     
     steps:
       - name: Checkout repository
@@ -111,26 +57,35 @@ jobs:
           sed -i "s|^FUNDED_KEY=.*|FUNDED_KEY=$DEFAULT_ANVIL_KEY|" .env
 
       - name: Login to GitHub Container Registry
-        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull or build router image
+      - name: Pull router image from registry
         run: |
-          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/dev" ]; then
-            # Pull the latest dev image from registry
-            IMAGE_NAME="ghcr.io/${{ github.repository }}"
-            IMAGE_NAME=$(echo "${IMAGE_NAME}" | tr '[:upper:]' '[:lower:]')
-            SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-            docker pull "${IMAGE_NAME}:dev-${SHORT_SHA}"
-            docker tag "${IMAGE_NAME}:dev-${SHORT_SHA}" commonware-avs-router:debug-v2
+          # Pull the image that was just built in the Docker CI/CD workflow
+          IMAGE_NAME="ghcr.io/${{ github.repository }}"
+          IMAGE_NAME=$(echo "${IMAGE_NAME}" | tr '[:upper:]' '[:lower:]')
+          
+          # Extract branch name from the workflow run
+          BRANCH="${{ github.event.workflow_run.head_branch }}"
+          SHORT_SHA=$(echo "${{ github.event.workflow_run.head_sha }}" | cut -c1-7)
+          
+          # Determine the tag based on branch
+          if [ "$BRANCH" = "main" ]; then
+            TAG="latest-${SHORT_SHA}"
+          elif [ "$BRANCH" = "dev" ] || [ "$BRANCH" = "staging" ]; then
+            TAG="${BRANCH}-${SHORT_SHA}"
           else
-            # Build locally for PRs and other branches
-            docker build -t commonware-avs-router:debug-v2 .
+            # For PR branches
+            TAG="pr-${{ github.event.workflow_run.pull_requests[0].number }}-${SHORT_SHA}"
           fi
+          
+          echo "Pulling image: ${IMAGE_NAME}:${TAG}"
+          docker pull "${IMAGE_NAME}:${TAG}"
+          docker tag "${IMAGE_NAME}:${TAG}" commonware-avs-router:debug-v2
           
       - name: Pull required images
         run: |
@@ -271,7 +226,7 @@ jobs:
           fi
 
       - name: Test with fast aggregation frequency
-        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        if: github.event.workflow_run.head_branch == 'dev'
         run: |
           echo "Testing with fast aggregation frequency (0.5 seconds)..."
           
@@ -325,7 +280,7 @@ jobs:
           fi
 
       - name: Test with ingress enabled
-        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        if: github.event.workflow_run.head_branch == 'dev'
         run: |
           echo "Testing with ingress enabled..."
           
