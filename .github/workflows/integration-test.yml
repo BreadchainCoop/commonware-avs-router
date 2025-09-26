@@ -5,10 +5,12 @@ on:
     branches:
       - main
       - dev
+      - staging
   pull_request:
     branches:
       - main
       - dev
+      - staging
 
 jobs:
   wait-for-docker-build:
