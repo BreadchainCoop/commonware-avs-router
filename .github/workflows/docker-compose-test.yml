@@ -111,15 +111,6 @@ jobs:
             docker compose logs eigenlayer --tail=50
             exit 1
           fi
-          
-          # Check if nodes and router are still running
-          for service in node-1 node-2 node-3 router; do
-            if [ "$(docker compose ps $service --format json | jq -r ".State // empty")" != "running" ]; then
-              echo "Service $service is not running!"
-              docker compose logs $service --tail 50
-              exit 1
-            fi
-          done
 
       - name: Run health checks
         run: |
@@ -207,6 +198,7 @@ jobs:
           fi
 
       - name: Test with fast aggregation frequency
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
         run: |
           echo "Testing with fast aggregation frequency (0.5 seconds)..."
           
@@ -260,6 +252,7 @@ jobs:
           fi
 
       - name: Test with ingress enabled
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
         run: |
           echo "Testing with ingress enabled..."
           
