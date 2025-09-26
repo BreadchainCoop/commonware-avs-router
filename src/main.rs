@@ -151,7 +151,6 @@ fn main() {
                             if let Some(socket_addr) = addrs.next() {
                                 recipients.push((verifier, socket_addr));
                             } else {
-                                tracing::error!("No addresses found for '{}'", socket);
                                 panic!("No addresses found for socket: {socket}");
                             }
                         }
