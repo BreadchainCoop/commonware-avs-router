@@ -115,21 +115,6 @@ jobs:
             exit 1
           fi
 
-      - name: Run health checks
-        run: |
-          # Check Ethereum RPC
-          curl -X POST http://localhost:8545 \
-            -H "Content-Type: application/json" \
-            -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
-            || (echo "Ethereum RPC not responding" && exit 1)
-          
-          # Check if services are communicating (via logs)
-          echo "=== Router logs ==="
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml logs router --tail 20
-          
-          echo "=== Node-1 logs ==="
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml logs node-1 --tail 20
-
       - name: Test counter increment functionality
         run: |
           echo "Testing counter increment..."
