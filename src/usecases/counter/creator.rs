@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use bytes::{Buf, BufMut};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use tracing::error;
+use tracing::{error, warn};
 
 use super::provider::CounterProvider;
 
@@ -144,6 +144,7 @@ impl SimpleTaskQueue {
             match self.queue.try_lock() {
                 Ok(guard) => return Ok(guard),
                 Err(_) => {
+                    // Check if we've exceeded the timeout
                     if start_time.elapsed() >= timeout_duration {
                         return Err(format!(
                             "Failed to acquire lock after {}ms timeout ({} attempts)",
@@ -179,6 +180,7 @@ impl TaskQueue for SimpleTaskQueue {
             }
             Err(e) => {
                 error!("Failed to push task to queue: {}", e);
+                warn!("Task dropped due to lock timeout: {:?}", task);
             }
         }
     }
@@ -277,8 +279,13 @@ impl<Q: TaskQueue + Send + Sync + 'static> ListeningCounterCreator<Q> {
             }
             attempts += 1;
             if attempts >= max_attempts {
+                warn!(
+                    "Timeout reached after {} attempts, breaking wait loop",
+                    attempts
+                );
                 break;
             }
+            // Check every 10 attempts
             sleep(Duration::from_millis(self.config.polling_interval_ms)).await;
         }
         Err(anyhow::anyhow!(

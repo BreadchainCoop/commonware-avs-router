@@ -54,7 +54,9 @@ async fn get_operator_states() -> Result<Vec<QuorumInfo>, Box<dyn std::error::Er
     let ws_rpc = env::var("WS_RPC").expect("WS_RPC must be set");
     let avs_deployment_path =
         env::var("AVS_DEPLOYMENT_PATH").expect("AVS_DEPLOYMENT_PATH must be set");
+    println!("pre init");
     let client = EigenStakingClient::new(http_rpc, ws_rpc, avs_deployment_path).await?;
+    println!("init passed");
     client.get_operator_states().await
 }
 
@@ -86,6 +88,11 @@ fn main() {
                 .help("Port to run the service on"),
         )
         .get_matches();
+
+    // // Create logger
+    // tracing_subscriber::fmt()
+    //     .with_max_level(tracing::Level::DEBUG)
+    //     .init();
 
     // Configure my identity
     let key_file = matches
@@ -129,7 +136,7 @@ fn main() {
                 .await
                 .expect("Failed to get operator states");
             recipients = Vec::new();
-            let participants = quorum_infos[0].operators.clone();
+            let participants = quorum_infos[0].operators.clone(); //TODO: Fix hardcoded quorum_number
             if participants.is_empty() {
                 panic!("Please provide at least one participant");
             }
