@@ -107,7 +107,9 @@ services:
     restart: unless-stopped
   
   router:
-    image: commonware-avs-router:debug-v2
+    build:
+      context: .
+      dockerfile: Dockerfile
     platform: linux/amd64
     depends_on:
       eigenlayer:
