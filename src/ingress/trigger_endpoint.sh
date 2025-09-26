@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Configuration
-ENDPOINT_URL="http://localhost:8080/trigger"  # TODO: dynamically get from env
+ENDPOINT_URL="${ENDPOINT_URL:-http://localhost:8080/trigger}"
 INTERVAL=30  # seconds
 
 # Sample data - adjust these values as needed
