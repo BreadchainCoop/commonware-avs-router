@@ -121,11 +121,13 @@ where
         mut sender: impl Sender,
         mut receiver: impl Receiver<PublicKey = PublicKey>,
     ) {
-        let mut hasher = Sha256::new();
         let mut signatures = HashMap::new();
 
         loop {
             let (payload, current_round) = self.task_creator.get_payload_and_round().await.unwrap();
+
+            // Create a new hasher for each iteration
+            let mut hasher = Sha256::new();
             hasher.update(&payload);
             let payload = hasher.finalize();
             info!(
@@ -147,11 +149,19 @@ where
                 .send(commonware_p2p::Recipients::All, Bytes::from(buf), true)
                 .await
                 .expect("failed to broadcast message");
-            signatures.insert(current_round, HashMap::new());
-            info!(
-                "Created signatures entry for state: {}, threshold is: {}",
-                current_round, self.t
-            );
+
+            // Only create a new signature entry if one doesn't exist for this round
+            use std::collections::hash_map::Entry;
+            match signatures.entry(current_round) {
+                Entry::Vacant(e) => {
+                    e.insert(HashMap::new());
+                    info!(
+                        "Created signatures entry for state: {}, threshold is: {}",
+                        current_round, self.t
+                    );
+                }
+                Entry::Occupied(_) => {}
+            }
 
             // Listen for messages until the next broadcast
             let continue_time = self.runtime.current() + self.aggregation_frequency;
