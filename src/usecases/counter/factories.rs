@@ -53,7 +53,6 @@ pub async fn create_listening_creator_with_server(
         .counter_address()
         .map_err(|e| anyhow::anyhow!("Failed to get counter address: {}", e))?;
     let provider = CounterProvider::new(counter_address, provider.clone());
-    let queue = SimpleTaskQueue::new();
     // Use configurable timeout for ingress mode, defaulting to 30 seconds
     let timeout_ms: u64 = env::var("INGRESS_TIMEOUT_MS")
         .ok()
@@ -63,6 +62,7 @@ pub async fn create_listening_creator_with_server(
         polling_interval_ms: 100,
         timeout_ms,
     };
+    let queue = SimpleTaskQueue::new();
     // Clone the queue for the creator - both share the same underlying storage
     let creator = ListeningCounterCreator::new(provider, queue.clone(), config);
     // Wrap the queue in Arc for the HTTP server
