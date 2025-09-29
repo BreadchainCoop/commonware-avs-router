@@ -23,228 +23,184 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 1
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
-      - name: Install Rust (for verification script only)
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-
-      - name: Cache Rust dependencies (verification script only)
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            scripts/target
-          key: ${{ runner.os }}-cargo-verify-${{ hashFiles('scripts/Cargo.lock') }}
-
-      - name: Build verification script
-        timeout-minutes: 5
+      - name: Create .env file with fast aggregation
         run: |
-          echo "Building verification script..."
-          cd scripts
-          cargo build --release --bin verify_increments
-          cd ..
-
-      - name: Set up environment with fast aggregation
-        run: |
-          # Copy example.env to .env
           cp example.env .env
-
-          # Create required directories
-          mkdir -p .nodes/operator_keys
-
-          # Copy config template
-          cp config/config.example.json config/config.json
-
-          # Update .env for local mode
-          sed -i 's|^HTTP_RPC=.*|HTTP_RPC=http://localhost:8545|' .env
-          sed -i 's|^WS_RPC=.*|WS_RPC=ws://localhost:8545|' .env
-          sed -i 's|^RPC_URL=.*|RPC_URL=http://ethereum:8545|' .env
+          
+          # Set to LOCAL mode
           sed -i 's|^ENVIRONMENT=.*|ENVIRONMENT=LOCAL|' .env
-
-          # Ensure TEST_ACCOUNTS is set
-          sed -i 's|^TEST_ACCOUNTS=.*|TEST_ACCOUNTS=3|' .env
-
-          # Set up Holesky addresses for LOCAL mode forking
-          sed -i 's|^#DELEGATION_MANAGER_ADDRESS=0xA44151489861Fe9e3055d95adC98FbD462B948e7|DELEGATION_MANAGER_ADDRESS=0xA44151489861Fe9e3055d95adC98FbD462B948e7|' .env
-          sed -i 's|^#STRATEGY_MANAGER_ADDRESS=0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6|STRATEGY_MANAGER_ADDRESS=0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6|' .env
-          sed -i 's|^#LST_CONTRACT_ADDRESS=0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034|LST_CONTRACT_ADDRESS=0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034|' .env
-          sed -i 's|^#LST_STRATEGY_ADDRESS=0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3|LST_STRATEGY_ADDRESS=0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3|' .env
-          sed -i 's|^#BLS_SIGNATURE_CHECKER_ADDRESS=0xca249215e082e17c12bb3c4881839a3f883e5c6b|BLS_SIGNATURE_CHECKER_ADDRESS=0xca249215e082e17c12bb3c4881839a3f883e5c6b|' .env
-          sed -i 's|^#OPERATOR_STATE_RETRIEVER_ADDRESS=0xB4baAfee917fb4449f5ec64804217bccE9f46C67|OPERATOR_STATE_RETRIEVER_ADDRESS=0xB4baAfee917fb4449f5ec64804217bccE9f46C67|' .env
-          sed -i 's|^#ALLOCATION_MANAGER_ADDRESS=0x78469728304326CBc65f8f95FA756B0B73164462|ALLOCATION_MANAGER_ADDRESS=0x78469728304326CBc65f8f95FA756B0B73164462|' .env
-
+          
+          # Set fast aggregation frequency
+          echo "AGGREGATION_FREQUENCY=$AGGREGATION_FREQUENCY" >> .env
+          
+          # Uncomment local RPC URLs
+          sed -i '/^# HTTP_RPC=http:\/\/localhost:8545/s/^# //' .env
+          sed -i '/^# WS_RPC=ws:\/\/localhost:8545/s/^# //' .env
+          sed -i '/^# RPC_URL=http:\/\/ethereum:8545/s/^# //' .env
+          
           # Set FORK_URL for local forking
           sed -i 's|^# FORK_URL=.*|FORK_URL=https://ethereum-holesky.publicnode.com|' .env
-
+          
+          # Uncomment Holesky testnet contract addresses (needed for LOCAL mode with fork)
+          sed -i 's/^#DELEGATION_MANAGER_ADDRESS=/DELEGATION_MANAGER_ADDRESS=/' .env
+          sed -i 's/^#STRATEGY_MANAGER_ADDRESS=/STRATEGY_MANAGER_ADDRESS=/' .env
+          sed -i 's/^#LST_CONTRACT_ADDRESS=/LST_CONTRACT_ADDRESS=/' .env
+          sed -i 's/^#LST_STRATEGY_ADDRESS=/LST_STRATEGY_ADDRESS=/' .env
+          sed -i 's/^#BLS_SIGNATURE_CHECKER_ADDRESS=/BLS_SIGNATURE_CHECKER_ADDRESS=/' .env
+          sed -i 's/^#OPERATOR_STATE_RETRIEVER_ADDRESS=/OPERATOR_STATE_RETRIEVER_ADDRESS=/' .env
+          sed -i 's/^#ALLOCATION_MANAGER_ADDRESS=/ALLOCATION_MANAGER_ADDRESS=/' .env
+          
           # Use default Anvil private key for testing
-          DEFAULT_PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-          sed -i "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$DEFAULT_PRIVATE_KEY|" .env
-          sed -i "s|^FUNDED_KEY=.*|FUNDED_KEY=$DEFAULT_PRIVATE_KEY|" .env
+          DEFAULT_ANVIL_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+          sed -i "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$DEFAULT_ANVIL_KEY|" .env
+          sed -i "s|^FUNDED_KEY=.*|FUNDED_KEY=$DEFAULT_ANVIL_KEY|" .env
+          
+          echo "=== Environment configured with fast aggregation ==="
+          grep -E "^(ENVIRONMENT|AGGREGATION_FREQUENCY|HTTP_RPC)" .env
 
-
-          echo "Environment configuration with AGGREGATION_FREQUENCY=$AGGREGATION_FREQUENCY:"
-          grep -E "^(ENVIRONMENT|HTTP_RPC|PRIVATE_KEY)" .env
-          echo "AGGREGATION_FREQUENCY=$AGGREGATION_FREQUENCY"
+      - name: Create CI override file for router
+        run: |
+          cat > docker-compose.ci.yml << 'EOF'
+          # Override file for CI testing - uses pre-built image from ghcr.io
+          services:
+            router:
+              image: ghcr.io/breadchaincoop/commonware-avs-router:dev
+              build:
+                context: .
+                dockerfile: Dockerfile
+          EOF
 
       - name: Pull Docker images
         timeout-minutes: 5
-        run: docker compose pull
-
-      - name: Start infrastructure services
         run: |
-          docker compose up -d
-          docker compose ps
-          sleep 5
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml pull
+
+      - name: Start all services
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml ps
 
       - name: Wait for EigenLayer setup
+        timeout-minutes: 5
         run: |
           echo "Waiting for EigenLayer setup to complete..."
-          timeout=300
+          timeout=180
           elapsed=0
-
+          
           while [ $elapsed -lt $timeout ]; do
-            if docker compose logs eigenlayer 2>/dev/null | grep -q "Operator 3 weight in quorum" && [ -f .nodes/avs_deploy.json ]; then
-              echo "EigenLayer setup completed successfully"
+            # Check if the keys and deployment file exist
+            if [ -f "config/.nodes/operator_keys/testacc1.private.bls.key.json" ] && 
+               [ -f "config/.nodes/avs_deploy.json" ]; then
+              echo "✓ EigenLayer setup completed"
+              ls -la config/.nodes/
               break
             fi
             
-            container_id=$(docker compose ps -q eigenlayer)
+            # Check if eigenlayer container exited with error
+            container_id=$(docker compose -f docker-compose.yml -f docker-compose.ci.yml ps -q eigenlayer)
             if [ -n "$container_id" ] && [ "$(docker inspect -f '{{.State.Status}}' $container_id 2>/dev/null)" = "exited" ]; then
-              echo "EigenLayer container has exited unexpectedly"
-              docker compose logs eigenlayer
-              exit 1
+              exit_code=$(docker inspect -f '{{.State.ExitCode}}' $container_id)
+              if [ "$exit_code" != "0" ]; then
+                echo "EigenLayer container exited with error code: $exit_code"
+                docker compose -f docker-compose.yml -f docker-compose.ci.yml logs eigenlayer --tail=50
+                exit 1
+              fi
             fi
             
             echo "Waiting for EigenLayer setup... ($elapsed/$timeout seconds)"
             sleep 10
             elapsed=$((elapsed + 10))
           done
-
+          
           if [ $elapsed -ge $timeout ]; then
             echo "Timeout waiting for EigenLayer setup"
-            docker compose logs eigenlayer
+            docker compose -f docker-compose.yml -f docker-compose.ci.yml logs eigenlayer --tail=50
             exit 1
           fi
 
-          sleep 10
-
-      - name: Start AVS nodes and router
+      - name: Verify fast aggregation frequency
         run: |
-          # The AVS nodes are already running as part of docker-compose
-          # Just need to verify they're up
-          echo "Checking that AVS nodes are running..."
-          docker compose ps
+          echo "=== Verifying router is using fast aggregation frequency ==="
           
-          # Wait for nodes to be healthy
-          echo "Waiting for nodes to initialize..."
-          sleep 10
-
-      - name: Start router with fast aggregation
-        run: |
-          source .env
-          
-          # Export the aggregation frequency environment variable
-          export AGGREGATION_FREQUENCY=0.3
-          
-          echo "Starting router container with AGGREGATION_FREQUENCY=$AGGREGATION_FREQUENCY"
-          
-          # Start router using Docker
-          docker run -d \
-            --name router \
-            --network commonware-avs-router_default \
-            -e AGGREGATION_FREQUENCY=0.3 \
-            -e HTTP_RPC=http://ethereum:8545 \
-            -e WS_RPC=ws://ethereum:8545 \
-            -v $(pwd)/config:/app/config \
-            -v $(pwd)/.nodes:/app/.nodes \
-            -p 3000:3000 \
-            ghcr.io/breadchaincoop/commonware-avs-router:dev \
-            --key-file /app/config/orchestrator.json --port 3000
-          
-          # Wait for router to initialize
-          echo "Waiting for router to initialize with 0.3-second (300ms) aggregation frequency..."
+          # Give router time to initialize
           sleep 10
           
-          # Check that the router is using the correct aggregation frequency
-          echo "=== Router log excerpt (checking aggregation frequency) ==="
-          docker logs router 2>&1 | grep -i "aggregation" | head -10 || true
-
-      - name: Wait for fast aggregation cycles
-        run: |
-          echo "Waiting for fast signature aggregation cycles (0.3 second / 300ms frequency)..."
-          echo "With 0.3-second frequency, we should see approximately 100 aggregations in 30 seconds..."
+          # Check router logs for aggregation frequency
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml logs router --tail=20 | grep -i "aggregation" || true
           
-          # Wait for 30 seconds to allow multiple aggregation cycles
+          # Get counter contract address
+          COUNTER_ADDRESS=$(cat config/.nodes/avs_deploy.json | jq -r '.addresses.counter')
+          echo "Counter contract address: $COUNTER_ADDRESS"
+          
+          # Read initial counter value
+          INITIAL_COUNT=$(curl -s -X POST http://localhost:8545 \
+            -H "Content-Type: application/json" \
+            -d '{
+              "jsonrpc":"2.0",
+              "method":"eth_call",
+              "params":[{
+                "to":"'$COUNTER_ADDRESS'",
+                "data":"0x8381f58a"
+              }, "latest"],
+              "id":1
+            }' | jq -r '.result' | xargs printf "%d\n")
+          
+          echo "Initial counter value: $INITIAL_COUNT"
+          
+          # Wait for 30 seconds (should see ~100 aggregations with 0.3s frequency)
+          echo "Waiting 30 seconds for fast aggregation cycles..."
           sleep 30
           
-          # Check router logs for aggregation activity
-          echo "=== Checking for aggregation activity ==="
-          docker logs router 2>&1 | grep -i "aggregat" | tail -20 || echo "No aggregation logs found"
+          # Read final counter value
+          FINAL_COUNT=$(curl -s -X POST http://localhost:8545 \
+            -H "Content-Type: application/json" \
+            -d '{
+              "jsonrpc":"2.0",
+              "method":"eth_call",
+              "params":[{
+                "to":"'$COUNTER_ADDRESS'",
+                "data":"0x8381f58a"
+              }, "latest"],
+              "id":1
+            }' | jq -r '.result' | xargs printf "%d\n")
           
-          # Count aggregation events
-          aggregation_count=$(docker logs router 2>&1 | grep -c "aggregat" 2>/dev/null || echo "0")
-          echo "Found $aggregation_count aggregation-related log entries"
+          echo "Final counter value: $FINAL_COUNT"
+          INCREMENTS=$((FINAL_COUNT - INITIAL_COUNT))
           
-          # With 0.3-second frequency over 30 seconds, we expect at least 50 aggregations
-          if [ "$aggregation_count" -lt 50 ]; then
-            echo "Warning: Expected more aggregation events with 0.3-second frequency"
-            echo "Full router log:"
-            docker logs router
-          fi
-
-      - name: Verify counter increments with fast aggregation
-        run: |
-          cd scripts
-          source ../.env
-          export AVS_DEPLOYMENT_PATH="../.nodes/avs_deploy.json"
-
-          if [ ! -f "$AVS_DEPLOYMENT_PATH" ]; then
-            echo "Deployment file not found at $AVS_DEPLOYMENT_PATH"
-            ls -la ../.nodes/
+          # With 0.3s frequency over 30 seconds, we expect many increments
+          if [ $INCREMENTS -ge 50 ]; then
+            echo "✓ Fast aggregation successful: $INCREMENTS increments in 30 seconds"
+          elif [ $INCREMENTS -gt 0 ]; then
+            echo "⚠ Aggregation working but slower than expected: only $INCREMENTS increments in 30 seconds"
+            echo "Expected at least 50 increments with 0.3s frequency"
+          else
+            echo "✗ No counter increments detected"
+            echo "=== Router logs ==="
+            docker compose -f docker-compose.yml -f docker-compose.ci.yml logs router --tail=100
             exit 1
           fi
-
-          echo "Running verification after fast aggregation cycles..."
-          cargo run --release --bin verify_increments
-          
-          # Additional verification: Check that we got multiple increments
-          echo "=== Checking router logs for successful aggregations ==="
-          docker logs router 2>&1 | grep -i "success\|complet\|aggregat" | tail -30 || true
 
       - name: Collect logs on failure
         if: failure()
         run: |
-          echo "=== Router logs (last 100 lines) ==="
-          docker logs router --tail=100 || true
-
-          echo "=== Node1 logs (last 50 lines) ==="
-          docker compose logs node-1 --tail=50 || true
-
-          echo "=== Node2 logs (last 50 lines) ==="
-          docker compose logs node-2 --tail=50 || true
-
-          echo "=== Node3 logs (last 50 lines) ==="
-          docker compose logs node-3 --tail=50 || true
-
+          echo "=== Docker Compose Status ==="
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml ps -a
+          
+          echo "=== Router logs ==="
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml logs router --tail=100
+          
+          echo "=== Node logs ==="
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml logs node-1 node-2 node-3 --tail=50
+          
           echo "=== EigenLayer logs ==="
-          docker compose logs eigenlayer --tail=50 || true
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml logs eigenlayer --tail=50
 
       - name: Cleanup
         if: always()
         run: |
-          echo "Stopping processes..."
-          docker stop router || true
-          docker rm router || true
-
-          echo "Stopping Docker Compose services..."
-          docker compose down -v || true
-          echo "Cleanup completed"
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml down --volumes --remove-orphans
