@@ -107,7 +107,9 @@ services:
     restart: unless-stopped
   
   router:
-    image: ghcr.io/breadchaincoop/commonware-avs-router:dev
+    build:
+      context: .
+      dockerfile: Dockerfile
     platform: linux/amd64
     depends_on:
       eigenlayer:

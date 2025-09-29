@@ -1,10 +1,10 @@
 .DS_Store
 /target
 .env
-config/.nodes/*
+config/config.json
+config/.nodes/
 !config/.nodes/.gitkeep
 !config/.nodes/operator_keys/
-config/.nodes/operator_keys/*
 !config/.nodes/operator_keys/.gitkeep
 
 # Test artifacts
