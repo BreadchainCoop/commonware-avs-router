@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use bytes::{Buf, BufMut};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use tracing::{debug, error, warn};
+use tracing::{error, warn};
 
 use super::provider::CounterProvider;
 
@@ -263,10 +263,8 @@ impl<Q: TaskQueue + Send + Sync + 'static> ListeningCounterCreator<Q> {
         use tokio::time::{Duration, sleep};
         let mut attempts = 0;
         let max_attempts = self.config.timeout_ms / self.config.polling_interval_ms;
-        // Waiting for task from queue
         loop {
             if let Some(task) = self.queue.pop() {
-                // Task retrieved from queue
                 // Store the task for metadata access
                 if let Ok(mut current_task) = self.current_task.lock() {
                     *current_task = Some(task.clone());
@@ -279,17 +277,7 @@ impl<Q: TaskQueue + Send + Sync + 'static> ListeningCounterCreator<Q> {
             }
             attempts += 1;
             if attempts >= max_attempts {
-                warn!(
-                    "Timeout reached after {} attempts, breaking wait loop",
-                    attempts
-                );
                 break;
-            }
-            if attempts % 10 == 0 {
-                debug!(
-                    "Still waiting for task, attempt {}/{}",
-                    attempts, max_attempts
-                );
             }
             sleep(Duration::from_millis(self.config.polling_interval_ms)).await;
         }

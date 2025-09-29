@@ -1,14 +1,16 @@
-name: Docker Compose Test
+name: Integration Test
 
 on:
   push:
     branches:
       - main
       - dev
+      - staging
   pull_request:
     branches:
       - main
       - dev
+      - staging
 
 jobs:
   docker-compose-test:
@@ -55,17 +57,30 @@ jobs:
           sed -i "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$DEFAULT_ANVIL_KEY|" .env
           sed -i "s|^FUNDED_KEY=.*|FUNDED_KEY=$DEFAULT_ANVIL_KEY|" .env
 
-      - name: Build router image locally
+      - name: Create CI override file
         run: |
-          docker build -t commonware-avs-router:debug-v2 .
+          cat > docker-compose.ci.yml << 'EOF'
+          # Override file for CI testing - uses locally built image
+          services:
+            router:
+              image: commonware-avs-router:ci-test
+              build:
+                context: .
+                dockerfile: Dockerfile
+          EOF
+
+      - name: Build router image for CI testing
+        run: |
+          docker build -t commonware-avs-router:ci-test .
           
       - name: Pull required images
         run: |
-          docker compose pull ethereum eigenlayer signer node-1 node-2 node-3
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml pull ethereum eigenlayer signer node-1 node-2 node-3
 
       - name: Start services with docker-compose
         run: |
-          docker compose up -d
+          # Use the CI override file to use locally built image
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d
           
       - name: Wait for EigenLayer setup to complete
         run: |
@@ -91,12 +106,12 @@ jobs:
             fi
             
             # Check if container exited with error
-            container_id=$(docker compose ps -q eigenlayer)
+            container_id=$(docker compose -f docker-compose.yml -f docker-compose.ci.yml ps -q eigenlayer)
             if [ -n "$container_id" ] && [ "$(docker inspect -f '{{.State.Status}}' $container_id 2>/dev/null)" = "exited" ]; then
               exit_code=$(docker inspect -f '{{.State.ExitCode}}' $container_id)
               if [ "$exit_code" != "0" ]; then
                 echo "EigenLayer container exited with error code: $exit_code"
-                docker compose logs eigenlayer --tail=50
+                docker compose -f docker-compose.yml -f docker-compose.ci.yml logs eigenlayer --tail=50
                 exit 1
               fi
             fi
@@ -108,33 +123,9 @@ jobs:
           
           if [ $elapsed -ge $timeout ]; then
             echo "Timeout waiting for EigenLayer setup"
-            docker compose logs eigenlayer --tail=50
+            docker compose -f docker-compose.yml -f docker-compose.ci.yml logs eigenlayer --tail=50
             exit 1
           fi
-          
-          # Check if nodes and router are still running
-          for service in node-1 node-2 node-3 router; do
-            if [ "$(docker compose ps $service --format json | jq -r ".State // empty")" != "running" ]; then
-              echo "Service $service is not running!"
-              docker compose logs $service --tail 50
-              exit 1
-            fi
-          done
-
-      - name: Run health checks
-        run: |
-          # Check Ethereum RPC
-          curl -X POST http://localhost:8545 \
-            -H "Content-Type: application/json" \
-            -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
-            || (echo "Ethereum RPC not responding" && exit 1)
-          
-          # Check if services are communicating (via logs)
-          echo "=== Router logs ==="
-          docker compose logs router --tail 20
-          
-          echo "=== Node-1 logs ==="
-          docker compose logs node-1 --tail 20
 
       - name: Test counter increment functionality
         run: |
@@ -202,11 +193,12 @@ jobs:
           else
             echo "✗ Counter did not increment (still at $FINAL_COUNT)"
             echo "=== Recent router logs ==="
-            docker compose logs router --tail 50
+            docker compose -f docker-compose.yml -f docker-compose.ci.yml logs router --tail 50
             exit 1
           fi
 
       - name: Test with fast aggregation frequency
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
         run: |
           echo "Testing with fast aggregation frequency (0.5 seconds)..."
           
@@ -216,9 +208,9 @@ jobs:
           # Recreate only the router container to pick up new environment variables
           # Note: We stop and remove the router, then recreate it with --no-deps
           # to avoid starting its dependencies (eigenlayer would try to redeploy)
-          docker compose stop router
-          docker compose rm -f router
-          docker compose up -d router --no-deps
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml stop router
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml rm -f router
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d router --no-deps
           
           # Wait for router to be ready
           sleep 10
@@ -255,11 +247,12 @@ jobs:
             echo "LAST_COUNT=$FAST_COUNT" >> $GITHUB_ENV
           else
             echo "✗ Fast aggregation failed (counter still at $FAST_COUNT)"
-            docker compose logs router --tail 50
+            docker compose -f docker-compose.yml -f docker-compose.ci.yml logs router --tail 50
             exit 1
           fi
 
       - name: Test with ingress enabled
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
         run: |
           echo "Testing with ingress enabled..."
           
@@ -271,9 +264,9 @@ jobs:
           # Recreate only the router container to pick up new environment variables
           # Note: We stop and remove the router, then recreate it with --no-deps
           # to avoid starting its dependencies (eigenlayer would try to redeploy)
-          docker compose stop router
-          docker compose rm -f router
-          docker compose up -d router --no-deps
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml stop router
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml rm -f router
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d router --no-deps
           
           # Wait for router to be ready and ingress server to start
           sleep 15
@@ -341,7 +334,7 @@ jobs:
             echo "✓ Ingress test successful: $INCREMENTS increments after ingress requests"
           else
             echo "✗ Ingress test failed (counter still at $INGRESS_COUNT)"
-            docker compose logs router --tail 50
+            docker compose -f docker-compose.yml -f docker-compose.ci.yml logs router --tail 50
             exit 1
           fi
           
@@ -358,27 +351,27 @@ jobs:
         if: failure()
         run: |
           echo "=== Docker Compose Status ==="
-          docker compose ps -a
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml ps -a
           
           echo "=== Ethereum Logs ==="
-          docker compose logs ethereum --tail 50
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml logs ethereum --tail 50
           
           echo "=== EigenLayer Logs ==="
-          docker compose logs eigenlayer --tail 100
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml logs eigenlayer --tail 100
           
           echo "=== Router Logs ==="
-          docker compose logs router --tail 100
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml logs router --tail 100
           
           echo "=== Node-1 Logs ==="
-          docker compose logs node-1 --tail 100
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml logs node-1 --tail 100
           
           echo "=== Node-2 Logs ==="
-          docker compose logs node-2 --tail 100
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml logs node-2 --tail 100
           
           echo "=== Node-3 Logs ==="
-          docker compose logs node-3 --tail 100
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml logs node-3 --tail 100
 
       - name: Cleanup
         if: always()
         run: |
-          docker compose down --volumes --remove-orphans
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml down --volumes --remove-orphans

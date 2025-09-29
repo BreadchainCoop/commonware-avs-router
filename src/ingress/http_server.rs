@@ -1,6 +1,6 @@
 use axum::{Json, Router, extract::State, http::StatusCode, routing::post};
 use std::sync::Arc;
-use tracing::{debug, info};
+use tracing::info;
 
 use crate::ingress::types::{TaskRequest, TaskResponse};
 use crate::usecases::counter::creator::{SimpleTaskQueue, TaskQueue};
@@ -10,7 +10,6 @@ pub async fn trigger_task_handler(
     State(queue): State<Arc<SimpleTaskQueue>>,
     Json(req): Json<TaskRequest>,
 ) -> (StatusCode, Json<TaskResponse>) {
-    debug!("Received task request via HTTP: {:?}", req.body.metadata);
     // Add business logic here such as api-key verification, ecdsa signature verification, etc retrieved from the TaskRequest
     // for example, if we assume `var1` is the api-key
     // let var1 = req.body.var1;

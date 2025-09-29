@@ -20,7 +20,13 @@ The router coordinates multiple operators to sign messages, aggregates their sig
 1. **Configure environment:**
 ```bash
 cp example.env .env
-# Edit .env to set your configuration
+```
+
+For LOCAL mode (default), the example.env is pre-configured. You'll need to set a private key:
+```bash
+# Use Anvil's default test key for local development
+echo "PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" >> .env
+echo "FUNDED_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" >> .env
 ```
 
 2. **Start all services:**
@@ -28,7 +34,7 @@ cp example.env .env
 docker compose up -d
 ```
 
-This will start:
+This will automatically pull the latest pre-built images from the GitHub Container Registry (ghcr.io) and start:
 - Ethereum node (Anvil fork)
 - EigenLayer contract deployment
 - 3 operator nodes
@@ -52,6 +58,18 @@ docker compose down
 
 # Stop and remove volumes (clean state)
 docker compose down -v
+```
+
+### Building from Source (Development Only)
+
+If you're developing the router and want to test local changes:
+
+```bash
+# Build the router image locally
+docker build -t ghcr.io/breadchaincoop/commonware-avs-router:dev .
+
+# Run with locally built image
+docker compose up -d
 ```
 
 ## Architecture

@@ -55,10 +55,10 @@ pub async fn create_listening_creator_with_server(
     let provider = CounterProvider::new(counter_address, provider.clone());
     let queue = SimpleTaskQueue::new();
     // Use configurable timeout for ingress mode, defaulting to 30 seconds
-    let timeout_ms = env::var("INGRESS_TIMEOUT_MS")
-        .unwrap_or_else(|_| "30000".to_string())
-        .parse()
-        .unwrap_or(30000);
+    let timeout_ms: u64 = env::var("INGRESS_TIMEOUT_MS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(30_000);
     let config = CreatorConfig {
         polling_interval_ms: 100,
         timeout_ms,

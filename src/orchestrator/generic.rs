@@ -7,7 +7,7 @@ use commonware_p2p::{Receiver, Sender};
 use commonware_runtime::Clock;
 use commonware_utils::hex;
 use std::{collections::HashMap, time::Duration};
-use tracing::{error, info};
+use tracing::info;
 
 use crate::creator::core::Creator;
 use crate::executor::core::{VerificationData, VerificationExecutor};
@@ -124,16 +124,7 @@ where
         let mut signatures = HashMap::new();
 
         loop {
-            info!("Orchestrator: Starting new aggregation cycle");
-            let payload_result = self.task_creator.get_payload_and_round().await;
-            let (payload, current_round) = match payload_result {
-                Ok(result) => result,
-                Err(e) => {
-                    error!("Failed to get payload and round: {e}");
-                    panic!("Failed to get payload and round: {e}");
-                }
-            };
-            info!("Orchestrator: Got payload and round {}", current_round);
+            let (payload, current_round) = self.task_creator.get_payload_and_round().await.unwrap();
 
             // Create a new hasher for each iteration
             let mut hasher = Sha256::new();
@@ -169,9 +160,7 @@ where
                         current_round, self.t
                     );
                 }
-                Entry::Occupied(_) => {
-                    // Reusing existing signatures entry for this round
-                }
+                Entry::Occupied(_) => {}
             }
 
             // Listen for messages until the next broadcast
