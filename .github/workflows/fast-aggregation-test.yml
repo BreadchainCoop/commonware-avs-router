@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - dev
+  workflow_run:
+    workflows: ["Docker CI/CD"]
+    types:
+      - completed
+    branches:
+      - dev
 
 env:
   CARGO_TERM_COLOR: always
@@ -11,8 +17,9 @@ env:
 
 jobs:
   fast-aggregation-test:
+    if: ${{ github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
@@ -20,41 +27,27 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Checkout commonware-avs-node
-        uses: actions/checkout@v3
-        with:
-          repository: BreadchainCoop/commonware-avs-node
-          path: commonware-avs-node
-          ref: dev
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Install Rust
+      - name: Install Rust (for verification script only)
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
 
-      - name: Cache Rust dependencies
+      - name: Cache Rust dependencies (verification script only)
         uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target
             scripts/target
-            commonware-avs-node/target
-          key: ${{ runner.os }}-cargo-fast-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-verify-${{ hashFiles('scripts/Cargo.lock') }}
 
-      - name: Build projects
+      - name: Build verification script
+        timeout-minutes: 5
         run: |
-          echo "Building router..."
-          cargo build --release
-          echo "Building AVS node..."
-          cd commonware-avs-node
-          cargo build --release
-          cd ..
           echo "Building verification script..."
           cd scripts
           cargo build --release --bin verify_increments
@@ -64,15 +57,6 @@ jobs:
         run: |
           # Copy example.env to .env
           cp example.env .env
-          
-          # Copy to AVS node
-          if [ -d commonware-avs-node ]; then
-            if [ -f commonware-avs-node/example.env ]; then
-              cp commonware-avs-node/example.env commonware-avs-node/.env
-            else
-              cp .env commonware-avs-node/.env
-            fi
-          fi
 
           # Create required directories
           mkdir -p .nodes/operator_keys
@@ -106,17 +90,13 @@ jobs:
           sed -i "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$DEFAULT_PRIVATE_KEY|" .env
           sed -i "s|^FUNDED_KEY=.*|FUNDED_KEY=$DEFAULT_PRIVATE_KEY|" .env
 
-          # Update commonware-avs-node .env file
-          sed -i 's|^HTTP_RPC=.*|HTTP_RPC=http://localhost:8545|' commonware-avs-node/.env
-          sed -i 's|^WS_RPC=.*|WS_RPC=ws://localhost:8545|' commonware-avs-node/.env
-          sed -i 's|^AVS_DEPLOYMENT_PATH=.*|AVS_DEPLOYMENT_PATH="../.nodes/avs_deploy.json"|' commonware-avs-node/.env
-          sed -i "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$DEFAULT_PRIVATE_KEY|" commonware-avs-node/.env
 
           echo "Environment configuration with AGGREGATION_FREQUENCY=$AGGREGATION_FREQUENCY:"
           grep -E "^(ENVIRONMENT|HTTP_RPC|PRIVATE_KEY)" .env
           echo "AGGREGATION_FREQUENCY=$AGGREGATION_FREQUENCY"
 
       - name: Pull Docker images
+        timeout-minutes: 5
         run: docker compose pull
 
       - name: Start infrastructure services
@@ -157,34 +137,14 @@ jobs:
 
           sleep 10
 
-      - name: Start AVS nodes
+      - name: Start AVS nodes and router
         run: |
-          cd commonware-avs-node
-          source .env
-
-          mkdir -p ../logs
-
-          export CONTRIBUTOR_1_KEYFILE="../.nodes/operator_keys/testacc1.private.bls.key.json"
-          export CONTRIBUTOR_2_KEYFILE="../.nodes/operator_keys/testacc2.private.bls.key.json"
-          export CONTRIBUTOR_3_KEYFILE="../.nodes/operator_keys/testacc3.private.bls.key.json"
-
-          # Start nodes
-          ./target/release/commonware-avs-node --key-file $CONTRIBUTOR_1_KEYFILE --port 3001 --orchestrator orchestrator.json > ../logs/node1.log 2>&1 &
-          echo $! > ../node1.pid
-          echo "Node 1 started with PID: $(cat ../node1.pid)"
-
-          sleep 2
-
-          ./target/release/commonware-avs-node --key-file $CONTRIBUTOR_2_KEYFILE --port 3002 --orchestrator orchestrator.json > ../logs/node2.log 2>&1 &
-          echo $! > ../node2.pid
-          echo "Node 2 started with PID: $(cat ../node2.pid)"
-
-          sleep 2
-
-          ./target/release/commonware-avs-node --key-file $CONTRIBUTOR_3_KEYFILE --port 3003 --orchestrator orchestrator.json > ../logs/node3.log 2>&1 &
-          echo $! > ../node3.pid
-          echo "Node 3 started with PID: $(cat ../node3.pid)"
-
+          # The AVS nodes are already running as part of docker-compose
+          # Just need to verify they're up
+          echo "Checking that AVS nodes are running..."
+          docker compose ps
+          
+          # Wait for nodes to be healthy
           echo "Waiting for nodes to initialize..."
           sleep 10
 
@@ -195,20 +155,28 @@ jobs:
           # Export the aggregation frequency environment variable
           export AGGREGATION_FREQUENCY=0.3
           
-          echo "Starting router with AGGREGATION_FREQUENCY=$AGGREGATION_FREQUENCY"
+          echo "Starting router container with AGGREGATION_FREQUENCY=$AGGREGATION_FREQUENCY"
           
-          # Start router in orchestrator mode with fast aggregation
-          ./target/release/commonware-avs-router --key-file config/orchestrator.json --port 3000 > logs/router.log 2>&1 &
-          echo $! > router.pid
-          echo "Router started with PID: $(cat router.pid)"
-
+          # Start router using Docker
+          docker run -d \
+            --name router \
+            --network commonware-avs-router_default \
+            -e AGGREGATION_FREQUENCY=0.3 \
+            -e HTTP_RPC=http://ethereum:8545 \
+            -e WS_RPC=ws://ethereum:8545 \
+            -v $(pwd)/config:/app/config \
+            -v $(pwd)/.nodes:/app/.nodes \
+            -p 3000:3000 \
+            ghcr.io/breadchaincoop/commonware-avs-router:dev \
+            --key-file /app/config/orchestrator.json --port 3000
+          
           # Wait for router to initialize
           echo "Waiting for router to initialize with 0.3-second (300ms) aggregation frequency..."
           sleep 10
           
           # Check that the router is using the correct aggregation frequency
           echo "=== Router log excerpt (checking aggregation frequency) ==="
-          grep -i "aggregation" logs/router.log | head -10 || true
+          docker logs router 2>&1 | grep -i "aggregation" | head -10 || true
 
       - name: Wait for fast aggregation cycles
         run: |
@@ -220,17 +188,17 @@ jobs:
           
           # Check router logs for aggregation activity
           echo "=== Checking for aggregation activity ==="
-          grep -i "aggregat" logs/router.log | tail -20 || echo "No aggregation logs found"
+          docker logs router 2>&1 | grep -i "aggregat" | tail -20 || echo "No aggregation logs found"
           
           # Count aggregation events
-          aggregation_count=$(grep -c "aggregat" logs/router.log 2>/dev/null || echo "0")
+          aggregation_count=$(docker logs router 2>&1 | grep -c "aggregat" 2>/dev/null || echo "0")
           echo "Found $aggregation_count aggregation-related log entries"
           
           # With 0.3-second frequency over 30 seconds, we expect at least 50 aggregations
           if [ "$aggregation_count" -lt 50 ]; then
             echo "Warning: Expected more aggregation events with 0.3-second frequency"
             echo "Full router log:"
-            cat logs/router.log
+            docker logs router
           fi
 
       - name: Verify counter increments with fast aggregation
@@ -250,30 +218,22 @@ jobs:
           
           # Additional verification: Check that we got multiple increments
           echo "=== Checking router logs for successful aggregations ==="
-          grep -i "success\|complet\|aggregat" ../logs/router.log | tail -30 || true
+          docker logs router 2>&1 | grep -i "success\|complet\|aggregat" | tail -30 || true
 
       - name: Collect logs on failure
         if: failure()
         run: |
           echo "=== Router logs (last 100 lines) ==="
-          if [ -f logs/router.log ]; then
-            tail -100 logs/router.log || true
-          fi
+          docker logs router --tail=100 || true
 
           echo "=== Node1 logs (last 50 lines) ==="
-          if [ -f logs/node1.log ]; then
-            tail -50 logs/node1.log || true
-          fi
+          docker compose logs node-1 --tail=50 || true
 
           echo "=== Node2 logs (last 50 lines) ==="
-          if [ -f logs/node2.log ]; then
-            tail -50 logs/node2.log || true
-          fi
+          docker compose logs node-2 --tail=50 || true
 
           echo "=== Node3 logs (last 50 lines) ==="
-          if [ -f logs/node3.log ]; then
-            tail -50 logs/node3.log || true
-          fi
+          docker compose logs node-3 --tail=50 || true
 
           echo "=== EigenLayer logs ==="
           docker compose logs eigenlayer --tail=50 || true
@@ -282,10 +242,8 @@ jobs:
         if: always()
         run: |
           echo "Stopping processes..."
-          [ -f router.pid ] && kill $(cat router.pid) || true
-          [ -f node1.pid ] && kill $(cat node1.pid) || true
-          [ -f node2.pid ] && kill $(cat node2.pid) || true
-          [ -f node3.pid ] && kill $(cat node3.pid) || true
+          docker stop router || true
+          docker rm router || true
 
           echo "Stopping Docker Compose services..."
           docker compose down -v || true
