@@ -1,0 +1,69 @@
+# Example values for development/testing deployment
+# This file shows a minimal development configuration
+
+image:
+  repository: ghcr.io/breadchaincoop/commonware-avs-router
+  tag: "latest"
+  pullPolicy: Always  # Always pull latest for development
+
+replicaCount: 1
+
+service:
+  type: NodePort
+  port: 3000
+
+# Local development environment
+env:
+  ENVIRONMENT: "LOCAL"
+  HTTP_RPC: "http://localhost:8545"
+  WS_RPC: "ws://localhost:8545"
+  AGGREGATION_FREQUENCY: "10"  # Faster aggregation for testing
+  THRESHOLD: "3"
+  INGRESS: "true"
+  INGRESS_ADDRESS: "0.0.0.0:8080"
+
+# Minimal resources for development
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# No persistence needed for development
+persistence:
+  config:
+    enabled: false
+  keys:
+    enabled: false
+
+# Development secrets (use for testing only)
+secrets:
+  enabled: true
+  data:
+    # Base64 encoded test keys (do not use in production!)
+    private-key: "MHg1NDY3NmQzMDczNzQ2ODYxNzQ3MzMwNzM2ODM5NzQ="
+    funded-key: "MHg1NDY3NmQzMDczNzQ2ODYxNzQ3MzMwNzM2ODM5NzQ="
+
+envFromSecrets:
+  PRIVATE_KEY:
+    secretName: "my-router-commonware-avs-router"
+    key: "private-key"
+  FUNDED_KEY:
+    secretName: "my-router-commonware-avs-router"
+    key: "funded-key"
+
+# Disable probes for easier debugging
+livenessProbe:
+  enabled: false
+readinessProbe:
+  enabled: false
+
+# No restrictions for development
+securityContext:
+  allowPrivilegeEscalation: true
+  readOnlyRootFilesystem: false
+  runAsNonRoot: false
+
+podSecurityContext: {}

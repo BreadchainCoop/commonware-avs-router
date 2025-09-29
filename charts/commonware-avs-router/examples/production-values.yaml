@@ -1,0 +1,107 @@
+# Example values for production deployment
+# This file shows a typical production configuration
+
+image:
+  repository: ghcr.io/breadchaincoop/commonware-avs-router
+  tag: "v1.0.0"  # Use specific version tag in production
+  pullPolicy: IfNotPresent
+
+replicaCount: 3
+
+service:
+  type: ClusterIP
+  port: 3000
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+  hosts:
+    - host: avs-router.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: avs-router-tls
+      hosts:
+        - avs-router.example.com
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+# Environment variables for production
+env:
+  ENVIRONMENT: "TESTNET"
+  HTTP_RPC: "https://your-private-holesky-rpc.com"
+  WS_RPC: "wss://your-private-holesky-rpc.com"
+  AGGREGATION_FREQUENCY: "30"
+  THRESHOLD: "3"
+  INGRESS: "false"
+
+# Production secrets
+envFromSecrets:
+  PRIVATE_KEY:
+    secretName: "avs-router-secrets"
+    key: "private-key"
+  FUNDED_KEY:
+    secretName: "avs-router-secrets"
+    key: "funded-key"
+
+# Enable persistent storage for production
+persistence:
+  config:
+    enabled: true
+    storageClass: "fast-ssd"
+    accessMode: ReadWriteOnce
+    size: 10Gi
+    
+  keys:
+    enabled: true
+    storageClass: "fast-ssd"
+    accessMode: ReadWriteOnce
+    size: 5Gi
+
+# Pod disruption budget for high availability
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+# Enable autoscaling
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Node selection for production workloads
+nodeSelector:
+  node-type: "production"
+
+# Tolerations for production nodes
+tolerations:
+  - key: "production"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"
+
+# Anti-affinity to spread pods across nodes
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - commonware-avs-router
+        topologyKey: kubernetes.io/hostname

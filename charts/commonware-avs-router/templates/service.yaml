@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "commonware-avs-router.fullname" . }}
+  labels:
+    {{- include "commonware-avs-router.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+    {{- if and .Values.env.INGRESS_ADDRESS (eq .Values.env.INGRESS "true") }}
+    - port: 8080
+      targetPort: ingress
+      protocol: TCP
+      name: ingress
+    {{- end }}
+  selector:
+    {{- include "commonware-avs-router.selectorLabels" . | nindent 4 }}
