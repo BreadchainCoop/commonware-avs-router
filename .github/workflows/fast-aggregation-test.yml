@@ -76,6 +76,11 @@ jobs:
               build:
                 context: .
                 dockerfile: Dockerfile
+              environment:
+                - HTTP_RPC=http://ethereum:8545
+                - WS_RPC=ws://ethereum:8545
+                - AVS_DEPLOYMENT_PATH=/app/.nodes/avs_deploy.json
+                - AGGREGATION_FREQUENCY=0.3
           EOF
 
       - name: Pull Docker images
