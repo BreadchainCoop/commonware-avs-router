@@ -102,7 +102,7 @@ fn main() {
         .get_one::<String>("port")
         .expect("Please provide port");
     let key = load_key_from_file(key_file);
-    let me = format!("{}@{}", key, port);
+    let me = format!("{key}@{port}");
     let parts = me.split('@').collect::<Vec<&str>>();
     if parts.len() != 2 {
         panic!("Identity not well-formed");
@@ -142,11 +142,32 @@ fn main() {
             }
             for participant in participants {
                 let verifier = participant.pub_keys.unwrap().g2_pub_key;
-                tracing::info!(key = ?verifier, "registered authorized key",);
                 if let Some(socket) = participant.socket {
-                    let socket_addr = SocketAddr::from_str(&socket)
-                        .expect("Bootstrapper address not well-formed");
-                    recipients.push((verifier, socket_addr));
+
+                    // Try to resolve hostname:port to socket addresses
+                    use std::net::ToSocketAddrs;
+                    match socket.to_socket_addrs() {
+                        Ok(mut addrs) => {
+                            if let Some(socket_addr) = addrs.next() {
+                                recipients.push((verifier, socket_addr));
+                            } else {
+                                panic!("No addresses found for socket: {socket}");
+                            }
+                        }
+                        Err(e) => {
+                            // If resolution fails, try parsing as direct IP:PORT
+                            match SocketAddr::from_str(&socket) {
+                                Ok(socket_addr) => {
+                                    recipients.push((verifier, socket_addr));
+                                }
+                                Err(parse_err) => {
+                                    tracing::error!("Failed to resolve '{}': {:?}, and failed to parse as IP: {:?}",
+                                                  socket, e, parse_err);
+                                    panic!("Bootstrapper address not well-formed: {socket}");
+                                }
+                            }
+                        }
+                    }
                 }
             }
             let orchestrator_verifier = signer.public_key();

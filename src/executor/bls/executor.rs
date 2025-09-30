@@ -17,7 +17,7 @@ use tracing::debug;
 use super::traits::{BlsExecutorTrait, BlsSignatureVerificationHandler};
 use super::types::BlsVerificationData;
 
-pub struct BlsEigenlayerExecutor<H: BlsSignatureVerificationHandler> {
+pub struct BlsEigenlayerExecutor<H> {
     view_only_provider: ReadOnlyProvider,
     bls_apk_registry: BLSApkRegistryInstance<(), ReadOnlyProvider>,
     bls_operator_state_retriever: BLSSigCheckOperatorStateRetrieverInstance<(), ReadOnlyProvider>,
@@ -26,7 +26,7 @@ pub struct BlsEigenlayerExecutor<H: BlsSignatureVerificationHandler> {
     g1_hash_map: HashMap<PublicKey, Address>,
 }
 
-impl<H: BlsSignatureVerificationHandler> BlsEigenlayerExecutor<H> {
+impl<H> BlsEigenlayerExecutor<H> {
     pub fn new(
         view_only_provider: ReadOnlyProvider,
         bls_apk_registry: BLSApkRegistryInstance<(), ReadOnlyProvider>,
@@ -83,11 +83,14 @@ impl<H: BlsSignatureVerificationHandler> BlsEigenlayerExecutor<H> {
 }
 
 #[async_trait]
-impl<H: BlsSignatureVerificationHandler> VerificationExecutor for BlsEigenlayerExecutor<H> {
+impl<H: BlsSignatureVerificationHandler> VerificationExecutor<H::TaskData>
+    for BlsEigenlayerExecutor<H>
+{
     async fn execute_verification(
         &mut self,
         payload_hash: &[u8],
         verification_data: VerificationData,
+        task_data: Option<&H::TaskData>,
     ) -> Result<ExecutionResult> {
         let g1_public_keys = if let Some(context) = verification_data.context {
             // Each G1 public key is stored in compressed format (32 bytes)
@@ -127,17 +130,20 @@ impl<H: BlsSignatureVerificationHandler> VerificationExecutor for BlsEigenlayerE
             g1_public_keys,
         );
 
-        self.execute_bls_verification(payload_hash, bls_verification_data)
+        self.execute_bls_verification(payload_hash, bls_verification_data, task_data)
             .await
     }
 }
 
 #[async_trait]
-impl<H: BlsSignatureVerificationHandler> BlsExecutorTrait for BlsEigenlayerExecutor<H> {
+impl<H: BlsSignatureVerificationHandler> BlsExecutorTrait<H::TaskData>
+    for BlsEigenlayerExecutor<H>
+{
     async fn execute_bls_verification(
         &mut self,
         payload_hash: &[u8],
         verification_data: BlsVerificationData,
+        task_data: Option<&H::TaskData>,
     ) -> Result<ExecutionResult> {
         let participating_g1 = &verification_data.g1_public_keys;
         let participating = &verification_data.public_keys;
@@ -196,6 +202,7 @@ impl<H: BlsSignatureVerificationHandler> BlsExecutorTrait for BlsEigenlayerExecu
                     .try_into()
                     .map_err(|e| anyhow::anyhow!("Failed to convert block number: {}", e))?,
                 non_signer_return,
+                task_data,
             )
             .await?;
 

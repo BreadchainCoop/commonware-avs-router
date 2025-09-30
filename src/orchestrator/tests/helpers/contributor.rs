@@ -27,7 +27,7 @@ pub fn create_test_contributors() -> (Vec<PublicKey>, HashMap<PublicKey, G1Publi
 
         // Create a mock G1 public key using coordinates
         let g1_pub_key = G1PublicKey::create_from_g1_coordinates(
-            &format!("{:064x}", i),
+            &format!("{i:064x}"),
             &format!("{:064x}", i + 1),
         )
         .expect("Failed to create G1 key");

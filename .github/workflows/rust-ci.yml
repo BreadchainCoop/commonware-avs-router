@@ -6,15 +6,8 @@ on:
 
 jobs:
   check:
-    name: Format, Clippy, Check (${{ matrix.crate_dir }})
+    name: Format, Clippy, Check
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        crate_dir: [".", "commonware-avs-node"]
-    defaults:
-      run:
-        working-directory: ${{ matrix.crate_dir }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,11 +19,6 @@ jobs:
 
       - name: Cache cargo builds
         uses: Swatinem/rust-cache@v2
-        with:
-          # Cache both crates to speed up matrix runs
-          workspaces: |
-            .
-            commonware-avs-node
 
       - name: cargo fmt --check
         run: cargo fmt --all -- --check
