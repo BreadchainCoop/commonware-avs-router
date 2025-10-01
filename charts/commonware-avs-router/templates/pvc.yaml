@@ -1,0 +1,37 @@
+{{- if .Values.persistence.config.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "commonware-avs-router.fullname" . }}-config
+  labels:
+    {{- include "commonware-avs-router.labels" . | nindent 4 }}
+    app.kubernetes.io/component: config
+spec:
+  accessModes:
+    - {{ .Values.persistence.config.accessMode }}
+  {{- if .Values.persistence.config.storageClass }}
+  storageClassName: {{ .Values.persistence.config.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.config.size }}
+---
+{{- end }}
+{{- if .Values.persistence.keys.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "commonware-avs-router.fullname" . }}-keys
+  labels:
+    {{- include "commonware-avs-router.labels" . | nindent 4 }}
+    app.kubernetes.io/component: keys
+spec:
+  accessModes:
+    - {{ .Values.persistence.keys.accessMode }}
+  {{- if .Values.persistence.keys.storageClass }}
+  storageClassName: {{ .Values.persistence.keys.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.keys.size }}
+{{- end }}

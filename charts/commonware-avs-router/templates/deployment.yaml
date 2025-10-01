@@ -1,0 +1,197 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "commonware-avs-router.fullname" . }}
+  labels:
+    {{- include "commonware-avs-router.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "commonware-avs-router.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "commonware-avs-router.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "commonware-avs-router.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.command }}
+          command:
+            {{- toYaml .Values.command | nindent 12 }}
+          {{- end }}
+          {{- if .Values.args }}
+          args:
+            {{- toYaml .Values.args | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+            {{- if .Values.env.INGRESS_ADDRESS }}
+            - name: ingress
+              containerPort: 8080
+              protocol: TCP
+            {{- end }}
+          env:
+            {{- range $key, $value := .Values.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- range $key, $config := .Values.envFromSecrets }}
+            - name: {{ $key }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $config.secretName }}
+                  key: {{ $config.key }}
+            {{- end }}
+            {{- range $key, $config := .Values.envFromConfigMaps }}
+            - name: {{ $key }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $config.configMapName }}
+                  key: {{ $config.key }}
+            {{- end }}
+          {{- if .Values.envFrom }}
+          envFrom:
+            {{- toYaml .Values.envFrom | nindent 12 }}
+          {{- end }}
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+            {{- if .Values.livenessProbe.tcpSocket }}
+            tcpSocket:
+              port: {{ .Values.livenessProbe.tcpSocket.port }}
+            {{- else if .Values.livenessProbe.httpGet }}
+            httpGet:
+              path: {{ .Values.livenessProbe.httpGet.path }}
+              port: {{ .Values.livenessProbe.httpGet.port }}
+            {{- else }}
+            tcpSocket:
+              port: {{ .Values.service.targetPort }}
+            {{- end }}
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+            successThreshold: {{ .Values.livenessProbe.successThreshold }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            {{- if .Values.readinessProbe.tcpSocket }}
+            tcpSocket:
+              port: {{ .Values.readinessProbe.tcpSocket.port }}
+            {{- else if .Values.readinessProbe.httpGet }}
+            httpGet:
+              path: {{ .Values.readinessProbe.httpGet.path }}
+              port: {{ .Values.readinessProbe.httpGet.port }}
+            {{- else }}
+            tcpSocket:
+              port: {{ .Values.service.targetPort }}
+            {{- end }}
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+            successThreshold: {{ .Values.readinessProbe.successThreshold }}
+          {{- end }}
+          {{- if .Values.startupProbe.enabled }}
+          startupProbe:
+            {{- if .Values.startupProbe.tcpSocket }}
+            tcpSocket:
+              port: {{ .Values.startupProbe.tcpSocket.port }}
+            {{- else if .Values.startupProbe.httpGet }}
+            httpGet:
+              path: {{ .Values.startupProbe.httpGet.path }}
+              port: {{ .Values.startupProbe.httpGet.port }}
+            {{- else }}
+            tcpSocket:
+              port: {{ .Values.service.targetPort }}
+            {{- end }}
+            initialDelaySeconds: {{ .Values.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.startupProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.startupProbe.failureThreshold }}
+            successThreshold: {{ .Values.startupProbe.successThreshold }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            {{- if .Values.configMap.enabled }}
+            - name: config
+              mountPath: /app/config
+              readOnly: true
+            {{- end }}
+            {{- if .Values.secrets.enabled }}
+            - name: secrets
+              mountPath: /app/secrets
+              readOnly: true
+            {{- end }}
+            {{- if .Values.persistence.config.enabled }}
+            - name: config-persistent
+              mountPath: {{ .Values.persistence.config.mountPath }}
+            {{- end }}
+            {{- if .Values.persistence.keys.enabled }}
+            - name: keys-persistent
+              mountPath: {{ .Values.persistence.keys.mountPath }}
+            {{- end }}
+            {{- with .Values.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        {{- if .Values.configMap.enabled }}
+        - name: config
+          configMap:
+            name: {{ include "commonware-avs-router.fullname" . }}
+        {{- end }}
+        {{- if .Values.secrets.enabled }}
+        - name: secrets
+          secret:
+            secretName: {{ include "commonware-avs-router.fullname" . }}
+        {{- end }}
+        {{- if .Values.persistence.config.enabled }}
+        - name: config-persistent
+          persistentVolumeClaim:
+            claimName: {{ include "commonware-avs-router.fullname" . }}-config
+        {{- end }}
+        {{- if .Values.persistence.keys.enabled }}
+        - name: keys-persistent
+          persistentVolumeClaim:
+            claimName: {{ include "commonware-avs-router.fullname" . }}-keys
+        {{- end }}
+        {{- with .Values.volumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

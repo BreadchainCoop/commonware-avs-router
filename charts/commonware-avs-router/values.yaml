@@ -1,0 +1,251 @@
+# Default values for commonware-avs-router.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Container image configuration
+image:
+  repository: ghcr.io/breadchaincoop/commonware-avs-router
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+# Image pull secrets for private registries
+imagePullSecrets: []
+
+# Override the chart name
+nameOverride: ""
+fullnameOverride: ""
+
+# Number of replicas
+replicaCount: 1
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 3000
+  targetPort: 3000
+  annotations: {}
+
+# Ingress configuration
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+# Resource requests and limits
+resources: {}
+  # limits:
+  #   cpu: 500m
+  #   memory: 512Mi
+  # requests:
+  #   cpu: 250m
+  #   memory: 256Mi
+
+# Node selection constraints
+nodeSelector: {}
+
+# Tolerations for pod assignment
+tolerations: []
+
+# Affinity rules
+affinity: {}
+
+# Security context for the pod
+podSecurityContext:
+  fsGroup: 1000
+
+# Security context for the container
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+
+# Service account configuration
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod labels
+podLabels: {}
+
+# Liveness probe configuration
+livenessProbe:
+  enabled: true
+  tcpSocket:
+    port: 3000
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+# Readiness probe configuration  
+readinessProbe:
+  enabled: true
+  tcpSocket:
+    port: 3000
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+  successThreshold: 1
+
+# Startup probe configuration
+startupProbe:
+  enabled: false
+  tcpSocket:
+    port: 3000
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+  successThreshold: 1
+
+# Application environment variables
+env:
+  # Network Configuration
+  HTTP_RPC: "https://ethereum-holesky.publicnode.com"
+  WS_RPC: "wss://ethereum-holesky.publicnode.com"
+  
+  # Environment Mode
+  ENVIRONMENT: "TESTNET"
+  
+  # Service Configuration
+  AGGREGATION_FREQUENCY: "30"
+  THRESHOLD: "3"
+  INGRESS: "false"
+  INGRESS_ADDRESS: "0.0.0.0:8080"
+  INGRESS_TIMEOUT_MS: "30000"
+
+# Environment variables from secrets
+envFromSecrets: {}
+  # PRIVATE_KEY:
+  #   secretName: "router-secrets"
+  #   key: "private-key"
+  # FUNDED_KEY:
+  #   secretName: "router-secrets" 
+  #   key: "funded-key"
+
+# Environment variables from configmaps
+envFromConfigMaps: {}
+
+# Additional environment variables from existing secrets/configmaps
+envFrom: []
+# - secretRef:
+#     name: router-secrets
+# - configMapRef:
+#     name: router-config
+
+# ConfigMap data
+configMap:
+  enabled: true
+  data: {}
+    # Add any configuration files here
+    # config.json: |
+    #   {
+    #     "key": "value"
+    #   }
+
+# Secret data (base64 encoded)
+secrets:
+  enabled: false
+  data: {}
+    # private-key: ""
+    # funded-key: ""
+
+# Persistent volumes
+persistence:
+  # Configuration volume
+  config:
+    enabled: false
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 1Gi
+    mountPath: /app/config
+    
+  # Keys volume  
+  keys:
+    enabled: false
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 1Gi
+    mountPath: /app/keys
+
+# Additional volumes
+volumes: []
+# - name: extra-volume
+#   configMap:
+#     name: extra-configmap
+
+# Additional volume mounts
+volumeMounts: []
+# - name: extra-volume
+#   mountPath: /extra
+#   readOnly: true
+
+# Container command and args override
+command: []
+args: []
+# Default args would be: ["--key-file", "/app/config/orchestrator.json", "--port", "3000"]
+
+# Pod disruption budget
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+
+# Horizontal pod autoscaler
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Network policies
+networkPolicy:
+  enabled: false
+  policyTypes: []
+  # - Ingress
+  # - Egress
+  ingress: []
+  egress: []
+
+# Pod monitor for Prometheus
+podMonitor:
+  enabled: false
+  labels: {}
+  annotations: {}
+  interval: 30s
+  scrapeTimeout: 10s
+  path: /metrics
+  port: 3000
+
+# Service monitor for Prometheus  
+serviceMonitor:
+  enabled: false
+  labels: {}
+  annotations: {}
+  interval: 30s
+  scrapeTimeout: 10s
+  path: /metrics
+  port: 3000

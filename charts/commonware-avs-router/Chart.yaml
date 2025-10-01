@@ -1,0 +1,18 @@
+apiVersion: v2
+name: commonware-avs-router
+description: A BLS signature aggregation protocol with onchain execution for EigenLayer AVS operators
+type: application
+version: 0.1.0
+appVersion: "latest"
+keywords:
+  - blockchain
+  - eigenlayer
+  - bls
+  - signatures
+  - avs
+home: https://github.com/BreadchainCoop/commonware-avs-router
+sources:
+  - https://github.com/BreadchainCoop/commonware-avs-router
+maintainers:
+  - name: BreadchainCoop
+    url: https://github.com/BreadchainCoop

@@ -190,3 +190,276 @@ Run end-to-end tests:
 chmod +x scripts/router_e2e_local.sh
 ./scripts/router_e2e_local.sh
 ```
+
+## Kubernetes Deployment
+
+### Helm Charts
+
+This project includes Helm charts for easy deployment to Kubernetes clusters. The charts support both development and production environments with comprehensive configuration options.
+
+#### Prerequisites
+
+- Kubernetes cluster (version 1.19+)
+- Helm 3.0+
+- kubectl configured to access your cluster
+
+#### Quick Start
+
+1. **Install the chart with default values:**
+```bash
+helm install my-router charts/commonware-avs-router
+```
+
+2. **Install with custom values:**
+```bash
+helm install my-router charts/commonware-avs-router -f custom-values.yaml
+```
+
+3. **Install for development:**
+```bash
+helm install dev-router charts/commonware-avs-router \
+  -f charts/commonware-avs-router/examples/development-values.yaml
+```
+
+4. **Install for production:**
+```bash
+helm install prod-router charts/commonware-avs-router \
+  -f charts/commonware-avs-router/examples/production-values.yaml
+```
+
+#### Configuration
+
+The Helm chart supports extensive configuration through `values.yaml`. Key configuration categories include:
+
+##### Container Configuration
+```yaml
+image:
+  repository: ghcr.io/breadchaincoop/commonware-avs-router
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+```
+
+##### Service and Networking
+```yaml
+service:
+  type: ClusterIP
+  port: 3000
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: chart-example.local
+      paths: ["/"]
+  tls: []
+```
+
+##### Environment Variables
+```yaml
+env:
+  HTTP_RPC: "https://ethereum-holesky.publicnode.com"
+  WS_RPC: "wss://ethereum-holesky.publicnode.com"
+  ENVIRONMENT: "TESTNET"
+  AGGREGATION_FREQUENCY: "30"
+  THRESHOLD: "3"
+  INGRESS: "false"
+```
+
+##### Secrets Management
+```yaml
+# Environment variables from secrets
+envFromSecrets:
+  PRIVATE_KEY:
+    secretName: "router-secrets"
+    key: "private-key"
+  FUNDED_KEY:
+    secretName: "router-secrets"
+    key: "funded-key"
+
+# Create secrets directly in chart
+secrets:
+  enabled: true
+  data:
+    private-key: "<base64-encoded-private-key>"
+    funded-key: "<base64-encoded-funded-key>"
+```
+
+##### Resource Management
+```yaml
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+```
+
+##### Persistent Storage
+```yaml
+persistence:
+  config:
+    enabled: true
+    storageClass: "fast-ssd"
+    accessMode: ReadWriteOnce
+    size: 10Gi
+    mountPath: /app/config
+    
+  keys:
+    enabled: true
+    storageClass: "fast-ssd"  
+    accessMode: ReadWriteOnce
+    size: 5Gi
+    mountPath: /app/keys
+```
+
+##### Health Checks
+```yaml
+livenessProbe:
+  enabled: true
+  tcpSocket:
+    port: 3000
+  initialDelaySeconds: 30
+  periodSeconds: 10
+
+readinessProbe:
+  enabled: true
+  tcpSocket:
+    port: 3000
+  initialDelaySeconds: 5
+  periodSeconds: 5
+```
+
+##### Autoscaling
+```yaml
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+```
+
+#### Deployment Examples
+
+##### Development Environment
+```bash
+# Install with development settings
+helm install dev-router charts/commonware-avs-router \
+  --set image.tag=latest \
+  --set image.pullPolicy=Always \
+  --set replicaCount=1 \
+  --set service.type=NodePort \
+  --set env.ENVIRONMENT=LOCAL \
+  --set env.AGGREGATION_FREQUENCY=10
+```
+
+##### Production Environment
+```bash
+# Create production secrets first
+kubectl create secret generic router-secrets \
+  --from-literal=private-key="your-private-key" \
+  --from-literal=funded-key="your-funded-key"
+
+# Install with production settings
+helm install prod-router charts/commonware-avs-router \
+  --set image.tag=v1.0.0 \
+  --set replicaCount=3 \
+  --set ingress.enabled=true \
+  --set ingress.hosts[0].host=avs-router.example.com \
+  --set resources.requests.cpu=500m \
+  --set resources.requests.memory=512Mi \
+  --set envFromSecrets.PRIVATE_KEY.secretName=router-secrets \
+  --set envFromSecrets.PRIVATE_KEY.key=private-key
+```
+
+##### Testnet Deployment
+```bash
+helm install testnet-router charts/commonware-avs-router \
+  --set env.ENVIRONMENT=TESTNET \
+  --set env.HTTP_RPC=https://ethereum-holesky.publicnode.com \
+  --set env.WS_RPC=wss://ethereum-holesky.publicnode.com \
+  --set persistence.config.enabled=true \
+  --set persistence.keys.enabled=true
+```
+
+#### Management Commands
+
+##### Upgrade deployment:
+```bash
+helm upgrade my-router charts/commonware-avs-router -f updated-values.yaml
+```
+
+##### Check deployment status:
+```bash
+helm status my-router
+kubectl get pods -l app.kubernetes.io/name=commonware-avs-router
+```
+
+##### View logs:
+```bash
+kubectl logs -l app.kubernetes.io/name=commonware-avs-router -f
+```
+
+##### Uninstall:
+```bash
+helm uninstall my-router
+```
+
+#### Security Considerations
+
+The Helm chart follows security best practices:
+
+- **Non-root execution**: Containers run as user ID 1000
+- **Read-only root filesystem**: Container filesystem is read-only where possible
+- **Dropped capabilities**: All Linux capabilities are dropped
+- **Service account**: Dedicated service account with minimal permissions
+- **Secret management**: Sensitive data stored in Kubernetes secrets
+- **Network policies**: Optional network policies for traffic control
+
+#### Monitoring and Observability
+
+The chart supports integration with monitoring systems:
+
+```yaml
+# Enable service monitor for Prometheus
+serviceMonitor:
+  enabled: true
+  labels:
+    prometheus: kube-prometheus
+  interval: 30s
+  path: /metrics
+
+# Pod annotations for metric scraping
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "3000"
+  prometheus.io/path: "/metrics"
+```
+
+#### Troubleshooting
+
+1. **Check pod status:**
+```bash
+kubectl describe pod -l app.kubernetes.io/name=commonware-avs-router
+```
+
+2. **View container logs:**
+```bash
+kubectl logs -l app.kubernetes.io/name=commonware-avs-router --previous
+```
+
+3. **Debug configuration:**
+```bash
+helm template my-router charts/commonware-avs-router -f values.yaml
+```
+
+4. **Validate chart:**
+```bash
+helm lint charts/commonware-avs-router
+```
+
+For complete configuration options, see the [values.yaml](charts/commonware-avs-router/values.yaml) file.
