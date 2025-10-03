@@ -215,7 +215,7 @@ jobs:
           fi
 
           # Get starting counter value
-          START_COUNT=$(curl -s -X POST http://localhost:8545 \
+          START_RESPONSE=$(curl -s -X POST http://localhost:8545 \
             -H "Content-Type: application/json" \
             -d '{
               "jsonrpc":"2.0",
@@ -225,7 +225,17 @@ jobs:
                 "data":"0x8381f58a"
               }, "latest"],
               "id":1
-            }' | jq -r '.result' | xargs printf "%d\n")
+            }')
+
+          START_HEX=$(echo "$START_RESPONSE" | jq -r '.result')
+
+          # Handle empty or invalid response
+          if [ -z "$START_HEX" ] || [ "$START_HEX" = "null" ] || [ "$START_HEX" = "0x" ]; then
+            echo "Warning: Invalid starting counter response, defaulting to 0"
+            START_COUNT=0
+          else
+            START_COUNT=$(printf "%d\n" "$START_HEX" 2>/dev/null || echo "0")
+          fi
 
           echo "Starting counter value: $START_COUNT"
 
@@ -234,7 +244,7 @@ jobs:
           sleep 60
 
           # Read the counter value after fast aggregation
-          FAST_COUNT=$(curl -s -X POST http://localhost:8545 \
+          FAST_RESPONSE=$(curl -s -X POST http://localhost:8545 \
             -H "Content-Type: application/json" \
             -d '{
               "jsonrpc":"2.0",
@@ -244,7 +254,17 @@ jobs:
                 "data":"0x8381f58a"
               }, "latest"],
               "id":1
-            }' | jq -r '.result' | xargs printf "%d\n")
+            }')
+
+          FAST_HEX=$(echo "$FAST_RESPONSE" | jq -r '.result')
+
+          # Handle empty or invalid response
+          if [ -z "$FAST_HEX" ] || [ "$FAST_HEX" = "null" ] || [ "$FAST_HEX" = "0x" ]; then
+            echo "Warning: Invalid fast aggregation counter response, defaulting to 0"
+            FAST_COUNT=0
+          else
+            FAST_COUNT=$(printf "%d\n" "$FAST_HEX" 2>/dev/null || echo "0")
+          fi
 
           echo "Counter value after fast aggregation: $FAST_COUNT"
 
@@ -271,7 +291,7 @@ jobs:
           # Update the .env file to enable ingress
           sed -i 's/^INGRESS=false/INGRESS=true/' .env
           # Also ensure it's set (in case it wasn't in the file)
-          echo "INGRESS=true" >> .env
+          grep -q '^INGRESS=' .env || echo "INGRESS=true" >> .env
 
           # Restart router with ingress enabled
           echo "Restarting router with ingress enabled..."
@@ -296,7 +316,7 @@ jobs:
           fi
 
           # Get starting counter value
-          START_COUNT=$(curl -s -X POST http://localhost:8545 \
+          START_RESPONSE=$(curl -s -X POST http://localhost:8545 \
             -H "Content-Type: application/json" \
             -d '{
               "jsonrpc":"2.0",
@@ -306,7 +326,17 @@ jobs:
                 "data":"0x8381f58a"
               }, "latest"],
               "id":1
-            }' | jq -r '.result' | xargs printf "%d\n")
+            }')
+
+          START_HEX=$(echo "$START_RESPONSE" | jq -r '.result')
+
+          # Handle empty or invalid response
+          if [ -z "$START_HEX" ] || [ "$START_HEX" = "null" ] || [ "$START_HEX" = "0x" ]; then
+            echo "Warning: Invalid starting counter response, defaulting to 0"
+            START_COUNT=0
+          else
+            START_COUNT=$(printf "%d\n" "$START_HEX" 2>/dev/null || echo "0")
+          fi
 
           echo "Starting counter value: $START_COUNT"
 
