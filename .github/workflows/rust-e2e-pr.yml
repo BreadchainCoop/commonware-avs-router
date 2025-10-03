@@ -158,11 +158,11 @@ jobs:
         run: |
           echo "Testing counter increment with Rust e2e test..."
 
-          # Set environment variables for verify_increments script
-          export AVS_DEPLOYMENT_PATH="config/.nodes/avs_deploy.json"
+          # Set environment variables for verify_increments script (use absolute path)
+          export AVS_DEPLOYMENT_PATH="$PWD/config/.nodes/avs_deploy.json"
 
           if [ ! -f "$AVS_DEPLOYMENT_PATH" ]; then
-            echo "AVS deployment file not found"
+            echo "AVS deployment file not found at: $AVS_DEPLOYMENT_PATH"
             exit 1
           fi
 
