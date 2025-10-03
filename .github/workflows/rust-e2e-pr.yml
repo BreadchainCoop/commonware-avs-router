@@ -66,15 +66,17 @@ jobs:
           sed -i "s|^PRIVATE_KEY=.*|PRIVATE_KEY=$DEFAULT_ANVIL_KEY|" .env
           sed -i "s|^FUNDED_KEY=.*|FUNDED_KEY=$DEFAULT_ANVIL_KEY|" .env
 
-      - name: Copy config template
+      - name: Update config for host-based router
         run: |
-          cp config/config.example.json config/config.json
+          # Update node addresses in config.example.json to use localhost
+          # instead of Docker DNS names, since the router runs on the host.
+          # EigenLayer will use this file to register operators on-chain.
+          sed -i 's|"node-1:3001"|"localhost:4001"|g' config/config.example.json
+          sed -i 's|"node-2:3002"|"localhost:4002"|g' config/config.example.json
+          sed -i 's|"node-3:3003"|"localhost:4003"|g' config/config.example.json
 
-          # Update node addresses to use localhost instead of Docker DNS names
-          # since the router runs on the host (not in Docker)
-          sed -i 's|"node-1:3001"|"localhost:4001"|g' config/config.json
-          sed -i 's|"node-2:3002"|"localhost:4002"|g' config/config.json
-          sed -i 's|"node-3:3003"|"localhost:4003"|g' config/config.json
+          # Also create config.json for consistency
+          cp config/config.example.json config/config.json
 
       - name: Pull required Docker images
         run: |
