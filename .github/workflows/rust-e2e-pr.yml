@@ -35,6 +35,11 @@ jobs:
           # Set to LOCAL mode
           sed -i 's|^ENVIRONMENT=.*|ENVIRONMENT=LOCAL|' .env
 
+          # Comment out TESTNET RPC URLs
+          sed -i 's|^HTTP_RPC=https://|# HTTP_RPC=https://|' .env
+          sed -i 's|^WS_RPC=wss://|# WS_RPC=wss://|' .env
+          sed -i 's|^RPC_URL=https://|# RPC_URL=https://|' .env
+
           # Uncomment local RPC URLs
           sed -i '/^# HTTP_RPC=http:\/\/localhost:8545/s/^# //' .env
           sed -i '/^# WS_RPC=ws:\/\/localhost:8545/s/^# //' .env
