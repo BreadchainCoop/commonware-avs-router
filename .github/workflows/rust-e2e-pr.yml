@@ -126,7 +126,7 @@ jobs:
 
           echo "Starting router in background..."
           # Source environment and run router in background
-          nohup cargo run --release > router.log 2>&1 &
+          nohup cargo run --release -- --key-file config/router_orchestrator.json --port 3000 > router.log 2>&1 &
           echo $! > router.pid
 
           # Wait for router to start
@@ -181,7 +181,7 @@ jobs:
 
           # Restart router with new environment
           echo "Restarting router with fast aggregation..."
-          nohup cargo run --release > router.log 2>&1 &
+          nohup cargo run --release -- --key-file config/router_orchestrator.json --port 3000 > router.log 2>&1 &
           echo $! > router.pid
 
           # Wait for router to restart
@@ -262,7 +262,7 @@ jobs:
 
           # Restart router with ingress enabled
           echo "Restarting router with ingress enabled..."
-          nohup cargo run --release > router.log 2>&1 &
+          nohup cargo run --release -- --key-file config/router_orchestrator.json --port 3000 > router.log 2>&1 &
           echo $! > router.pid
 
           # Wait for router to restart and ingress server to start
