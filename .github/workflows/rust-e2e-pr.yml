@@ -70,6 +70,12 @@ jobs:
         run: |
           cp config/config.example.json config/config.json
 
+          # Update node addresses to use localhost instead of Docker DNS names
+          # since the router runs on the host (not in Docker)
+          sed -i 's|"node-1:3001"|"localhost:4001"|g' config/config.json
+          sed -i 's|"node-2:3002"|"localhost:4002"|g' config/config.json
+          sed -i 's|"node-3:3003"|"localhost:4003"|g' config/config.json
+
       - name: Pull required Docker images
         run: |
           docker compose pull ethereum eigenlayer signer node-1 node-2 node-3
