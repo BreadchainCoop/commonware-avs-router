@@ -22,12 +22,6 @@ jobs:
       - name: Cache cargo builds
         uses: Swatinem/rust-cache@v2
 
-      - name: Build verify_increments script
-        run: |
-          cd scripts
-          cargo build --release --bin verify_increments --quiet
-          cd ..
-
       - name: Create .env file from example
         run: |
           cp example.env .env
@@ -156,26 +150,87 @@ jobs:
 
       - name: Test counter increment functionality
         run: |
-          echo "Testing counter increment with Rust e2e test..."
+          echo "Testing counter increment..."
 
-          # Set environment variables for verify_increments script (use absolute path)
-          export AVS_DEPLOYMENT_PATH="$PWD/config/.nodes/avs_deploy.json"
+          # Wait for services to be fully ready
+          sleep 20
 
-          if [ ! -f "$AVS_DEPLOYMENT_PATH" ]; then
-            echo "AVS deployment file not found at: $AVS_DEPLOYMENT_PATH"
+          # Get the counter contract address from the deployment file
+          if [ ! -f "config/.nodes/avs_deploy.json" ]; then
+            echo "AVS deployment file not found"
             exit 1
           fi
 
-          # Run the verification script
-          cd scripts
-          cargo run --release --bin verify_increments
+          COUNTER_ADDRESS=$(cat config/.nodes/avs_deploy.json | jq -r '.addresses.counter' || echo "")
+          if [ -z "$COUNTER_ADDRESS" ]; then
+            echo "Counter contract address not found in deployment file"
+            exit 1
+          fi
 
-          if [ $? -eq 0 ]; then
-            echo "✓ Counter increment test PASSED"
+          echo "Counter contract address: $COUNTER_ADDRESS"
+
+          # Read the initial counter value from the smart contract
+          # The function signature for "number()" is 0x8381f58a
+          INITIAL_RESPONSE=$(curl -s -X POST http://localhost:8545 \
+            -H "Content-Type: application/json" \
+            -d '{
+              "jsonrpc":"2.0",
+              "method":"eth_call",
+              "params":[{
+                "to":"'$COUNTER_ADDRESS'",
+                "data":"0x8381f58a"
+              }, "latest"],
+              "id":1
+            }')
+
+          INITIAL_HEX=$(echo "$INITIAL_RESPONSE" | jq -r '.result')
+
+          # Handle empty or invalid response
+          if [ -z "$INITIAL_HEX" ] || [ "$INITIAL_HEX" = "null" ] || [ "$INITIAL_HEX" = "0x" ]; then
+            echo "Warning: Invalid initial counter response, defaulting to 0"
+            INITIAL_COUNT=0
           else
-            echo "✗ Counter increment test FAILED"
+            INITIAL_COUNT=$(printf "%d\n" "$INITIAL_HEX" 2>/dev/null || echo "0")
+          fi
+
+          echo "Initial counter value: $INITIAL_COUNT"
+
+          # Wait for increments (router aggregates periodically)
+          echo "Waiting 150 seconds for counter increments..."
+          sleep 150
+
+          # Read the final counter value from the smart contract
+          FINAL_RESPONSE=$(curl -s -X POST http://localhost:8545 \
+            -H "Content-Type: application/json" \
+            -d '{
+              "jsonrpc":"2.0",
+              "method":"eth_call",
+              "params":[{
+                "to":"'$COUNTER_ADDRESS'",
+                "data":"0x8381f58a"
+              }, "latest"],
+              "id":1
+            }')
+
+          FINAL_HEX=$(echo "$FINAL_RESPONSE" | jq -r '.result')
+
+          # Handle empty or invalid response
+          if [ -z "$FINAL_HEX" ] || [ "$FINAL_HEX" = "null" ] || [ "$FINAL_HEX" = "0x" ]; then
+            echo "Warning: Invalid final counter response, defaulting to 0"
+            FINAL_COUNT=0
+          else
+            FINAL_COUNT=$(printf "%d\n" "$FINAL_HEX" 2>/dev/null || echo "0")
+          fi
+
+          echo "Final counter value: $FINAL_COUNT"
+
+          # Verify increment
+          if [ "$FINAL_COUNT" -gt "$INITIAL_COUNT" ]; then
+            echo "✓ Counter successfully incremented from $INITIAL_COUNT to $FINAL_COUNT"
+          else
+            echo "✗ Counter did not increment (still at $FINAL_COUNT)"
             echo "=== Router logs ==="
-            cat ../router.log
+            cat router.log
             exit 1
           fi
 
